@@ -15,8 +15,11 @@
     "lint": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@agent-artifacts/db": "workspace:*",
+    "@agent-artifacts/policy": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",
     "@agent-artifacts/storage": "workspace:*",
+    "drizzle-orm": "^0.45.2",
     "zod": "^4.4.3"
   }
 }

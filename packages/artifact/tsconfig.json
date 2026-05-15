@@ -6,6 +6,6 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "references": [{ "path": "../shared" }, { "path": "../storage" }],
+  "references": [{ "path": "../db" }, { "path": "../policy" }, { "path": "../shared" }, { "path": "../storage" }],
   "include": ["src/**/*.ts"]
 }

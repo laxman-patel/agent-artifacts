@@ -15,8 +15,14 @@ export interface PutObjectInput {
   contentType: string;
 }
 
+export interface GetObjectOutput {
+  body: Uint8Array;
+  contentType?: string;
+}
+
 export interface ArtifactStorage {
   putObject(input: PutObjectInput): Promise<void>;
+  getObject(key: string): Promise<GetObjectOutput>;
   getSignedReadUrl(key: string, expiresInSeconds: number): Promise<string>;
 }
 
@@ -52,6 +58,27 @@ export class S3ArtifactStorage implements ArtifactStorage {
         ContentType: input.contentType
       })
     );
+  }
+
+  async getObject(key: string): Promise<GetObjectOutput> {
+    const response = await this.client.send(
+      new GetObjectCommand({
+        Bucket: this.config.bucket,
+        Key: key
+      })
+    );
+
+    if (!response.Body) {
+      return {
+        body: new Uint8Array(),
+        contentType: response.ContentType
+      };
+    }
+
+    return {
+      body: await response.Body.transformToByteArray(),
+      contentType: response.ContentType
+    };
   }
 
   async getSignedReadUrl(key: string, expiresInSeconds: number): Promise<string> {

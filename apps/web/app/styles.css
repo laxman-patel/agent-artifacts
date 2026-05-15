@@ -360,3 +360,137 @@ li span {
   margin: 0 auto;
   max-width: 520px;
 }
+
+/* ─── Markdown prose renderer ───────────────────────────────────────── */
+.prose {
+  color: #e4e4e7;
+  font-size: 1rem;
+  line-height: 1.75;
+  max-width: 72ch;
+  padding: 1.5rem;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: #f4f4f5;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 2rem 0 0.75rem;
+}
+
+.prose h1 { font-size: 2rem; }
+.prose h2 { font-size: 1.5rem; }
+.prose h3 { font-size: 1.25rem; }
+.prose h4 { font-size: 1.1rem; }
+
+.prose p {
+  margin: 0 0 1.25rem;
+}
+
+.prose a {
+  color: #a78bfa;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.prose a:hover {
+  color: #c4b5fd;
+}
+
+.prose code {
+  background: rgb(255 255 255 / 0.07);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 5px;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 0.875em;
+  padding: 0.15em 0.45em;
+}
+
+.prose pre {
+  background: rgb(0 0 0 / 0.45);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 12px;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.prose pre code {
+  background: transparent;
+  border: none;
+  font-size: 0.875rem;
+  padding: 0;
+}
+
+.prose blockquote {
+  border-left: 3px solid #7c3aed;
+  color: #a1a1aa;
+  margin: 1.5rem 0;
+  padding: 0.5rem 0 0.5rem 1.25rem;
+}
+
+.prose blockquote p {
+  margin: 0;
+}
+
+.prose ul,
+.prose ol {
+  display: block;
+  margin: 0 0 1.25rem;
+  padding-left: 1.6rem;
+}
+
+.prose ul { list-style: disc; }
+.prose ol { list-style: decimal; }
+
+.prose li {
+  display: list-item;
+  margin: 0.35rem 0;
+  color: #e4e4e7;
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid rgb(255 255 255 / 0.1);
+  margin: 2rem 0;
+}
+
+.prose img {
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+.prose table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin: 1.5rem 0;
+  width: 100%;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid rgb(255 255 255 / 0.1);
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+}
+
+.prose th {
+  background: rgb(255 255 255 / 0.06);
+  font-weight: 600;
+}
+
+.prose tr:nth-child(even) td {
+  background: rgb(255 255 255 / 0.02);
+}
+
+.prose input[type="checkbox"] {
+  accent-color: #8b5cf6;
+  margin-right: 0.5rem;
+}
+/* ─────────────────────────────────────────────────────────────────────── */

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cookieHeader, fetchArtifactContent, fetchArtifactMeta } from "../../../lib/server-api";
+import { MarkdownViewer } from "../../components/markdown-viewer";
+import { ReactViewer } from "../../components/react-viewer";
 
 export default async function ArtifactPage(props: {
   params: Promise<{ username: string; slug: string }>;
@@ -72,10 +74,14 @@ export default async function ArtifactPage(props: {
       </header>
 
       <section className="card flat viewer-card">
-        {meta.artifact.type === "html" ? (
-          <iframe className="artifact-frame" referrerPolicy="no-referrer" sandbox="" srcDoc={content} title="HTML artifact preview" />
-        ) : (
-          <pre className="source-view">{content}</pre>
+        {meta.artifact.type === "html" && (
+          <iframe className="artifact-frame" referrerPolicy="no-referrer" sandbox="allow-scripts" srcDoc={content} title="HTML artifact preview" />
+        )}
+        {meta.artifact.type === "markdown" && (
+          <MarkdownViewer content={content} />
+        )}
+        {meta.artifact.type === "react" && (
+          <ReactViewer content={content} />
         )}
         <p className="muted small">Rendered as {contentType}</p>
       </section>

@@ -189,10 +189,12 @@ export class ArtifactService {
 
   async checkSlugAvailability(
     ownerUsername: string,
-    slug: string
+    slug: string,
+    principal: Principal
   ): Promise<{ available: boolean; ownerUserId: string; normalizedSlug: string }> {
     const normalizedSlug = validateSlug(slug);
     const owner = await this.requireOwner(ownerUsername);
+    this.assertAllowed(principal, "artifact.create", "owner", owner.userId === principal.id || owner.userId === principal.ownerUserId);
     const available = !(await this.repository.slugExists(owner.userId, normalizedSlug));
 
     return { available, ownerUserId: owner.userId, normalizedSlug };

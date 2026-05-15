@@ -11,11 +11,14 @@
     "lint": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@agent-artifacts/artifact": "workspace:*",
     "@agent-artifacts/auth": "workspace:*",
     "@agent-artifacts/config": "workspace:*",
     "@agent-artifacts/db": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",
+    "@agent-artifacts/storage": "workspace:*",
     "@hono/node-server": "^2.0.2",
-    "hono": "^4.12.18"
+    "hono": "^4.12.18",
+    "zod": "^4.4.3"
   }
 }

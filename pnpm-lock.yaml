@@ -26,6 +26,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@agent-artifacts/artifact':
+        specifier: workspace:*
+        version: link:../../packages/artifact
       '@agent-artifacts/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -38,12 +41,18 @@ importers:
       '@agent-artifacts/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@agent-artifacts/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@hono/node-server':
         specifier: ^2.0.2
         version: 2.0.2(hono@4.12.18)
       hono:
         specifier: ^4.12.18
         version: 4.12.18
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   apps/web:
     dependencies:

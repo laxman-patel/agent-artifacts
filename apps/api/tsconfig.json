@@ -7,10 +7,12 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "references": [
+    { "path": "../../packages/artifact" },
     { "path": "../../packages/auth" },
     { "path": "../../packages/config" },
     { "path": "../../packages/db" },
-    { "path": "../../packages/shared" }
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/storage" }
   ],
   "include": ["src/**/*.ts"]
 }

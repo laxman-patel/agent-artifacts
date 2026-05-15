@@ -1237,7 +1237,8 @@ Current status:
 
 - Part 1 is complete and pushed.
 - Part 2 is complete and pushed.
-- Parts 3 through 5 are pending.
+- Part 3 is complete and pushed.
+- Parts 4 through 5 are pending.
 
 ### Part 1: Foundation
 
@@ -1269,17 +1270,17 @@ Status: Complete.
 
 ### Part 3: Web Experience
 
-Status: Pending.
+Status: Complete.
 
-- Dashboard.
-- Artifact viewer.
-- Artifact history.
-- Source view.
-- Version diff page.
-- Access settings UI.
-- Google sign-in and restricted-email access flows.
-- Username claiming and account settings.
-- Web integration tests for access-controlled routes.
+- Dashboard listing owned artifacts (`GET /api/profile/artifacts`).
+- Artifact viewer at `/[username]/[slug]` with latest or `?version=` pinning and sandboxed HTML iframe previews for HTML artifacts.
+- History timeline plus pairwise diff links.
+- Unified diff page at `/[username]/[slug]/diff/[from]/[to]` (`GET /api/artifacts/:id/diff`).
+- Access settings UI for public view/edit flags plus normalized viewer emails backed by `PATCH /api/artifacts/:id/access`.
+- Google-only Better Auth flows in the web app with middleware guarding `/dashboard` and `/settings/*`.
+- Username claiming workflow (`POST /api/profile/username`) on `/settings/account`.
+- Next.js rewrites `/api/*` to the Hono API so cookies remain scoped to `PUBLIC_APP_URL`.
+- Playwright smoke specs (`pnpm --filter @agent-artifacts/web test:e2e`) covering anonymous dashboard redirects and login affordances.
 
 ### Part 4: MCP Experience
 

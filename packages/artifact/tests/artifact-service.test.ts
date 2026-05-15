@@ -8,7 +8,8 @@ import {
   type ArtifactVersionRecord,
   type PersistAuditEventInput,
   type PersistCreateArtifactInput,
-  type PersistCreateVersionInput
+  type PersistCreateVersionInput,
+  type ReplaceArtifactEmailAccessInput
 } from "../src/index.js";
 import type { Principal } from "@agent-artifacts/shared";
 import type { ArtifactStorage, GetObjectOutput, PutObjectInput } from "@agent-artifacts/storage";
@@ -140,7 +141,7 @@ describe("ArtifactService", () => {
       })
     ).rejects.toBeInstanceOf(ArtifactForbiddenError);
 
-    repository.emailPermissions.set("allowed@example.com", "viewer");
+    repository.grantEmailViewer(created.artifactId, "allowed@example.com");
     const content = await service.getArtifactContent(created.artifactId, {
       type: "user",
       id: "user_3",
@@ -149,6 +150,120 @@ describe("ArtifactService", () => {
     });
 
     expect(content.content).toBe("secret");
+  });
+
+  it("lists owned artifacts for human principals", async () => {
+    const repository = new MemoryArtifactRepository();
+    const storage = new MemoryArtifactStorage();
+    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+
+    await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        slug: "a-one",
+        type: "markdown",
+        title: "One",
+        content: "# One"
+      },
+      ownerPrincipal
+    );
+
+    await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        slug: "b-two",
+        type: "markdown",
+        title: "Two",
+        content: "# Two"
+      },
+      ownerPrincipal
+    );
+
+    const owned = await service.listOwnedArtifacts(ownerPrincipal);
+    expect(owned).toHaveLength(2);
+    expect(new Set(owned.map((artifact) => artifact.slug))).toEqual(new Set(["a-one", "b-two"]));
+  });
+
+  it("updates access flags and email viewers with auditing", async () => {
+    const repository = new MemoryArtifactRepository();
+    const storage = new MemoryArtifactStorage();
+    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        slug: "policy-demo",
+        type: "markdown",
+        title: "Policy",
+        content: "hello",
+        access: { publicView: true, publicEdit: false }
+      },
+      ownerPrincipal
+    );
+
+    await service.setArtifactAccess(
+      created.artifactId,
+      {
+        publicView: false,
+        publicEdit: false,
+        viewerEmails: ["friend@example.com"]
+      },
+      ownerPrincipal
+    );
+
+    const snapshot = await service.getArtifactAccess(created.artifactId, ownerPrincipal);
+    expect(snapshot.publicView).toBe(false);
+    expect(snapshot.viewerEmails).toEqual(["friend@example.com"]);
+
+    await expect(
+      service.getArtifactContent(created.artifactId, {
+        type: "user",
+        id: "user_9",
+        email: "stranger@example.com",
+        scopes: []
+      })
+    ).rejects.toBeInstanceOf(ArtifactForbiddenError);
+
+    const allowedRead = await service.getArtifactContent(created.artifactId, {
+      type: "user",
+      id: "user_10",
+      email: "friend@example.com",
+      scopes: []
+    });
+
+    expect(allowedRead.content).toBe("hello");
+
+    expect(repository.auditEvents.some((event) => event.action === "artifact.access_updated")).toBe(true);
+  });
+
+  it("diffs two artifact versions", async () => {
+    const repository = new MemoryArtifactRepository();
+    const storage = new MemoryArtifactStorage();
+    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        slug: "diff-me",
+        type: "markdown",
+        title: "Diff",
+        content: "alpha\n"
+      },
+      ownerPrincipal
+    );
+
+    await service.updateArtifact(
+      {
+        artifactId: created.artifactId,
+        content: "beta\n"
+      },
+      ownerPrincipal
+    );
+
+    const diffResult = await service.diffArtifactVersions(created.artifactId, ownerPrincipal, 1, 2);
+
+    expect(diffResult.unifiedDiff).toContain("alpha");
+    expect(diffResult.unifiedDiff).toContain("beta");
   });
 });
 
@@ -190,7 +305,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
   readonly artifacts = new Map<string, ArtifactRecord>();
   readonly versions = new Map<string, ArtifactVersionRecord[]>();
   readonly auditEvents: PersistAuditEventInput[] = [];
-  readonly emailPermissions = new Map<string, "viewer" | "editor" | "admin" | "owner">();
+  readonly artifactEmailViewers = new Map<string, Set<string>>();
 
   async getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined> {
     return this.owners.get(username.toLowerCase());
@@ -271,11 +386,45 @@ class MemoryArtifactRepository implements ArtifactRepository {
       return "viewer";
     }
 
-    return principal.email ? this.emailPermissions.get(principal.email.toLowerCase()) : undefined;
+    const viewers = this.artifactEmailViewers.get(artifact.id);
+    if (principal.email && viewers?.has(principal.email.toLowerCase())) {
+      return "viewer";
+    }
+
+    return undefined;
   }
 
   async createAuditEvent(input: PersistAuditEventInput): Promise<void> {
     this.auditEvents.push(input);
+  }
+
+  grantEmailViewer(artifactId: string, email: string): void {
+    const normalized = email.trim().toLowerCase();
+    const viewers = this.artifactEmailViewers.get(artifactId) ?? new Set<string>();
+    viewers.add(normalized);
+    this.artifactEmailViewers.set(artifactId, viewers);
+  }
+
+  async listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]> {
+    return [...this.artifacts.values()]
+      .filter((artifact) => artifact.ownerUserId === ownerUserId && artifact.state === "active")
+      .toSorted((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
+  }
+
+  async listViewerEmailsForArtifact(artifactId: string): Promise<string[]> {
+    return [...(this.artifactEmailViewers.get(artifactId) ?? new Set())].toSorted();
+  }
+
+  async replaceArtifactEmailAccess(input: ReplaceArtifactEmailAccessInput): Promise<void> {
+    const artifact = this.artifacts.get(input.artifactId);
+    if (!artifact) {
+      throw new Error("Missing artifact");
+    }
+
+    artifact.publicView = input.publicView;
+    artifact.publicEdit = input.publicEdit;
+    artifact.updatedAt = new Date();
+    this.artifactEmailViewers.set(input.artifactId, new Set(input.viewerEmails));
   }
 
   private toVersion(input: PersistCreateVersionInput["version"]): ArtifactVersionRecord {

@@ -20,6 +20,7 @@
     "@agent-artifacts/policy": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",
     "@agent-artifacts/storage": "workspace:*",
+    "diff": "^8.0.2",
     "drizzle-orm": "^0.45.2",
     "zod": "^4.4.3"
   }

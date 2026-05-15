@@ -7,6 +7,7 @@ import type { ArtifactAction, ArtifactRole, ArtifactType, Principal } from "@age
 import { artifactRoleSchema, artifactTypeSchema, buildArtifactUrl, normalizeSlug, slugSchema } from "@agent-artifacts/shared";
 import type { ArtifactStorage } from "@agent-artifacts/storage";
 import { createVersionSourceKey } from "@agent-artifacts/storage";
+import { createTwoFilesPatch } from "diff";
 import { z } from "zod";
 
 const textDecoder = new TextDecoder();
@@ -40,6 +41,20 @@ export const updateArtifactInputSchema = z.object({
 
 export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
 
+export const setArtifactAccessInputSchema = z.object({
+  publicView: z.boolean(),
+  publicEdit: z.boolean(),
+  viewerEmails: z.array(z.string().email()).default([])
+});
+
+export type SetArtifactAccessInput = z.infer<typeof setArtifactAccessInputSchema>;
+
+export interface ArtifactAccessSnapshot {
+  publicView: boolean;
+  publicEdit: boolean;
+  viewerEmails: string[];
+}
+
 export interface ArtifactSummary {
   artifactId: string;
   versionId: string;
@@ -68,6 +83,18 @@ export interface ArtifactRepository {
   createVersion(input: PersistCreateVersionInput): Promise<void>;
   getEffectiveRole(artifact: ArtifactRecord, principal: Principal): Promise<ArtifactRole | undefined>;
   createAuditEvent(input: PersistAuditEventInput): Promise<void>;
+  listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]>;
+  listViewerEmailsForArtifact(artifactId: string): Promise<string[]>;
+  replaceArtifactEmailAccess(input: ReplaceArtifactEmailAccessInput): Promise<void>;
+}
+
+export interface ReplaceArtifactEmailAccessInput {
+  artifactId: string;
+  publicView: boolean;
+  publicEdit: boolean;
+  viewerEmails: string[];
+  actorPrincipalType: Principal["type"];
+  actorPrincipalId: string;
 }
 
 export class SlugUnavailableError extends Error {
@@ -373,6 +400,84 @@ export class ArtifactService {
     return this.repository.listVersions(artifactId, Math.min(Math.max(limit, 1), 100));
   }
 
+  async listOwnedArtifacts(principal: Principal): Promise<ArtifactRecord[]> {
+    if (principal.type !== "user") {
+      throw new ArtifactForbiddenError("Only signed-in users can list owned artifacts.");
+    }
+
+    return this.repository.listArtifactsForOwner(principal.id);
+  }
+
+  async getArtifactAccess(artifactId: string, principal: Principal): Promise<ArtifactAccessSnapshot> {
+    const artifact = await this.requireArtifactById(artifactId);
+    await this.assertArtifactAction(artifact, principal, "artifact.manage_access");
+    const viewerEmails = await this.repository.listViewerEmailsForArtifact(artifactId);
+
+    return {
+      publicView: artifact.publicView,
+      publicEdit: artifact.publicEdit,
+      viewerEmails
+    };
+  }
+
+  async setArtifactAccess(
+    artifactId: string,
+    input: SetArtifactAccessInput,
+    principal: Principal
+  ): Promise<ArtifactAccessSnapshot> {
+    const parsed = setArtifactAccessInputSchema.parse(input);
+    const artifact = await this.requireArtifactById(artifactId);
+    await this.assertArtifactAction(artifact, principal, "artifact.manage_access");
+
+    const normalizedEmails = parsed.viewerEmails.map((email) => email.trim().toLowerCase());
+
+    await this.repository.replaceArtifactEmailAccess({
+      artifactId,
+      publicView: parsed.publicView,
+      publicEdit: parsed.publicEdit,
+      viewerEmails: normalizedEmails,
+      actorPrincipalType: principal.type,
+      actorPrincipalId: principal.id
+    });
+
+    await this.audit(artifact.ownerUserId, artifact.id, principal, "artifact.access_updated", "artifact", artifactId, {
+      publicView: parsed.publicView,
+      publicEdit: parsed.publicEdit,
+      viewerEmails: normalizedEmails
+    });
+
+    return {
+      publicView: parsed.publicView,
+      publicEdit: parsed.publicEdit,
+      viewerEmails: normalizedEmails
+    };
+  }
+
+  async diffArtifactVersions(
+    artifactId: string,
+    principal: Principal,
+    fromVersionNumber: number,
+    toVersionNumber: number
+  ): Promise<{ fromVersion: ArtifactVersionRecord; toVersion: ArtifactVersionRecord; unifiedDiff: string }> {
+    const artifact = await this.requireArtifactById(artifactId);
+    await this.assertArtifactAction(artifact, principal, "artifact.diff");
+
+    const fromVersion = await this.requireVersion(artifact.id, fromVersionNumber);
+    const toVersion = await this.requireVersion(artifact.id, toVersionNumber);
+
+    const [fromObject, toObject] = await Promise.all([
+      this.storage.getObject(fromVersion.contentObjectKey),
+      this.storage.getObject(toVersion.contentObjectKey)
+    ]);
+
+    const left = textDecoder.decode(fromObject.body);
+    const right = textDecoder.decode(toObject.body);
+
+    const unifiedDiff = createTwoFilesPatch(`v${fromVersionNumber}`, `v${toVersionNumber}`, left, right, "", "");
+
+    return { fromVersion, toVersion, unifiedDiff };
+  }
+
   private async requireOwner(ownerUsername: string): Promise<{ userId: string; username: string }> {
     const owner = await this.repository.getOwnerByUsername(ownerUsername);
     if (!owner) {
@@ -595,6 +700,82 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
 
   async createAuditEvent(input: PersistAuditEventInput): Promise<void> {
     await this.db.insert(auditEvents).values(input);
+  }
+
+  async listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]> {
+    return this.db
+      .select({
+        id: artifacts.id,
+        ownerUserId: artifacts.ownerUserId,
+        ownerUsername: userProfiles.username,
+        slug: artifacts.slug,
+        title: artifacts.title,
+        description: artifacts.description,
+        type: artifacts.type,
+        state: artifacts.state,
+        latestVersionId: artifacts.latestVersionId,
+        publicView: artifacts.publicView,
+        publicEdit: artifacts.publicEdit,
+        createdByPrincipalType: artifacts.createdByPrincipalType,
+        createdByPrincipalId: artifacts.createdByPrincipalId,
+        createdAt: artifacts.createdAt,
+        updatedAt: artifacts.updatedAt,
+        archivedAt: artifacts.archivedAt
+      })
+      .from(artifacts)
+      .innerJoin(userProfiles, eq(userProfiles.userId, artifacts.ownerUserId))
+      .where(and(eq(artifacts.ownerUserId, ownerUserId), eq(artifacts.state, "active")))
+      .orderBy(desc(artifacts.updatedAt));
+  }
+
+  async listViewerEmailsForArtifact(artifactId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ email: artifactPermissions.email })
+      .from(artifactPermissions)
+      .where(
+        and(
+          eq(artifactPermissions.artifactId, artifactId),
+          eq(artifactPermissions.subjectType, "email"),
+          isNull(artifactPermissions.revokedAt)
+        )
+      );
+
+    return rows.map((row) => row.email).filter((email): email is string => Boolean(email));
+  }
+
+  async replaceArtifactEmailAccess(input: ReplaceArtifactEmailAccessInput): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(artifacts)
+        .set({
+          publicView: input.publicView,
+          publicEdit: input.publicEdit,
+          updatedAt: new Date()
+        })
+        .where(eq(artifacts.id, input.artifactId));
+
+      await tx
+        .delete(artifactPermissions)
+        .where(and(eq(artifactPermissions.artifactId, input.artifactId), eq(artifactPermissions.subjectType, "email")));
+
+      const createdAt = new Date();
+
+      for (const email of input.viewerEmails) {
+        await tx.insert(artifactPermissions).values({
+          id: randomUUID(),
+          artifactId: input.artifactId,
+          subjectType: "email",
+          subjectId: null,
+          email,
+          role: "viewer",
+          createdByPrincipalType: input.actorPrincipalType,
+          createdByPrincipalId: input.actorPrincipalId,
+          createdAt,
+          expiresAt: null,
+          revokedAt: null
+        });
+      }
+    });
   }
 
   private artifactQuery() {

@@ -8,32 +8,43 @@ import {
   DrizzleArtifactRepository,
   SlugUnavailableError,
   createArtifactInputSchema,
+  setArtifactAccessInputSchema,
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
-import { createAuth } from "@agent-artifacts/auth";
+import { createAuth, createUserPrincipal, type BetterAuthHandle } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
-import { createDb } from "@agent-artifacts/db";
+import { createDb, userProfiles, users, type Database } from "@agent-artifacts/db";
 import type { Principal } from "@agent-artifacts/shared";
-import { buildArtifactUrl, principalSchema } from "@agent-artifacts/shared";
+import { buildArtifactUrl, principalSchema, usernameSchema } from "@agent-artifacts/shared";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 export const app = new Hono();
 
-let authInstance: ReturnType<typeof createAuth> | undefined;
+let authInstance: BetterAuthHandle | undefined;
 let artifactServiceInstance: ArtifactService | undefined;
+let dbInstance: Database | undefined;
+
+function getDb() {
+  dbInstance ??= createDb({
+    connectionString: loadServerEnv().DATABASE_URL
+  });
+
+  return dbInstance;
+}
 
 function getAuth() {
   authInstance ??= (() => {
     const env = loadServerEnv();
-    const db = createDb({
-      connectionString: env.DATABASE_URL
-    });
+    const db = getDb();
 
     return createAuth({
       database: db,
       secret: env.BETTER_AUTH_SECRET,
       baseUrl: env.BETTER_AUTH_URL,
+      webOrigin: env.PUBLIC_APP_URL,
+      trustedOrigins: [env.BETTER_AUTH_URL, env.PUBLIC_APP_URL],
       googleClientId: env.GOOGLE_CLIENT_ID,
       googleClientSecret: env.GOOGLE_CLIENT_SECRET
     });
@@ -45,9 +56,7 @@ function getAuth() {
 function getArtifactService() {
   artifactServiceInstance ??= (() => {
     const env = loadServerEnv();
-    const db = createDb({
-      connectionString: env.DATABASE_URL
-    });
+    const db = getDb();
     const storage = new S3ArtifactStorage({
       endpoint: env.S3_ENDPOINT,
       bucket: env.S3_BUCKET,
@@ -73,7 +82,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth().handler(c.req.raw));
 
 app.get("/api/artifacts/slug-availability/:username/:slug", async (c) => {
   try {
-    const principal = requirePrincipal(c.req.raw.headers);
+    const principal = await requirePrincipal(c.req.raw);
     const result = await getArtifactService().checkSlugAvailability(c.req.param("username"), c.req.param("slug"), principal);
 
     return c.json({
@@ -88,7 +97,7 @@ app.get("/api/artifacts/slug-availability/:username/:slug", async (c) => {
 
 app.post("/api/artifacts", async (c) => {
   try {
-    const principal = requirePrincipal(c.req.raw.headers);
+    const principal = await requirePrincipal(c.req.raw);
     const body = createArtifactInputSchema.parse(await c.req.json());
     const artifact = await getArtifactService().createArtifact(body, principal);
 
@@ -100,7 +109,7 @@ app.post("/api/artifacts", async (c) => {
 
 app.get("/api/artifacts/:artifactId", async (c) => {
   try {
-    const principal = resolvePrincipal(c.req.raw.headers);
+    const principal = await resolvePrincipal(c.req.raw);
     const artifact = await getArtifactService().getArtifact(c.req.param("artifactId"), principal);
 
     return c.json(artifact);
@@ -111,7 +120,7 @@ app.get("/api/artifacts/:artifactId", async (c) => {
 
 app.post("/api/artifacts/:artifactId/versions", async (c) => {
   try {
-    const principal = requirePrincipal(c.req.raw.headers);
+    const principal = await requirePrincipal(c.req.raw);
     const body = updateArtifactInputSchema.parse({
       ...(await c.req.json()),
       artifactId: c.req.param("artifactId")
@@ -126,7 +135,7 @@ app.post("/api/artifacts/:artifactId/versions", async (c) => {
 
 app.get("/api/artifacts/:artifactId/versions", async (c) => {
   try {
-    const principal = resolvePrincipal(c.req.raw.headers);
+    const principal = await resolvePrincipal(c.req.raw);
     const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
     const versions = await getArtifactService().listArtifactVersions(c.req.param("artifactId"), principal, limit);
 
@@ -138,7 +147,7 @@ app.get("/api/artifacts/:artifactId/versions", async (c) => {
 
 app.get("/api/artifacts/:artifactId/content", async (c) => {
   try {
-    const principal = resolvePrincipal(c.req.raw.headers);
+    const principal = await resolvePrincipal(c.req.raw);
     const versionNumber = z.coerce.number().int().positive().optional().parse(c.req.query("version"));
     const result = await getArtifactService().getArtifactContent(c.req.param("artifactId"), principal, versionNumber);
 
@@ -152,9 +161,147 @@ app.get("/api/artifacts/:artifactId/content", async (c) => {
   }
 });
 
-app.get("/:username/:slug", async (c) => {
+app.get("/api/artifacts/:artifactId/access", async (c) => {
   try {
-    const principal = resolvePrincipal(c.req.raw.headers);
+    const principal = await requirePrincipal(c.req.raw);
+    const access = await getArtifactService().getArtifactAccess(c.req.param("artifactId"), principal);
+
+    return c.json(access);
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.patch("/api/artifacts/:artifactId/access", async (c) => {
+  try {
+    const principal = await requirePrincipal(c.req.raw);
+    const body = setArtifactAccessInputSchema.parse(await c.req.json());
+    const access = await getArtifactService().setArtifactAccess(c.req.param("artifactId"), body, principal);
+
+    return c.json(access);
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/artifacts/:artifactId/diff", async (c) => {
+  try {
+    const principal = await resolvePrincipal(c.req.raw);
+    const fromVersion = z.coerce.number().int().positive().parse(c.req.query("from"));
+    const toVersion = z.coerce.number().int().positive().parse(c.req.query("to"));
+    const diffResult = await getArtifactService().diffArtifactVersions(
+      c.req.param("artifactId"),
+      principal,
+      fromVersion,
+      toVersion
+    );
+
+    return c.json(diffResult);
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/profile/me", async (c) => {
+  try {
+    const principal = await requirePrincipal(c.req.raw);
+    if (principal.type !== "user") {
+      return c.json({ error: "forbidden", message: "User session required." }, 403);
+    }
+
+    const db = getDb();
+    const [userRow] = await db.select().from(users).where(eq(users.id, principal.id)).limit(1);
+
+    if (!userRow) {
+      return c.json({ error: "not_found", message: "User was not found." }, 404);
+    }
+
+    const [profileRow] = await db.select().from(userProfiles).where(eq(userProfiles.userId, principal.id)).limit(1);
+
+    return c.json({
+      user: {
+        id: userRow.id,
+        email: userRow.email,
+        name: userRow.name,
+        image: userRow.image,
+        emailVerified: userRow.emailVerified
+      },
+      profile: profileRow
+        ? {
+            username: profileRow.username,
+            displayName: profileRow.displayName,
+            createdAt: profileRow.createdAt,
+            updatedAt: profileRow.updatedAt
+          }
+        : null
+    });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.post("/api/profile/username", async (c) => {
+  try {
+    const principal = await requirePrincipal(c.req.raw);
+    if (principal.type !== "user") {
+      return c.json({ error: "forbidden", message: "User session required." }, 403);
+    }
+
+    const body = z.object({ username: usernameSchema }).parse(await c.req.json());
+    const db = getDb();
+
+    const [existingProfile] = await db.select().from(userProfiles).where(eq(userProfiles.userId, principal.id)).limit(1);
+
+    if (existingProfile) {
+      return c.json({ error: "conflict", message: "Username is already set for this account." }, 409);
+    }
+
+    const [userRow] = await db.select().from(users).where(eq(users.id, principal.id)).limit(1);
+
+    if (!userRow) {
+      return c.json({ error: "not_found", message: "User was not found." }, 404);
+    }
+
+    const normalizedUsername = body.username.trim().toLowerCase();
+
+    const [usernameTaken] = await db
+      .select({ userId: userProfiles.userId })
+      .from(userProfiles)
+      .where(sql`lower(${userProfiles.username}) = ${normalizedUsername}`)
+      .limit(1);
+
+    if (usernameTaken) {
+      return c.json({ error: "conflict", message: "That username is already taken." }, 409);
+    }
+
+    await db.insert(userProfiles).values({
+      userId: principal.id,
+      username: normalizedUsername,
+      displayName: userRow.name ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    return c.json({ username: normalizedUsername }, 201);
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/profile/artifacts", async (c) => {
+  try {
+    const principal = await requirePrincipal(c.req.raw);
+    const artifacts = await getArtifactService().listOwnedArtifacts(principal);
+
+    return c.json({ artifacts });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/by-path/:username/:slug", async (c) => {
+  try {
+    const principal = await resolvePrincipal(c.req.raw);
     const artifact = await getArtifactService().getArtifactByPath(c.req.param("username"), c.req.param("slug"), principal);
 
     return c.json(artifact);
@@ -173,10 +320,21 @@ app.get("/api/slug-preview/:username/:slug", (c) => {
   });
 });
 
-function resolvePrincipal(headers: Headers): Principal {
-  const principal = readPrincipal(headers);
-  if (principal) {
-    return principal;
+async function resolvePrincipal(request: Request): Promise<Principal> {
+  const headerPrincipal = readPrincipal(request.headers);
+  if (headerPrincipal) {
+    return headerPrincipal;
+  }
+
+  const session = await getAuth().api.getSession({
+    headers: request.headers
+  });
+
+  if (session?.user) {
+    return createUserPrincipal({
+      userId: session.user.id,
+      email: session.user.email
+    });
   }
 
   return {
@@ -186,13 +344,24 @@ function resolvePrincipal(headers: Headers): Principal {
   };
 }
 
-function requirePrincipal(headers: Headers): Principal {
-  const principal = readPrincipal(headers);
-  if (!principal) {
-    throw new ArtifactForbiddenError("Authentication is required.");
+async function requirePrincipal(request: Request): Promise<Principal> {
+  const headerPrincipal = readPrincipal(request.headers);
+  if (headerPrincipal) {
+    return headerPrincipal;
   }
 
-  return principal;
+  const session = await getAuth().api.getSession({
+    headers: request.headers
+  });
+
+  if (session?.user) {
+    return createUserPrincipal({
+      userId: session.user.id,
+      email: session.user.email
+    });
+  }
+
+  throw new ArtifactForbiddenError("Authentication is required.");
 }
 
 function readPrincipal(headers: Headers): Principal | undefined {

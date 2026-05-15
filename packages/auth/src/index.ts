@@ -3,25 +3,47 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, mcp } from "better-auth/plugins";
 import type { AgentScope, Principal } from "@agent-artifacts/shared";
 
+export interface BetterAuthHandle {
+  handler: (request: Request) => Promise<Response>;
+  api: {
+    getSession: (
+      input: {
+        headers: Headers;
+      }
+    ) => Promise<{
+      session?: unknown;
+      user?: {
+        id: string;
+        email: string;
+      };
+    } | null>;
+  };
+}
+
 export interface AuthConfig {
   database: unknown;
   secret: string;
+  /** Canonical URL that browsers use for OAuth redirects (often same as the web app origin). */
   baseUrl: string;
+  /** Extra origins allowed for auth flows (API origin during development, preview URLs, etc.). */
+  trustedOrigins?: string[];
+  /** Where humans land for interactive login (MCP plugin); defaults to `baseUrl`. */
+  webOrigin?: string;
   googleClientId: string;
   googleClientSecret: string;
 }
 
-export interface AuthInstance {
-  handler(request: Request): Promise<Response>;
-}
+export function createAuth(config: AuthConfig): BetterAuthHandle {
+  const webOrigin = config.webOrigin ?? config.baseUrl;
+  const trustedOrigins = [...new Set([config.baseUrl, webOrigin, ...(config.trustedOrigins ?? [])])];
 
-export function createAuth(config: AuthConfig): AuthInstance {
   return betterAuth({
     database: drizzleAdapter(config.database as never, {
       provider: "pg"
     }),
     secret: config.secret,
     baseURL: config.baseUrl,
+    trustedOrigins,
     socialProviders: {
       google: {
         clientId: config.googleClientId,
@@ -31,10 +53,10 @@ export function createAuth(config: AuthConfig): AuthInstance {
     plugins: [
       bearer(),
       mcp({
-        loginPage: `${config.baseUrl.replace(/\/+$/, "")}/login`
+        loginPage: `${webOrigin.replace(/\/+$/, "")}/login`
       })
     ]
-  });
+  }) as BetterAuthHandle;
 }
 
 export function createUserPrincipal(input: { userId: string; email: string }): Principal {

@@ -1,0 +1,86 @@
+:root {
+  color-scheme: dark;
+  background: #09090b;
+  color: #f4f4f5;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.shell {
+  display: grid;
+  gap: 2rem;
+  min-height: 100vh;
+  place-content: center;
+  padding: 4rem 1.5rem;
+}
+
+.hero,
+.card {
+  max-width: 760px;
+}
+
+.eyebrow {
+  color: #a78bfa;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(3rem, 7vw, 6.5rem);
+  letter-spacing: -0.07em;
+  line-height: 0.9;
+  margin: 0;
+}
+
+.lede {
+  color: #d4d4d8;
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  line-height: 1.65;
+  max-width: 640px;
+}
+
+.card {
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.03));
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 28px;
+  padding: 2rem;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+ol {
+  display: grid;
+  gap: 0.85rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  align-items: center;
+  color: #e4e4e7;
+  display: flex;
+  gap: 0.85rem;
+}
+
+li span {
+  background: #8b5cf6;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+}

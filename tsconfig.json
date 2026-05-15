@@ -1,0 +1,14 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/config" },
+    { "path": "./packages/db" },
+    { "path": "./packages/policy" },
+    { "path": "./packages/storage" },
+    { "path": "./packages/artifact" },
+    { "path": "./packages/auth" },
+    { "path": "./apps/api" },
+    { "path": "./apps/web" }
+  ]
+}

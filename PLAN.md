@@ -1229,9 +1229,18 @@ Planned extensions:
 - Expiring edit sessions.
 - Usage billing.
 
-## Implementation Milestones
+## Implementation Parts
 
-### Milestone 1: Foundation
+Implementation is split into five independently committable parts. Each part should leave the repository building and should be pushed before moving to the next part.
+
+Current status:
+
+- Part 1 is complete and ready to commit.
+- Parts 2 through 5 are pending.
+
+### Part 1: Foundation
+
+Status: Complete.
 
 - Monorepo setup.
 - Database schema.
@@ -1240,16 +1249,26 @@ Planned extensions:
 - Principal abstraction.
 - Policy package.
 - Storage adapter.
+- API and web app shells.
+- Baseline README development instructions.
+- Typecheck and build verification.
 
-### Milestone 2: Artifact Core
+### Part 2: Artifact Core
+
+Status: Pending.
 
 - Artifact create/update/read services.
 - Immutable versioning.
 - Object storage writes.
 - Public and restricted content serving.
 - Audit events.
+- Slug availability and artifact URL workflows.
+- Domain-level authorization enforcement for artifact mutations.
+- Focused unit tests for artifact services and policies.
 
-### Milestone 3: Web Experience
+### Part 3: Web Experience
+
+Status: Pending.
 
 - Dashboard.
 - Artifact viewer.
@@ -1257,33 +1276,37 @@ Planned extensions:
 - Source view.
 - Version diff page.
 - Access settings UI.
+- Google sign-in and restricted-email access flows.
+- Username claiming and account settings.
+- Web integration tests for access-controlled routes.
 
-### Milestone 4: MCP Experience
+### Part 4: MCP Experience
+
+Status: Pending.
 
 - MCP server.
 - Tool schemas.
 - Agent/API key authentication.
 - Create/update/get/list/diff/access tools.
 - MCP authorization tests.
+- Agent identity and API key management.
+- MCP transport wiring and tool handler integration with domain services.
+- End-to-end MCP client smoke tests.
 
-### Milestone 5: Renderers
+### Part 5: Renderers, Collaboration, and Hardening
+
+Status: Pending.
 
 - Markdown renderer.
 - HTML iframe renderer.
 - React component build pipeline.
 - Render worker.
 - Render status UI.
-
-### Milestone 6: Collaboration and Governance
-
 - Email allowlists.
 - Agent identity management.
 - Share links.
 - Audit log UI.
 - Revocation flows.
-
-### Milestone 7: Hardening
-
 - Security tests.
 - Rate limits.
 - CSP hardening.

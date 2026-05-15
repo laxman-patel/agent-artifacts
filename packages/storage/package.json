@@ -1,0 +1,21 @@
+{
+  "name": "@agent-artifacts/storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1046.0",
+    "@aws-sdk/s3-request-presigner": "^3.1046.0"
+  }
+}

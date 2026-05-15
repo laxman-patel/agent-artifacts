@@ -1,0 +1,22 @@
+{
+  "name": "@agent-artifacts/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "tsc --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@agent-artifacts/shared": "workspace:*",
+    "next": "^16.2.6",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
+  }
+}

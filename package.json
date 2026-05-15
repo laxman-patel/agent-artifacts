@@ -1,0 +1,24 @@
+{
+  "name": "agent-artifacts",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.1.2",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @agent-artifacts/db db:generate",
+    "db:migrate": "pnpm --filter @agent-artifacts/db db:migrate"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "tsx": "^4.22.0",
+    "turbo": "^2.9.12",
+    "typescript": "^6.0.3"
+  }
+}

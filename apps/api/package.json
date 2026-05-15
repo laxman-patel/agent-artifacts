@@ -1,0 +1,21 @@
+{
+  "name": "@agent-artifacts/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@agent-artifacts/auth": "workspace:*",
+    "@agent-artifacts/config": "workspace:*",
+    "@agent-artifacts/db": "workspace:*",
+    "@agent-artifacts/shared": "workspace:*",
+    "@hono/node-server": "^2.0.2",
+    "hono": "^4.12.18"
+  }
+}

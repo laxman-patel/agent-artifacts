@@ -7,15 +7,18 @@
     "build": "next build",
     "dev": "next dev",
     "typecheck": "tsc --noEmit --pretty false",
-    "lint": "tsc --noEmit --pretty false"
+    "lint": "tsc --noEmit --pretty false",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@agent-artifacts/shared": "workspace:*",
+    "better-auth": "^1.6.11",
     "next": "^16.2.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3"
   }

@@ -1,0 +1,204 @@
+export function internalApiOrigin(): string {
+  return (process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001").replace(/\/+$/, "");
+}
+
+export function cookieHeader(cookieStore: { getAll(): { name: string; value: string }[] }): string {
+  return cookieStore.getAll().map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+}
+
+export interface ProfileMeResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    image: string | null;
+    emailVerified: boolean;
+  };
+  profile: {
+    username: string;
+    displayName: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+}
+
+export interface ArtifactOwnerSummary {
+  id: string;
+  ownerUsername: string;
+  slug: string;
+  title: string;
+  type: string;
+  updatedAt: string;
+}
+
+export async function fetchProfileMe(cookieHeaderValue: string): Promise<{ status: number; body?: ProfileMeResponse }> {
+  const response = await fetch(`${internalApiOrigin()}/api/profile/me`, {
+    headers: { cookie: cookieHeaderValue },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    return { status: response.status };
+  }
+
+  return { status: response.status, body: (await response.json()) as ProfileMeResponse };
+}
+
+export async function fetchOwnedArtifacts(cookieHeaderValue: string): Promise<{
+  status: number;
+  body?: { artifacts: ArtifactOwnerSummary[] };
+}> {
+  const response = await fetch(`${internalApiOrigin()}/api/profile/artifacts`, {
+    headers: { cookie: cookieHeaderValue },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    return { status: response.status };
+  }
+
+  return { status: response.status, body: (await response.json()) as { artifacts: ArtifactOwnerSummary[] } };
+}
+
+export interface ArtifactMeta {
+  id: string;
+  ownerUserId: string;
+  ownerUsername: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  type: "html" | "markdown" | "react";
+  publicView: boolean;
+  publicEdit: boolean;
+  latestVersionId: string | null;
+  updatedAt: string;
+}
+
+export async function fetchArtifactMeta(username: string, slug: string, cookieHeaderValue: string | undefined) {
+  const headers: HeadersInit = {};
+  if (cookieHeaderValue) {
+    headers.cookie = cookieHeaderValue;
+  }
+
+  const response = await fetch(
+    `${internalApiOrigin()}/api/by-path/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`,
+    {
+      headers,
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { message?: string };
+
+    return {
+      ok: false as const,
+      status: response.status,
+      message: body.message ?? response.statusText
+    };
+  }
+
+  return { ok: true as const, artifact: (await response.json()) as ArtifactMeta };
+}
+
+export async function fetchArtifactVersions(artifactId: string, cookieHeaderValue: string | undefined) {
+  const headers: HeadersInit = {};
+  if (cookieHeaderValue) {
+    headers.cookie = cookieHeaderValue;
+  }
+
+  const response = await fetch(`${internalApiOrigin()}/api/artifacts/${encodeURIComponent(artifactId)}/versions`, {
+    headers,
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    return { ok: false as const, status: response.status };
+  }
+
+  return {
+    ok: true as const,
+    body: (await response.json()) as {
+      versions: Array<{
+        id: string;
+        versionNumber: number;
+        changelog: string | null;
+        createdAt: string;
+      }>;
+    }
+  };
+}
+
+export async function fetchArtifactContent(
+  artifactId: string,
+  cookieHeaderValue: string | undefined,
+  versionNumber?: number
+) {
+  const url = new URL(`${internalApiOrigin()}/api/artifacts/${encodeURIComponent(artifactId)}/content`);
+  if (versionNumber !== undefined) {
+    url.searchParams.set("version", String(versionNumber));
+  }
+
+  const headers: HeadersInit = {};
+  if (cookieHeaderValue) {
+    headers.cookie = cookieHeaderValue;
+  }
+
+  const response = await fetch(url, { headers, cache: "no-store" });
+
+  if (!response.ok) {
+    return { ok: false as const, status: response.status };
+  }
+
+  const content = await response.text();
+  const contentType = response.headers.get("content-type") ?? "text/plain";
+
+  return { ok: true as const, content, contentType };
+}
+
+export async function fetchArtifactDiff(
+  artifactId: string,
+  cookieHeaderValue: string | undefined,
+  fromVersion: number,
+  toVersion: number
+) {
+  const url = new URL(`${internalApiOrigin()}/api/artifacts/${encodeURIComponent(artifactId)}/diff`);
+  url.searchParams.set("from", String(fromVersion));
+  url.searchParams.set("to", String(toVersion));
+
+  const headers: HeadersInit = {};
+  if (cookieHeaderValue) {
+    headers.cookie = cookieHeaderValue;
+  }
+
+  const response = await fetch(url, { headers, cache: "no-store" });
+
+  if (!response.ok) {
+    return { ok: false as const, status: response.status };
+  }
+
+  return {
+    ok: true as const,
+    body: (await response.json()) as {
+      unifiedDiff: string;
+      fromVersion: { versionNumber: number };
+      toVersion: { versionNumber: number };
+    }
+  };
+}
+
+export async function fetchArtifactAccess(artifactId: string, cookieHeaderValue: string) {
+  const response = await fetch(`${internalApiOrigin()}/api/artifacts/${encodeURIComponent(artifactId)}/access`, {
+    headers: { cookie: cookieHeaderValue },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    return { ok: false as const, status: response.status };
+  }
+
+  return {
+    ok: true as const,
+    body: (await response.json()) as { publicView: boolean; publicEdit: boolean; viewerEmails: string[] }
+  };
+}

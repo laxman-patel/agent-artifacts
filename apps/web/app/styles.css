@@ -84,3 +84,279 @@ li span {
   font-weight: 700;
   padding: 0.3rem 0.6rem;
 }
+
+.site-body {
+  margin: 0;
+}
+
+.site-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.site-header {
+  align-items: center;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 1.75rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(18px);
+  background: rgb(9 9 11 / 0.75);
+}
+
+.brand {
+  color: #f4f4f5;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+}
+
+.top-nav {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  font-size: 0.95rem;
+}
+
+.top-nav a {
+  color: #e4e4e7;
+  text-decoration: none;
+}
+
+.top-nav a:hover {
+  color: #ffffff;
+}
+
+.link-button {
+  background: transparent;
+  border: none;
+  color: #dbeafe;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.page-shell {
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 2rem 1.5rem 4rem;
+  width: 100%;
+}
+
+.page-shell.wide {
+  max-width: 1200px;
+}
+
+.page-header {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+  margin: 0.35rem 0;
+}
+
+.subtle {
+  color: #d4d4d8;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.hero-layout {
+  place-content: start;
+  padding-top: 3rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.primary-button,
+.ghost-button {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 600;
+  justify-content: center;
+  padding: 0.65rem 1.25rem;
+  text-decoration: none;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  color: white;
+}
+
+.ghost-button {
+  background: rgb(255 255 255 / 0.06);
+  border-color: rgb(255 255 255 / 0.12);
+  color: #f4f4f5;
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.stack.tight {
+  gap: 0.35rem;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.input,
+.textarea {
+  background: rgb(9 9 11 / 0.85);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 14px;
+  color: #f4f4f5;
+  font: inherit;
+  padding: 0.65rem 0.85rem;
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.inline {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.error {
+  color: #fecaca;
+}
+
+.card.flat {
+  background: rgb(255 255 255 / 0.03);
+}
+
+.pill.success {
+  border: 1px solid rgb(74 222 128 / 0.35);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+}
+
+.artifact-list {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.artifact-list li {
+  align-items: flex-start;
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+}
+
+.artifact-list a {
+  color: #f5f3ff;
+  text-decoration: none;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.row-actions.wrap {
+  justify-content: flex-end;
+}
+
+.row-actions a {
+  color: #c4b5fd;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.version-list {
+  display: grid;
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.version-list li {
+  align-items: flex-start;
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+}
+
+.viewer-card {
+  overflow: hidden;
+}
+
+.artifact-frame {
+  border: none;
+  min-height: 420px;
+  width: 100%;
+}
+
+.source-view {
+  background: rgb(0 0 0 / 0.35);
+  border-radius: 16px;
+  margin: 0;
+  max-height: 640px;
+  overflow: auto;
+  padding: 1rem;
+  white-space: pre-wrap;
+}
+
+.diff-view {
+  background: rgb(0 0 0 / 0.45);
+  border-radius: 16px;
+  font-size: 0.85rem;
+  margin: 0;
+  max-height: 720px;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.lede.subtle {
+  color: #d4d4d8;
+}
+
+.narrow {
+  max-width: 520px;
+}
+
+.shell.narrow {
+  margin: 0 auto;
+  max-width: 520px;
+}

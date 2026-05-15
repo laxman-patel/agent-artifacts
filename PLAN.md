@@ -22,8 +22,8 @@ The product should feel like a focused blend of:
 - Allow humans and agents to create, edit, fork, diff, restore, and archive artifacts.
 - Provide strict access control for viewing and editing.
 - Expose all core operations through MCP tools and the web interface.
-- Use `better-auth` for authentication, sessions, organization membership, API keys, and role-aware authorization.
-- Store artifact content in object storage, with structured metadata in Postgres.
+- Use `better-auth` for Google sign-in, sessions, MCP authentication, API keys, and role-aware authorization.
+- Store artifact content in object storage, with structured metadata in NeonDB Postgres.
 - Keep rendering isolated and safe, especially for HTML and React artifacts.
 - Make the system extensible for future artifact types, multi-file projects, comments, reviews, and embedded usage inside agent products.
 
@@ -42,7 +42,7 @@ The product should feel like a focused blend of:
 Humans use the web interface to:
 
 - Sign in.
-- Create workspaces or join existing ones.
+- Claim and manage a username namespace.
 - View artifacts shared with them.
 - Create or manually edit artifacts.
 - Review version history and diffs.
@@ -64,15 +64,25 @@ Agents use MCP tools to:
 - Set access policies when allowed.
 - Share links back to humans.
 
-Agents are authenticated identities, not anonymous system actors. They may act on behalf of a human user, a workspace, or a specific agent installation.
+Agents are authenticated identities, not anonymous system actors. They may act on behalf of a human owner account or a specific agent installation.
 
 ## Core Concepts
 
-### Workspace
+### Owner Account
 
-A workspace owns artifacts, members, agent identities, API keys, and policy defaults.
+An owner account is the human user's account and username namespace. It owns artifacts, agent identities, API keys, and policy defaults.
 
-Workspaces allow the service to distinguish personal artifacts from team artifacts.
+Every artifact belongs to exactly one owner account. The core product should stay personal-namespace first.
+
+### Username and Slug
+
+Artifact URLs are app-domain URLs with this shape:
+
+- `https://www.agents-artifacts/{username}/{agent-generated-slug}`
+
+The `{username}` belongs to the owner account. The `{agent-generated-slug}` is unique within that username namespace.
+
+Agents must be able to check slug availability before creating an artifact. Creation should also enforce a unique `(owner_user_id, slug)` constraint so slug races cannot create duplicates.
 
 ### Principal
 
@@ -93,7 +103,8 @@ An artifact is the stable logical object that users share and update.
 An artifact has:
 
 - Stable ID.
-- Workspace owner.
+- Owner user.
+- Slug.
 - Type.
 - Title.
 - Description.
@@ -135,12 +146,20 @@ Access policy controls who can view, edit, administer, and share an artifact.
 Access can be:
 
 - Public to anyone with the link.
-- Restricted to workspace members.
 - Restricted to explicit email allowlist.
 - Restricted to explicit agent identities.
 - Restricted to generated share links.
 
 Viewing and editing must be modeled independently.
+
+Default access for public artifacts is view-only. Editable public links are allowed, but they must be explicitly enabled by an artifact owner or admin.
+
+Restricted email allowlist behavior:
+
+- If a restricted artifact URL is opened without a signed-in session, redirect the viewer to Google sign-in.
+- After sign-in, authorize access by matching the signed-in user's verified Google email against the artifact's allowlist or user-specific permission rules.
+- If the signed-in email is not allowed, show an access denied page and do not render artifact content or expose storage URLs.
+- The same email-based authorization rules must be used by web routes, HTTP API routes, and MCP tools.
 
 ## Product Surface
 
@@ -150,7 +169,7 @@ The web app should include:
 
 - Landing page explaining agent artifact hosting.
 - Sign-in and account management.
-- Workspace switcher.
+- Username/profile setup.
 - Artifact dashboard.
 - Artifact creation flow.
 - Artifact viewer.
@@ -166,14 +185,12 @@ Primary routes:
 - `/`
 - `/login`
 - `/dashboard`
-- `/workspaces/:workspaceId`
-- `/a/:artifactId`
-- `/a/:artifactId/v/:versionNumber`
-- `/a/:artifactId/history`
-- `/a/:artifactId/diff/:fromVersion...:toVersion`
-- `/a/:artifactId/settings`
+- `/:username/:slug`
+- `/:username/:slug/v/:versionNumber`
+- `/:username/:slug/history`
+- `/:username/:slug/diff/:fromVersion...:toVersion`
+- `/:username/:slug/settings`
 - `/settings/account`
-- `/settings/workspaces`
 - `/settings/agents`
 - `/settings/api-keys`
 
@@ -193,6 +210,7 @@ Core tools:
 - `restore_artifact_version`
 - `fork_artifact`
 - `archive_artifact`
+- `check_slug_availability`
 - `set_artifact_access`
 - `get_artifact_access`
 - `create_share_link`
@@ -200,9 +218,7 @@ Core tools:
 
 Administrative tools:
 
-- `list_workspaces`
 - `get_current_principal`
-- `list_workspace_members`
 - `list_agent_identities`
 - `create_agent_identity`
 - `revoke_agent_identity`
@@ -216,7 +232,7 @@ The HTTP API supports the web app and external integrations.
 Suggested route groups:
 
 - `/api/auth/*`
-- `/api/workspaces/*`
+- `/api/profile/*`
 - `/api/artifacts/*`
 - `/api/artifacts/:artifactId/versions/*`
 - `/api/artifacts/:artifactId/access/*`
@@ -231,13 +247,11 @@ Use `better-auth` as the auth foundation.
 
 Required capabilities:
 
-- Email/password sign-in.
-- OAuth provider support.
+- Google OAuth sign-in only for humans at launch.
 - Session management.
-- Organization/workspace support.
 - API key support.
 - Role and permission integration.
-- Account linking where supported.
+- MCP authentication backed by `better-auth` issued credentials.
 
 Authentication must identify the principal. Authorization must decide what the principal can do.
 
@@ -247,27 +261,26 @@ Humans authenticate through `better-auth` sessions in the web app.
 
 Human users can:
 
-- Own personal workspaces.
-- Create team workspaces.
-- Invite members.
+- Sign in with Google.
+- Claim and manage a username namespace.
 - Create agent identities.
 - Issue API keys.
 - Manage artifact access if they have permission.
 
 ### Agent Authentication
 
-Agents authenticate through scoped credentials created by a human or workspace admin.
+Agents authenticate through scoped credentials created by a human owner.
 
 Supported credential forms:
 
 - `better-auth` API keys for MCP clients.
-- OAuth client credentials where appropriate.
+- `better-auth` MCP auth flow for connected MCP clients.
 - Future: signed installation tokens for hosted agent platforms.
 
 Agent identity records should include:
 
 - Display name.
-- Owning workspace.
+- Owning user.
 - Created-by user.
 - Credential hash or auth provider binding.
 - Allowed scopes.
@@ -275,7 +288,7 @@ Agent identity records should include:
 - Last used timestamp.
 - Revocation timestamp.
 
-Agents should never inherit unlimited owner permissions by default. They should receive explicit scopes and artifact/workspace roles.
+Agents should never inherit unlimited owner permissions by default. They should receive explicit scopes and artifact roles.
 
 ## Authorization
 
@@ -283,12 +296,9 @@ Authorization must be centralized. The web app, HTTP API, and MCP tools should c
 
 ### Roles
 
-Workspace roles:
+Account roles:
 
-- `owner`: full workspace control, billing, destructive admin actions.
-- `admin`: member, agent, and artifact administration.
-- `member`: create and manage own artifacts, collaborate on shared artifacts.
-- `viewer`: view workspace artifacts allowed by policy.
+- `owner`: full control over the user namespace, agent identities, API keys, and owned artifacts.
 
 Artifact roles:
 
@@ -311,7 +321,6 @@ Agent scopes:
 - `artifacts:share`
 - `artifacts:access:read`
 - `artifacts:access:write`
-- `workspaces:read`
 - `agents:manage`
 
 An action is allowed only when both role and scope checks pass for agent/API key principals.
@@ -321,15 +330,13 @@ An action is allowed only when both role and scope checks pass for agent/API key
 Artifact access rules may target:
 
 - `anyone`
-- `workspace`
-- `workspace_role`
 - `user`
 - `email`
 - `agent`
 - `api_key`
 - `share_link`
 
-Email allowlists are useful for pre-invite sharing. Once a user with that email signs in, the permission should resolve to that user while preserving the original email rule for auditability.
+Email allowlists are useful for sharing with people before they have an account. Once a user with that email signs in, the permission should resolve to that user while preserving the original email rule for auditability.
 
 ### Permission Actions
 
@@ -346,9 +353,8 @@ Policy checks should cover:
 - `artifact.manage_access`
 - `artifact.create_share_link`
 - `artifact.revoke_share_link`
-- `workspace.manage_members`
-- `workspace.manage_agents`
-- `workspace.manage_api_keys`
+- `account.manage_agents`
+- `account.manage_api_keys`
 
 ### Enforcement Requirements
 
@@ -358,13 +364,14 @@ Policy checks should cover:
 - Every MCP tool must identify the principal and call the authorization layer.
 - Object storage objects must not be public by default for restricted artifacts.
 - Public artifacts can be served through stable public URLs, but restricted artifacts must use checked routes or short-lived signed URLs.
+- Artifact content must be served through the app domain. Do not expose object storage or CDN-origin URLs as the canonical public surface.
 - Editing an artifact must require edit permission on the artifact and update scope for agent principals.
 - Managing access must require admin or owner permission on the artifact.
 - Creating editable share links must require artifact admin permission.
 
 ## Data Model
 
-Use Postgres as the source of truth for metadata and authorization state.
+Use NeonDB Postgres as the source of truth for metadata and authorization state.
 
 Suggested tables:
 
@@ -372,8 +379,7 @@ Suggested tables:
 - `accounts`
 - `sessions`
 - `verifications`
-- `workspaces`
-- `workspace_members`
+- `user_profiles`
 - `agent_identities`
 - `api_keys`
 - `artifacts`
@@ -386,12 +392,28 @@ Suggested tables:
 
 `better-auth` owns or integrates with auth-related tables. Domain tables should reference `better-auth` user IDs where appropriate.
 
+### User Profiles Table
+
+Fields:
+
+- `user_id`
+- `username`
+- `display_name`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- Unique `username`.
+- Usernames are case-insensitive for lookup.
+
 ### Artifacts Table
 
 Fields:
 
 - `id`
-- `workspace_id`
+- `owner_user_id`
+- `slug`
 - `title`
 - `description`
 - `type`
@@ -402,6 +424,11 @@ Fields:
 - `created_at`
 - `updated_at`
 - `archived_at`
+
+Constraints:
+
+- Unique `(owner_user_id, slug)`.
+- Slugs are case-insensitive for lookup and availability checks.
 
 Valid states:
 
@@ -464,7 +491,7 @@ Fields:
 Fields:
 
 - `id`
-- `workspace_id`
+- `owner_user_id`
 - `artifact_id`
 - `actor_principal_type`
 - `actor_principal_id`
@@ -482,9 +509,9 @@ Use S3-compatible object storage. Cloudflare R2 is a good default, with AWS S3 a
 
 Store immutable version content by content hash or version key:
 
-- `workspaces/{workspaceId}/artifacts/{artifactId}/versions/{versionNumber}/source`
-- `workspaces/{workspaceId}/artifacts/{artifactId}/versions/{versionNumber}/rendered`
-- `workspaces/{workspaceId}/artifacts/{artifactId}/versions/{versionNumber}/assets/*`
+- `users/{ownerUserId}/artifacts/{artifactId}/versions/{versionNumber}/source`
+- `users/{ownerUserId}/artifacts/{artifactId}/versions/{versionNumber}/rendered`
+- `users/{ownerUserId}/artifacts/{artifactId}/versions/{versionNumber}/assets/*`
 
 Requirements:
 
@@ -538,7 +565,7 @@ Requirements:
 
 - TypeScript and JSX support.
 - React 19+ support.
-- Constrained dependency policy.
+- Curated dependency allowlist only.
 - Build timeout.
 - Runtime timeout where possible.
 - No server-side secrets exposed to artifact code.
@@ -613,7 +640,8 @@ Creates a new artifact and first version.
 
 Input:
 
-- `workspaceId`
+- `ownerUsername`
+- `slug`
 - `type`
 - `title`
 - `content`
@@ -633,7 +661,7 @@ Output:
 
 Authorization:
 
-- Requires workspace artifact creation permission.
+- Requires artifact creation permission in the owner account.
 - Agent principals require `artifacts:create`.
 
 ### `update_artifact`
@@ -774,7 +802,8 @@ Input:
 
 - `artifactId`
 - `versionNumber`
-- `targetWorkspaceId`
+- `targetOwnerUsername`
+- `slug`
 - `title`
 - `access`
 
@@ -786,7 +815,27 @@ Output:
 Authorization:
 
 - Requires view permission on source.
-- Requires create permission in target workspace.
+- Requires create permission for the target owner account.
+
+### `check_slug_availability`
+
+Checks whether an artifact slug is available under a username namespace.
+
+Input:
+
+- `ownerUsername`
+- `slug`
+
+Output:
+
+- `available`
+- `normalizedSlug`
+- Optional suggested alternatives.
+
+Authorization:
+
+- Requires permission to create artifacts under the owner account.
+- Agent principals require `artifacts:create`.
 
 ### `set_artifact_access`
 
@@ -889,7 +938,7 @@ Every sensitive action should create an audit event:
 - API key created or revoked.
 - Failed authorization for sensitive operations where useful.
 
-Audit logs should be visible to workspace owners and admins.
+Audit logs should be visible to the artifact owner and artifact admins.
 
 ## Tech Stack
 
@@ -905,7 +954,7 @@ Recommended monorepo:
 - API server: `Hono` or `Fastify`
 - MCP server: official TypeScript MCP SDK
 - Auth: `better-auth`
-- Database: `Postgres`
+- Database: NeonDB Postgres
 - ORM: `Drizzle`
 - Object storage: S3-compatible adapter for R2/S3/MinIO
 - Validation: `Zod`
@@ -1008,12 +1057,13 @@ packages/
 ### Agent Creates Public Artifact
 
 1. Agent authenticates through MCP with scoped credentials.
-2. Agent calls `create_artifact`.
-3. Service validates type and content.
-4. Service writes content to object storage.
-5. Service creates artifact and version rows.
-6. Service creates default access policy.
-7. Service returns share URL.
+2. Agent calls `check_slug_availability` for the owner username and desired slug.
+3. Agent calls `create_artifact`.
+4. Service validates slug, type, and content.
+5. Service writes content to object storage.
+6. Service creates artifact and version rows.
+7. Service creates default view-only public access policy.
+8. Service returns share URL in the `https://www.agents-artifacts/{username}/{agent-generated-slug}` shape.
 
 ### Agent Updates Existing Artifact
 
@@ -1046,10 +1096,12 @@ packages/
 ### Restricted Artifact View
 
 1. Viewer opens artifact URL.
-2. App resolves session/share token.
-3. Policy checks `artifact.view`.
-4. App fetches content or render output through private storage.
-5. Artifact renders in a sandboxed viewer.
+2. If no session exists, the app redirects to Google sign-in.
+3. After sign-in, the app resolves the session/share token.
+4. Policy checks `artifact.view`, including verified email allowlist matching.
+5. If allowed, the app fetches content or render output through private storage.
+6. Artifact renders in a sandboxed viewer.
+7. If denied, the app shows an access denied page without exposing artifact content.
 
 ## Testing Strategy
 
@@ -1084,7 +1136,7 @@ Cover:
 Cover:
 
 - Sign in.
-- Create workspace.
+- Claim username.
 - Create artifact.
 - Share artifact.
 - Update artifact.
@@ -1112,7 +1164,7 @@ Required services:
 
 - Web/API runtime.
 - Worker runtime.
-- Postgres.
+- NeonDB Postgres.
 - S3-compatible object storage.
 - Optional Redis or queue backend.
 
@@ -1140,6 +1192,8 @@ Important environment variables:
 - `PUBLIC_APP_URL`
 - `ARTIFACT_RENDER_ORIGIN`
 
+`DATABASE_URL` should be the NeonDB pooled connection string and must be stored in local environment files or deployment secrets, not committed directly into source control.
+
 ## Observability
 
 Track:
@@ -1165,10 +1219,8 @@ Planned extensions:
 - Visual screenshot diffs.
 - Multi-file React projects.
 - Artifact templates.
-- Organization design-system references.
 - Agent-generated changelog summaries.
 - Embeddable artifact viewer.
-- Custom domains.
 - Webhooks.
 - GitHub PR attachment flow.
 - Slack/Linear/Jira integrations.
@@ -1184,7 +1236,7 @@ Planned extensions:
 - Monorepo setup.
 - Database schema.
 - `better-auth` configuration.
-- Workspace model.
+- Owner account and username model.
 - Principal abstraction.
 - Policy package.
 - Storage adapter.
@@ -1224,7 +1276,6 @@ Planned extensions:
 
 ### Milestone 6: Collaboration and Governance
 
-- Workspace invitations.
 - Email allowlists.
 - Agent identity management.
 - Share links.
@@ -1241,14 +1292,20 @@ Planned extensions:
 - Backups.
 - Deployment automation.
 
-## Open Questions
+## Resolved Product Decisions
 
-- Should public artifact content be served directly from object storage/CDN or always through the app domain?
-- Should React artifacts support dependencies at launch, or only a curated allowlist?
-- Should agent identities be workspace-level only, or can they be artifact-scoped?
-- Should email allowlist access require login, magic-link verification, or both?
-- Should editable public links be allowed at all?
-- Should artifact URLs be guess-resistant IDs, slugs, or both?
+- Artifact URLs are served only through the app domain.
+- React dependencies use a curated allowlist.
+- Team ownership is out of scope for now.
+- Restricted email allowlist links require Google sign-in and verified email authorization before rendering.
+- Editable public links are allowed, but public artifacts default to view-only.
+- Artifact URLs use `https://www.agents-artifacts/{username}/{agent-generated-slug}` with MCP slug availability checks.
+- Human sign-in uses Google only through `better-auth`.
+- MCP authentication is handled through `better-auth` backed credentials and must use the same authorization layer as the web interface.
+- The database is NeonDB Postgres.
+
+## Remaining Open Questions
+
 - Should HTML artifacts allow external network requests by default?
 - Should the service offer a local/self-hosted mode from day one?
 

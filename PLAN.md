@@ -1235,8 +1235,9 @@ Implementation is split into five independently committable parts. Each part sho
 
 Current status:
 
-- Part 1 is complete and ready to commit.
-- Parts 2 through 5 are pending.
+- Part 1 is complete and pushed.
+- Part 2 is complete and pushed.
+- Parts 3 through 5 are pending.
 
 ### Part 1: Foundation
 
@@ -1255,7 +1256,7 @@ Status: Complete.
 
 ### Part 2: Artifact Core
 
-Status: Pending.
+Status: Complete.
 
 - Artifact create/update/read services.
 - Immutable versioning.

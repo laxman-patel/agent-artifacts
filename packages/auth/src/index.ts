@@ -1,7 +1,9 @@
+import { createHash, randomBytes } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, mcp } from "better-auth/plugins";
 import type { AgentScope, Principal } from "@agent-artifacts/shared";
+import { agentScopeSchema } from "@agent-artifacts/shared";
 
 export interface BetterAuthHandle {
   handler: (request: Request) => Promise<Response>;
@@ -80,4 +82,21 @@ export function createAgentPrincipal(input: {
     ownerUserId: input.ownerUserId,
     scopes: input.scopes
   };
+}
+
+export function createApiKeyPrincipal(input: { apiKeyId: string; ownerUserId: string; scopes: string[] }): Principal {
+  return {
+    type: "api_key",
+    id: input.apiKeyId,
+    ownerUserId: input.ownerUserId,
+    scopes: input.scopes.map((scope) => agentScopeSchema.parse(scope))
+  };
+}
+
+export function generateApiKeySecret(): string {
+  return `aa_${randomBytes(32).toString("base64url")}`;
+}
+
+export function hashApiKeySecret(secret: string): string {
+  return createHash("sha256").update(secret).digest("hex");
 }

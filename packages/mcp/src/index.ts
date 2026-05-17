@@ -58,6 +58,14 @@ export const mcpToolDescriptions: Record<McpToolName, string> = {
   set_artifact_access: "Update artifact access settings."
 };
 
+export function listMcpTools() {
+  return (Object.keys(mcpToolInputSchemas) as McpToolName[]).map((name) => ({
+    name,
+    description: mcpToolDescriptions[name],
+    inputSchema: z.toJSONSchema(mcpToolInputSchemas[name])
+  }));
+}
+
 export interface McpHandlerContext {
   artifactService: ArtifactService;
   principal: Principal;

@@ -14,6 +14,7 @@ import {
 import { createAuth, createUserPrincipal, type BetterAuthHandle } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, userProfiles, users, type Database } from "@agent-artifacts/db";
+import { callMcpTool, listMcpTools, mcpToolInputSchemas, type McpToolName } from "@agent-artifacts/mcp";
 import type { Principal } from "@agent-artifacts/shared";
 import { buildArtifactUrl, principalSchema, usernameSchema } from "@agent-artifacts/shared";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
@@ -79,6 +80,21 @@ app.get("/health", (c) =>
 );
 
 app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth().handler(c.req.raw));
+
+app.post("/mcp", async (c) => {
+  try {
+    const message = mcpJsonRpcRequestSchema.parse(await c.req.json());
+    const result = await handleMcpJsonRpc(message, c.req.raw);
+
+    return c.json({
+      jsonrpc: "2.0",
+      id: message.id,
+      result
+    });
+  } catch (error) {
+    return mcpErrorResponse(c, error);
+  }
+});
 
 app.get("/api/artifacts/slug-availability/:username/:slug", async (c) => {
   try {
@@ -382,6 +398,154 @@ function readPrincipal(headers: Headers): Principal | undefined {
       .map((scope) => scope.trim())
       .filter(Boolean)
   });
+}
+
+const mcpJsonRpcRequestSchema = z.object({
+  jsonrpc: z.literal("2.0"),
+  id: z.union([z.string(), z.number(), z.null()]).optional(),
+  method: z.string().min(1),
+  params: z.unknown().optional()
+});
+
+type McpJsonRpcRequest = z.infer<typeof mcpJsonRpcRequestSchema>;
+
+async function handleMcpJsonRpc(message: McpJsonRpcRequest, request: Request): Promise<unknown> {
+  switch (message.method) {
+    case "initialize":
+      return {
+        protocolVersion: "2024-11-05",
+        capabilities: {
+          tools: {}
+        },
+        serverInfo: {
+          name: "agent-artifacts",
+          version: "0.1.0"
+        }
+      };
+    case "tools/list":
+      return {
+        tools: listMcpTools()
+      };
+    case "tools/call": {
+      const params = z
+        .object({
+          name: z.string().min(1),
+          arguments: z.unknown().optional()
+        })
+        .parse(message.params);
+
+      if (!isMcpToolName(params.name)) {
+        throw new McpJsonRpcError(-32601, `Unknown MCP tool: ${params.name}`);
+      }
+
+      const principal = await requirePrincipal(request);
+      const result = await callMcpTool(params.name, params.arguments ?? {}, {
+        artifactService: getArtifactService(),
+        principal
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2)
+          }
+        ],
+        structuredContent: result
+      };
+    }
+    default:
+      throw new McpJsonRpcError(-32601, `Unknown MCP method: ${message.method}`);
+  }
+}
+
+function isMcpToolName(name: string): name is McpToolName {
+  return name in mcpToolInputSchemas;
+}
+
+class McpJsonRpcError extends Error {
+  constructor(
+    readonly code: number,
+    message: string
+  ) {
+    super(message);
+    this.name = "McpJsonRpcError";
+  }
+}
+
+function mcpErrorResponse(c: Context, error: unknown) {
+  if (error instanceof McpJsonRpcError) {
+    return c.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: error.code,
+          message: error.message
+        }
+      },
+      200
+    );
+  }
+
+  if (error instanceof z.ZodError) {
+    return c.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: -32602,
+          message: "Invalid MCP request.",
+          data: error.issues
+        }
+      },
+      200
+    );
+  }
+
+  if (error instanceof ArtifactForbiddenError) {
+    return c.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: -32001,
+          message: error.message
+        }
+      },
+      200
+    );
+  }
+
+  if (error instanceof ArtifactNotFoundError) {
+    return c.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: -32004,
+          message: error.message
+        }
+      },
+      200
+    );
+  }
+
+  if (error instanceof SlugUnavailableError || error instanceof ArtifactConflictError) {
+    return c.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: -32009,
+          message: error.message
+        }
+      },
+      200
+    );
+  }
+
+  throw error;
 }
 
 function artifactErrorResponse(c: Context, error: unknown) {

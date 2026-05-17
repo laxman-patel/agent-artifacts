@@ -38,6 +38,9 @@ importers:
       '@agent-artifacts/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@agent-artifacts/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@agent-artifacts/shared':
         specifier: workspace:*
         version: link:../../packages/shared

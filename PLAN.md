@@ -1238,7 +1238,8 @@ Current status:
 - Part 1 is complete and pushed.
 - Part 2 is complete and pushed.
 - Part 3 is complete and pushed.
-- Parts 4 through 5 are pending.
+- Part 4 is complete locally.
+- Part 5 is pending.
 
 ### Part 1: Foundation
 
@@ -1284,7 +1285,7 @@ Status: Complete.
 
 ### Part 4: MCP Experience
 
-Status: Pending.
+Status: Complete.
 
 - MCP server.
 - Tool schemas.

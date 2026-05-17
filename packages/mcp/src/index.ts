@@ -10,6 +10,7 @@ import { z } from "zod";
 const versionNumberSchema = z.number().int().positive();
 
 export const mcpToolInputSchemas = {
+  get_current_principal: z.object({}),
   check_slug_availability: z.object({
     ownerUsername: z.string().min(1),
     slug: z.string().min(1)
@@ -46,6 +47,7 @@ export type McpToolName = keyof typeof mcpToolInputSchemas;
 export type McpToolInput<TToolName extends McpToolName> = z.infer<(typeof mcpToolInputSchemas)[TToolName]>;
 
 export const mcpToolDescriptions: Record<McpToolName, string> = {
+  get_current_principal: "Return the authenticated principal for the current MCP request.",
   check_slug_availability: "Check whether a slug is available in an owner namespace.",
   create_artifact: "Create a new artifact and immutable first version.",
   update_artifact: "Append a new immutable version to an artifact.",
@@ -79,6 +81,8 @@ export async function callMcpTool<TToolName extends McpToolName>(
   const parsed = mcpToolInputSchemas[toolName].parse(input);
 
   switch (toolName) {
+    case "get_current_principal":
+      return context.principal;
     case "check_slug_availability": {
       const request = parsed as McpToolInput<"check_slug_availability">;
       return context.artifactService.checkSlugAvailability(request.ownerUsername, request.slug, context.principal);

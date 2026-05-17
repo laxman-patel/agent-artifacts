@@ -149,6 +149,18 @@ importers:
         specifier: ^0.31.10
         version: 0.31.10
 
+  packages/mcp:
+    dependencies:
+      '@agent-artifacts/artifact':
+        specifier: workspace:*
+        version: link:../artifact
+      '@agent-artifacts/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+
   packages/policy:
     dependencies:
       '@agent-artifacts/shared':

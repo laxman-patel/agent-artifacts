@@ -10,10 +10,22 @@ import { useMemo } from "react";
 function buildSandboxHtml(source: string): string {
   const encodedSource = JSON.stringify(source);
 
+  const csp = [
+    "default-src 'none'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://cdn.jsdelivr.net",
+    "style-src 'unsafe-inline'",
+    "img-src data: blob: https:",
+    "font-src data: https:",
+    "connect-src https://esm.sh https://cdn.jsdelivr.net",
+    "base-uri 'none'",
+    "form-action 'none'"
+  ].join("; ");
+
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="${csp}" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     * { box-sizing: border-box; }

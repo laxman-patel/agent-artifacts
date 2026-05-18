@@ -32,6 +32,13 @@ import { z } from "zod";
 
 export const app = new Hono();
 
+app.use("*", async (c, next) => {
+  await next();
+  c.header("x-content-type-options", "nosniff");
+  c.header("x-frame-options", "DENY");
+  c.header("referrer-policy", "strict-origin-when-cross-origin");
+});
+
 const writeLimiter = rateLimit({ windowMs: 60_000, max: 60 });
 const readLimiter = rateLimit({ windowMs: 60_000, max: 300 });
 

@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { loadServerEnv } from "@agent-artifacts/config";
-import { createDb, renderJobs, renderOutputs, artifactVersions, type Database } from "@agent-artifacts/db";
+import { createDb, renderJobs, renderOutputs, artifactVersions, artifacts, type Database } from "@agent-artifacts/db";
 import { renderMarkdown, buildReactPreviewHtml, wrapHtmlFragment } from "@agent-artifacts/renderer";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
-import { eq, and, isNull, lt } from "drizzle-orm";
+import { eq, and, lt } from "drizzle-orm";
 
 const POLL_INTERVAL_MS = 5_000;
 const MAX_ATTEMPTS = 3;
@@ -73,25 +73,27 @@ export class RenderWorker {
       .where(eq(renderJobs.id, jobId));
 
     try {
-      const [version] = await this.db
-        .select()
+      const [row] = await this.db
+        .select({
+          version: artifactVersions,
+          artifactType: artifacts.type
+        })
         .from(artifactVersions)
+        .innerJoin(artifacts, eq(artifacts.id, artifactVersions.artifactId))
         .where(eq(artifactVersions.id, artifactVersionId))
         .limit(1);
 
-      if (!version) {
+      if (!row) {
         await this.markJobFailed(jobId, "artifact version not found");
         return;
       }
+
+      const { version, artifactType } = row;
 
       const { body } = await this.storage.getObject(version.contentObjectKey);
       const source = new TextDecoder().decode(body);
 
       let renderedHtml: string;
-      const artifactType = version.contentObjectKey.includes("/react/") ? "react"
-        : version.contentObjectKey.includes("/markdown/") ? "markdown"
-        : "html";
-
       if (artifactType === "markdown") {
         renderedHtml = await renderMarkdown(source);
       } else if (artifactType === "react") {

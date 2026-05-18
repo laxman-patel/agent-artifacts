@@ -1320,6 +1320,7 @@ Status: Complete.
 
 ## Resolved Product Decisions
 
+- All rendering is live in the user's browser, not server-side. The viewer fetches raw source from S3 and renders it client-side (HTML iframe srcDoc, react-markdown with sanitization, in-browser Babel for React). The server-side render worker, render queue, `render_jobs`, `render_outputs`, `renderStatus`, `validationStatus`, and `packages/renderer` were removed in favor of this simpler model. Real server-side React compilation with esbuild may be revisited as a future capability if browser Babel proves insufficient.
 - Artifact URLs are served only through the app domain.
 - React dependencies use a curated allowlist.
 - Team ownership is out of scope for now.

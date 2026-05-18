@@ -2,7 +2,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { AccessSettingsForm } from "../../../components/access-settings-form";
-import { cookieHeader, fetchArtifactAccess, fetchArtifactMeta } from "../../../../lib/server-api";
+import { ShareLinksManager } from "../../../components/share-links-manager";
+import { cookieHeader, fetchArtifactAccess, fetchArtifactMeta, fetchShareLinks } from "../../../../lib/server-api";
 
 export default async function ArtifactSettingsPage(props: {
   params: Promise<{ username: string; slug: string }>;
@@ -33,7 +34,10 @@ export default async function ArtifactSettingsPage(props: {
     throw new Error("Unexpected artifact response");
   }
 
-  const access = await fetchArtifactAccess(meta.artifact.id, header);
+  const [access, shareLinksResult] = await Promise.all([
+    fetchArtifactAccess(meta.artifact.id, header),
+    fetchShareLinks(meta.artifact.id, header)
+  ]);
 
   if (access.ok === false && access.status === 403) {
     return (
@@ -71,6 +75,22 @@ export default async function ArtifactSettingsPage(props: {
           initialPublicView={access.body.publicView}
           initialViewerEmails={access.body.viewerEmails}
         />
+      </section>
+
+      <section className="card flat">
+        <h2>Share links</h2>
+        <p className="muted small">Create revocable links granting access without requiring sign-in.</p>
+        <ShareLinksManager
+          artifactId={meta.artifact.id}
+          initialLinks={shareLinksResult.ok && shareLinksResult.body ? shareLinksResult.body.shareLinks : []}
+        />
+      </section>
+
+      <section className="card flat">
+        <h2>Activity</h2>
+        <Link className="ghost-button" href={`/${meta.artifact.ownerUsername}/${meta.artifact.slug}/audit`}>
+          View audit log
+        </Link>
       </section>
     </main>
   );

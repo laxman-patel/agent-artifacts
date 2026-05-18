@@ -187,6 +187,63 @@ export async function fetchArtifactDiff(
   };
 }
 
+export async function fetchShareLinks(artifactId: string, cookieHeaderValue: string) {
+  const response = await fetch(
+    `${internalApiOrigin()}/api/artifacts/${encodeURIComponent(artifactId)}/share-links`,
+    { headers: { cookie: cookieHeaderValue }, cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    return { ok: false as const, status: response.status };
+  }
+
+  return {
+    ok: true as const,
+    body: (await response.json()) as {
+      shareLinks: Array<{
+        id: string;
+        role: string;
+        createdAt: string;
+        expiresAt: string | null;
+        revokedAt: string | null;
+        lastUsedAt: string | null;
+      }>;
+    }
+  };
+}
+
+export async function fetchAuditEvents(
+  cookieHeaderValue: string,
+  opts?: { artifactId?: string; limit?: number }
+) {
+  const url = new URL(`${internalApiOrigin()}/api/audit-events`);
+  if (opts?.artifactId) url.searchParams.set("artifactId", opts.artifactId);
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+
+  const response = await fetch(url, { headers: { cookie: cookieHeaderValue }, cache: "no-store" });
+
+  if (!response.ok) {
+    return { ok: false as const, status: response.status };
+  }
+
+  return {
+    ok: true as const,
+    body: (await response.json()) as {
+      events: Array<{
+        id: string;
+        artifactId: string | null;
+        actorPrincipalType: string;
+        actorPrincipalId: string;
+        action: string;
+        targetType: string;
+        targetId: string;
+        metadata: Record<string, unknown>;
+        createdAt: string;
+      }>;
+    }
+  };
+}
+
 export async function fetchArtifactAccess(artifactId: string, cookieHeaderValue: string) {
   const response = await fetch(`${internalApiOrigin()}/api/artifacts/${encodeURIComponent(artifactId)}/access`, {
     headers: { cookie: cookieHeaderValue },

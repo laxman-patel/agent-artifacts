@@ -59,7 +59,10 @@ export const principalSchema = z.object({
   id: z.string().min(1),
   ownerUserId: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  scopes: z.array(agentScopeSchema).default([])
+  scopes: z.array(agentScopeSchema).default([]),
+  // Per-artifact role grants resolved from share-link cookies. Augments the
+  // effective role computed from the artifact's own permission rules.
+  artifactRoleGrants: z.record(z.string(), artifactRoleSchema).optional()
 });
 export type Principal = z.infer<typeof principalSchema>;
 

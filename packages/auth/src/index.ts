@@ -1,7 +1,9 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { bearer, mcp } from "better-auth/plugins";
+import { bearer, mcp, withMcpAuth } from "better-auth/plugins";
 import type { Principal } from "@agent-artifacts/shared";
+
+export { withMcpAuth };
 
 export interface BetterAuthHandle {
   handler: (request: Request) => Promise<Response>;

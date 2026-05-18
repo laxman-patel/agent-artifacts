@@ -26,11 +26,22 @@ export interface ArtifactStorage {
   getSignedReadUrl(key: string, expiresInSeconds: number): Promise<string>;
 }
 
+const ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
+
 export function createVersionSourceKey(input: {
   ownerUserId: string;
   artifactId: string;
   versionNumber: number;
 }): string {
+  if (!ID_PATTERN.test(input.ownerUserId)) {
+    throw new Error("createVersionSourceKey: ownerUserId must match [a-zA-Z0-9_-]{1,64}");
+  }
+  if (!ID_PATTERN.test(input.artifactId)) {
+    throw new Error("createVersionSourceKey: artifactId must match [a-zA-Z0-9_-]{1,64}");
+  }
+  if (!Number.isInteger(input.versionNumber) || input.versionNumber <= 0) {
+    throw new Error("createVersionSourceKey: versionNumber must be a positive integer");
+  }
   return `users/${input.ownerUserId}/artifacts/${input.artifactId}/versions/${input.versionNumber}/source`;
 }
 

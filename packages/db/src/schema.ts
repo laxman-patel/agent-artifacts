@@ -92,6 +92,11 @@ export const verifications = pgTable(
 export const artifactType = pgEnum("artifact_type", ["html", "markdown", "react"]);
 export const artifactState = pgEnum("artifact_state", ["active", "archived", "deleted"]);
 export const artifactRole = pgEnum("artifact_role", ["owner", "admin", "editor", "viewer"]);
+// Principal types. Currently produced by the auth layer:
+//   - "user"    — Better Auth session (cookie or bearer-resolved)
+//   - "service" — anonymous public-viewer fallback
+// Reserved for future capabilities (no auth path currently produces them):
+//   - "agent", "api_key", "oauth_client"
 export const principalType = pgEnum("principal_type", ["user", "agent", "api_key", "oauth_client", "service"]);
 export const permissionSubjectType = pgEnum("permission_subject_type", [
   "anyone",

@@ -420,7 +420,9 @@ export class ArtifactService {
       artifact,
       version,
       content: textDecoder.decode(object.body),
-      contentType: object.contentType ?? contentTypeForArtifact(artifact.type)
+      // Authoritative: derive Content-Type from the artifact's declared type column.
+      // Any value stored in S3 metadata is ignored to prevent content-type spoofing.
+      contentType: contentTypeForArtifact(artifact.type)
     };
   }
 
@@ -698,13 +700,15 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
       return "owner";
     }
 
-    if (artifact.publicEdit) {
-      return "editor";
-    }
+    const candidates: ArtifactRole[] = [];
 
-    if (artifact.publicView) {
-      return "viewer";
-    }
+    // Share-link grant resolved by the API request handler from the
+    // aa_share_{artifactId} cookie.
+    const shareGrant = principal.artifactRoleGrants?.[artifact.id];
+    if (shareGrant) candidates.push(shareGrant);
+
+    if (artifact.publicEdit) candidates.push("editor");
+    else if (artifact.publicView) candidates.push("viewer");
 
     const now = new Date();
     const permissionRows = await this.db
@@ -717,15 +721,15 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
           or(isNull(artifactPermissions.expiresAt), sql`${artifactPermissions.expiresAt} > ${now}`),
           or(
             and(eq(artifactPermissions.subjectType, "user"), eq(artifactPermissions.subjectId, principal.id)),
-            and(eq(artifactPermissions.subjectType, "agent"), eq(artifactPermissions.subjectId, principal.id)),
-            and(eq(artifactPermissions.subjectType, "api_key"), eq(artifactPermissions.subjectId, principal.id)),
             and(eq(artifactPermissions.subjectType, "email"), sql`lower(${artifactPermissions.email}) = ${principal.email?.toLowerCase() ?? ""}`),
             eq(artifactPermissions.subjectType, "anyone")
           )
         )
       );
 
-    return highestRole(permissionRows.map((permission) => permission.role));
+    for (const row of permissionRows) candidates.push(row.role);
+
+    return highestRole(candidates);
   }
 
   async createAuditEvent(input: PersistAuditEventInput): Promise<void> {

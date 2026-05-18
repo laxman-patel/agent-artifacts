@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import type { Context } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { rateLimit } from "./rate-limit.js";
 import { logger } from "./logger.js";
+import { csrfOriginGuard } from "./csrf.js";
+import { resolveShareGrant } from "./share-session.js";
 import {
   ArtifactConflictError,
   ArtifactForbiddenError,
@@ -19,6 +21,7 @@ import {
 import {
   createAuth,
   createUserPrincipal,
+  withMcpAuth,
   type BetterAuthHandle
 } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
@@ -65,10 +68,22 @@ const artifactBodyLimit = bodyLimit({
   onError: (c) => c.json({ error: "payload_too_large", message: `Body exceeds ${HTTP_BODY_LIMIT_BYTES} byte limit.` }, 413)
 });
 
-app.use("/api/artifacts", writeLimiter, artifactBodyLimit);
-app.use("/api/artifacts/:id/versions", writeLimiter, artifactBodyLimit);
-app.use("/api/artifacts/:id/share-links", writeLimiter);
-app.use("/api/share-links/:id/revoke", writeLimiter);
+// CSRF: applied broadly to /api/* mutations. Bearer-authed requests skip it,
+// so MCP/CLI clients with Authorization: Bearer ... are unaffected.
+// Wrapped lazily so env validation errors don't prevent the module from loading.
+const csrfGuard: MiddlewareHandler = async (c, next) => {
+  csrfGuardImpl ??= csrfOriginGuard([loadServerEnv().PUBLIC_APP_URL, loadServerEnv().BETTER_AUTH_URL]);
+  return csrfGuardImpl(c, next);
+};
+let csrfGuardImpl: MiddlewareHandler | undefined;
+
+app.use("/api/artifacts", writeLimiter, artifactBodyLimit, csrfGuard);
+app.use("/api/artifacts/:id", csrfGuard);
+app.use("/api/artifacts/:id/versions", writeLimiter, artifactBodyLimit, csrfGuard);
+app.use("/api/artifacts/:id/access", csrfGuard);
+app.use("/api/artifacts/:id/share-links", writeLimiter, csrfGuard);
+app.use("/api/share-links/:id/revoke", writeLimiter, csrfGuard);
+app.use("/api/profile/username", csrfGuard);
 app.use("/api/artifacts/*", readLimiter);
 app.use("/mcp", writeLimiter, artifactBodyLimit);
 
@@ -130,24 +145,77 @@ app.get("/health", (c) =>
 
 app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth().handler(c.req.raw));
 
+// MCP endpoint authenticated through Better Auth's MCP OAuth flow.
+// Unauthenticated requests receive 401 with WWW-Authenticate pointing at
+// /api/auth/.well-known/oauth-protected-resource so MCP clients can
+// auto-discover the OAuth dance.
+//
+// The unauthenticated "initialize" and "tools/list" probes that some clients
+// make are short-circuited to return the discovery payload without auth so
+// they can introspect the server before initiating the OAuth flow.
 app.post("/mcp", async (c) => {
   try {
-    const message = mcpJsonRpcRequestSchema.parse(await c.req.json());
-    const result = await handleMcpJsonRpc(message, c.req.raw);
+    // Unauthenticated peek: allow initialize / tools/list without an access token.
+    const clonedBody = await c.req.raw.clone().text();
+    let peekedMethod: string | undefined;
+    try {
+      const parsed = JSON.parse(clonedBody) as { method?: string };
+      peekedMethod = parsed.method;
+    } catch {
+      // fall through to authenticated path
+    }
 
-    return c.json({
-      jsonrpc: "2.0",
-      id: message.id,
-      result
+    if (peekedMethod === "initialize" || peekedMethod === "tools/list") {
+      const message = mcpJsonRpcRequestSchema.parse(JSON.parse(clonedBody));
+      const result = await handleMcpJsonRpc(message, null);
+      return c.json({ jsonrpc: "2.0", id: message.id, result });
+    }
+
+    const handler = withMcpAuth(getAuth() as never, async (req: Request, session: { userId: string }) => {
+      try {
+        const message = mcpJsonRpcRequestSchema.parse(await req.json());
+        const [userRow] = await getDb()
+          .select({ id: users.id, email: users.email })
+          .from(users)
+          .where(eq(users.id, session.userId))
+          .limit(1);
+
+        if (!userRow) {
+          return Response.json(
+            { jsonrpc: "2.0", id: message.id ?? null, error: { code: -32001, message: "Authenticated user not found." } },
+            { status: 200 }
+          );
+        }
+
+        const principal = createUserPrincipal({ userId: userRow.id, email: userRow.email });
+        const result = await handleMcpJsonRpc(message, principal);
+        return Response.json({ jsonrpc: "2.0", id: message.id, result });
+      } catch (error) {
+        return mcpErrorAsResponse(error);
+      }
     });
+
+    return handler(c.req.raw);
   } catch (error) {
     return mcpErrorResponse(c, error);
   }
 });
 
+// OAuth protected resource metadata: tells MCP clients where to find the
+// authorization server. Mounted explicitly so it's reachable without
+// `/api/auth/*` proxying — the mcp() Better Auth plugin's helper handles it.
+app.get("/.well-known/oauth-protected-resource", (c) =>
+  c.json({
+    resource: loadServerEnv().PUBLIC_APP_URL,
+    authorization_servers: [loadServerEnv().BETTER_AUTH_URL],
+    scopes_supported: ["openid", "profile", "email"],
+    bearer_methods_supported: ["header"]
+  })
+);
+
 app.get("/api/artifacts/slug-availability/:username/:slug", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const result = await getArtifactService().checkSlugAvailability(c.req.param("username"), c.req.param("slug"), principal);
 
     return c.json({
@@ -162,7 +230,7 @@ app.get("/api/artifacts/slug-availability/:username/:slug", async (c) => {
 
 app.post("/api/artifacts", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const body = createArtifactInputSchema.parse(await c.req.json());
     const artifact = await getArtifactService().createArtifact(body, principal);
 
@@ -174,7 +242,7 @@ app.post("/api/artifacts", async (c) => {
 
 app.get("/api/artifacts/:artifactId", async (c) => {
   try {
-    const principal = await resolvePrincipal(c.req.raw);
+    const principal = await resolvePrincipal(c);
     const artifact = await getArtifactService().getArtifact(c.req.param("artifactId"), principal);
 
     return c.json(artifact);
@@ -185,7 +253,7 @@ app.get("/api/artifacts/:artifactId", async (c) => {
 
 app.delete("/api/artifacts/:artifactId", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const result = await getArtifactService().deleteArtifact(c.req.param("artifactId"), principal);
 
     return c.json(result);
@@ -196,7 +264,7 @@ app.delete("/api/artifacts/:artifactId", async (c) => {
 
 app.post("/api/artifacts/:artifactId/versions", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const body = updateArtifactInputSchema.parse({
       ...(await c.req.json()),
       artifactId: c.req.param("artifactId")
@@ -211,7 +279,7 @@ app.post("/api/artifacts/:artifactId/versions", async (c) => {
 
 app.get("/api/artifacts/:artifactId/versions", async (c) => {
   try {
-    const principal = await resolvePrincipal(c.req.raw);
+    const principal = await resolvePrincipal(c);
     const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
     const versions = await getArtifactService().listArtifactVersions(c.req.param("artifactId"), principal, limit);
 
@@ -223,12 +291,14 @@ app.get("/api/artifacts/:artifactId/versions", async (c) => {
 
 app.get("/api/artifacts/:artifactId/content", async (c) => {
   try {
-    const principal = await resolvePrincipal(c.req.raw);
+    const principal = await resolvePrincipal(c);
     const versionNumber = z.coerce.number().int().positive().optional().parse(c.req.query("version"));
     const result = await getArtifactService().getArtifactContent(c.req.param("artifactId"), principal, versionNumber);
 
     return c.text(result.content, 200, {
       "content-type": result.contentType,
+      "x-content-type-options": "nosniff",
+      "content-disposition": `inline; filename="artifact-${result.artifact.id}-v${result.version.versionNumber}"`,
       "x-artifact-id": result.artifact.id,
       "x-artifact-version": String(result.version.versionNumber)
     });
@@ -239,7 +309,7 @@ app.get("/api/artifacts/:artifactId/content", async (c) => {
 
 app.get("/api/artifacts/:artifactId/access", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const access = await getArtifactService().getArtifactAccess(c.req.param("artifactId"), principal);
 
     return c.json(access);
@@ -250,7 +320,7 @@ app.get("/api/artifacts/:artifactId/access", async (c) => {
 
 app.patch("/api/artifacts/:artifactId/access", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const body = setArtifactAccessInputSchema.parse(await c.req.json());
     const access = await getArtifactService().setArtifactAccess(c.req.param("artifactId"), body, principal);
 
@@ -262,7 +332,7 @@ app.patch("/api/artifacts/:artifactId/access", async (c) => {
 
 app.get("/api/artifacts/:artifactId/diff", async (c) => {
   try {
-    const principal = await resolvePrincipal(c.req.raw);
+    const principal = await resolvePrincipal(c);
     const fromVersion = z.coerce.number().int().positive().parse(c.req.query("from"));
     const toVersion = z.coerce.number().int().positive().parse(c.req.query("to"));
     const diffResult = await getArtifactService().diffArtifactVersions(
@@ -280,7 +350,7 @@ app.get("/api/artifacts/:artifactId/diff", async (c) => {
 
 app.get("/api/profile/me", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     if (principal.type !== "user") {
       return c.json({ error: "forbidden", message: "User session required." }, 403);
     }
@@ -318,7 +388,7 @@ app.get("/api/profile/me", async (c) => {
 
 app.post("/api/profile/username", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     if (principal.type !== "user") {
       return c.json({ error: "forbidden", message: "User session required." }, 403);
     }
@@ -366,7 +436,7 @@ app.post("/api/profile/username", async (c) => {
 
 app.get("/api/profile/artifacts", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const artifacts = await getArtifactService().listOwnedArtifacts(principal);
 
     return c.json({ artifacts });
@@ -377,7 +447,7 @@ app.get("/api/profile/artifacts", async (c) => {
 
 app.get("/api/by-path/:username/:slug", async (c) => {
   try {
-    const principal = await resolvePrincipal(c.req.raw);
+    const principal = await resolvePrincipal(c);
     const artifact = await getArtifactService().getArtifactByPath(c.req.param("username"), c.req.param("slug"), principal);
 
     return c.json(artifact);
@@ -388,7 +458,7 @@ app.get("/api/by-path/:username/:slug", async (c) => {
 
 app.post("/api/artifacts/:artifactId/share-links", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const artifactId = c.req.param("artifactId");
     const body = z
       .object({
@@ -440,7 +510,7 @@ app.post("/api/artifacts/:artifactId/share-links", async (c) => {
 
 app.get("/api/artifacts/:artifactId/share-links", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const artifactId = c.req.param("artifactId");
 
     const canManage = await getArtifactService().checkArtifactPermission(artifactId, "artifact.manage_access", principal);
@@ -468,7 +538,7 @@ app.get("/api/artifacts/:artifactId/share-links", async (c) => {
 
 app.post("/api/share-links/:shareLinkId/revoke", async (c) => {
   try {
-    const principal = await requirePrincipal(c.req.raw);
+    const principal = await requirePrincipal(c);
     const shareLinkId = c.req.param("shareLinkId");
 
     const [link] = await getDb()
@@ -499,7 +569,7 @@ app.post("/api/share-links/:shareLinkId/revoke", async (c) => {
 
 app.get("/api/audit-events", async (c) => {
   try {
-    const principal = await requireHumanPrincipal(c.req.raw);
+    const principal = await requireHumanPrincipal(c);
     const artifactId = c.req.query("artifactId");
     const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
     const db = getDb();
@@ -585,45 +655,76 @@ function hashShareToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-async function resolvePrincipal(request: Request): Promise<Principal> {
+async function resolvePrincipal(c: Context | Request): Promise<Principal> {
+  const request = isContext(c) ? c.req.raw : c;
   const session = await getAuth().api.getSession({ headers: request.headers });
 
+  let principal: Principal;
   if (session?.user) {
-    return createUserPrincipal({
+    principal = createUserPrincipal({
       userId: session.user.id,
       email: session.user.email
     });
+  } else {
+    principal = {
+      type: "service",
+      id: "anonymous-public-viewer",
+      scopes: []
+    };
   }
 
-  return {
-    type: "service",
-    id: "anonymous-public-viewer",
-    scopes: []
-  };
+  if (isContext(c)) {
+    await attachShareGrant(c, principal);
+  }
+
+  return principal;
 }
 
-async function requirePrincipal(request: Request): Promise<Principal> {
+async function requirePrincipal(c: Context | Request): Promise<Principal> {
+  const request = isContext(c) ? c.req.raw : c;
   const session = await getAuth().api.getSession({ headers: request.headers });
 
-  if (session?.user) {
-    return createUserPrincipal({
-      userId: session.user.id,
-      email: session.user.email
-    });
+  if (!session?.user) {
+    throw new ArtifactForbiddenError("Authentication is required.");
   }
 
-  throw new ArtifactForbiddenError("Authentication is required.");
+  const principal = createUserPrincipal({
+    userId: session.user.id,
+    email: session.user.email
+  });
+
+  if (isContext(c)) {
+    await attachShareGrant(c, principal);
+  }
+
+  return principal;
 }
 
 type HumanPrincipal = Principal & { type: "user"; id: string };
 
-async function requireHumanPrincipal(request: Request): Promise<HumanPrincipal> {
-  const principal = await requirePrincipal(request);
+async function requireHumanPrincipal(c: Context | Request): Promise<HumanPrincipal> {
+  const principal = await requirePrincipal(c);
   if (principal.type !== "user") {
     throw new ArtifactForbiddenError("User session required.");
   }
-
   return principal as HumanPrincipal;
+}
+
+function isContext(value: Context | Request): value is Context {
+  return typeof (value as Context).req?.param === "function";
+}
+
+async function attachShareGrant(c: Context, principal: Principal): Promise<void> {
+  const artifactId = c.req.param("artifactId");
+  if (!artifactId) return;
+
+  const grant = await resolveShareGrant(getDb(), c.req.raw, artifactId);
+  if (!grant) return;
+
+  principal.artifactRoleGrants = {
+    ...(principal.artifactRoleGrants ?? {}),
+    [artifactId]: grant.role
+  };
 }
 
 const mcpJsonRpcRequestSchema = z.object({
@@ -635,7 +736,7 @@ const mcpJsonRpcRequestSchema = z.object({
 
 type McpJsonRpcRequest = z.infer<typeof mcpJsonRpcRequestSchema>;
 
-async function handleMcpJsonRpc(message: McpJsonRpcRequest, request: Request): Promise<unknown> {
+async function handleMcpJsonRpc(message: McpJsonRpcRequest, principal: Principal | null): Promise<unknown> {
   switch (message.method) {
     case "initialize":
       return {
@@ -664,7 +765,10 @@ async function handleMcpJsonRpc(message: McpJsonRpcRequest, request: Request): P
         throw new McpJsonRpcError(-32601, `Unknown MCP tool: ${params.name}`);
       }
 
-      const principal = await requirePrincipal(request);
+      if (!principal) {
+        throw new McpJsonRpcError(-32001, "Authentication required for tools/call");
+      }
+
       const result = await callMcpTool(params.name, params.arguments ?? {}, {
         artifactService: getArtifactService(),
         principal
@@ -697,6 +801,30 @@ class McpJsonRpcError extends Error {
     super(message);
     this.name = "McpJsonRpcError";
   }
+}
+
+function mcpErrorAsResponse(error: unknown): Response {
+  const payload = mcpErrorPayload(error);
+  return Response.json(payload, { status: 200 });
+}
+
+function mcpErrorPayload(error: unknown): { jsonrpc: "2.0"; id: null; error: { code: number; message: string; data?: unknown } } {
+  if (error instanceof McpJsonRpcError) {
+    return { jsonrpc: "2.0", id: null, error: { code: error.code, message: error.message } };
+  }
+  if (error instanceof z.ZodError) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32602, message: "Invalid MCP request.", data: error.issues } };
+  }
+  if (error instanceof ArtifactForbiddenError) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32001, message: error.message } };
+  }
+  if (error instanceof ArtifactNotFoundError) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32004, message: error.message } };
+  }
+  if (error instanceof SlugUnavailableError || error instanceof ArtifactConflictError) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32009, message: error.message } };
+  }
+  return { jsonrpc: "2.0", id: null, error: { code: -32603, message: error instanceof Error ? error.message : String(error) } };
 }
 
 function mcpErrorResponse(c: Context, error: unknown) {

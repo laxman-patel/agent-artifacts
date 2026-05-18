@@ -1238,8 +1238,8 @@ Current status:
 - Part 1 is complete and pushed.
 - Part 2 is complete and pushed.
 - Part 3 is complete and pushed.
-- Part 4 is complete locally.
-- Part 5 is pending.
+- Part 4 is complete and pushed.
+- Part 5 is complete and pushed.
 
 ### Part 1: Foundation
 
@@ -1298,7 +1298,7 @@ Status: Complete.
 
 ### Part 5: Renderers, Collaboration, and Hardening
 
-Status: Pending.
+Status: Complete.
 
 - Markdown renderer.
 - HTML iframe renderer.

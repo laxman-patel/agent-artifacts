@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Context } from "hono";
+import { rateLimit } from "./rate-limit.js";
 import {
   ArtifactConflictError,
   ArtifactForbiddenError,
@@ -30,6 +31,16 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 export const app = new Hono();
+
+const writeLimiter = rateLimit({ windowMs: 60_000, max: 60 });
+const readLimiter = rateLimit({ windowMs: 60_000, max: 300 });
+
+app.use("/api/artifacts", writeLimiter);
+app.use("/api/artifacts/:id/versions", writeLimiter);
+app.use("/api/artifacts/:id/share-links", writeLimiter);
+app.use("/api/share-links/:id/revoke", writeLimiter);
+app.use("/api/artifacts/*", readLimiter);
+app.use("/mcp", writeLimiter);
 
 let authInstance: BetterAuthHandle | undefined;
 let artifactServiceInstance: ArtifactService | undefined;

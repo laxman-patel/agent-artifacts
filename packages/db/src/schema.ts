@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -113,7 +114,11 @@ export const userProfiles = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    usernameUnique: uniqueIndex("user_profiles_username_unique").on(sql`lower(${table.username})`)
+    usernameUnique: uniqueIndex("user_profiles_username_unique").on(sql`lower(${table.username})`),
+    usernameFormat: check(
+      "user_profiles_username_format",
+      sql`${table.username} ~ '^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$' AND length(${table.username}) BETWEEN 3 AND 32`
+    )
   })
 );
 
@@ -140,7 +145,11 @@ export const artifacts = pgTable(
   },
   (table) => ({
     ownerSlugUnique: uniqueIndex("artifacts_owner_slug_unique").on(table.ownerUserId, sql`lower(${table.slug})`),
-    ownerIdx: index("artifacts_owner_idx").on(table.ownerUserId)
+    ownerIdx: index("artifacts_owner_idx").on(table.ownerUserId),
+    slugFormat: check(
+      "artifacts_slug_format",
+      sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND length(${table.slug}) BETWEEN 1 AND 80`
+    )
   })
 );
 

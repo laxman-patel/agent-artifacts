@@ -1,0 +1,2 @@
+ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_slug_format" CHECK ("artifacts"."slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND length("artifacts"."slug") BETWEEN 1 AND 80);--> statement-breakpoint
+ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_username_format" CHECK ("user_profiles"."username" ~ '^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$' AND length("user_profiles"."username") BETWEEN 3 AND 32);

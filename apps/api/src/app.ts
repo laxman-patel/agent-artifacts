@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import { rateLimit } from "./rate-limit.js";
@@ -9,6 +10,7 @@ import {
   ArtifactNotFoundError,
   ArtifactService,
   DrizzleArtifactRepository,
+  MAX_ARTIFACT_CONTENT_BYTES,
   SlugUnavailableError,
   createArtifactInputSchema,
   setArtifactAccessInputSchema,
@@ -55,12 +57,20 @@ app.use("*", async (c, next) => {
 const writeLimiter = rateLimit({ windowMs: 60_000, max: 60 });
 const readLimiter = rateLimit({ windowMs: 60_000, max: 300 });
 
-app.use("/api/artifacts", writeLimiter);
-app.use("/api/artifacts/:id/versions", writeLimiter);
+// HTTP-layer body limit. Higher than MAX_ARTIFACT_CONTENT_BYTES to allow
+// for the JSON envelope around content (title, slug, etc).
+const HTTP_BODY_LIMIT_BYTES = MAX_ARTIFACT_CONTENT_BYTES + 64 * 1024;
+const artifactBodyLimit = bodyLimit({
+  maxSize: HTTP_BODY_LIMIT_BYTES,
+  onError: (c) => c.json({ error: "payload_too_large", message: `Body exceeds ${HTTP_BODY_LIMIT_BYTES} byte limit.` }, 413)
+});
+
+app.use("/api/artifacts", writeLimiter, artifactBodyLimit);
+app.use("/api/artifacts/:id/versions", writeLimiter, artifactBodyLimit);
 app.use("/api/artifacts/:id/share-links", writeLimiter);
 app.use("/api/share-links/:id/revoke", writeLimiter);
 app.use("/api/artifacts/*", readLimiter);
-app.use("/mcp", writeLimiter);
+app.use("/mcp", writeLimiter, artifactBodyLimit);
 
 let authInstance: BetterAuthHandle | undefined;
 let artifactServiceInstance: ArtifactService | undefined;

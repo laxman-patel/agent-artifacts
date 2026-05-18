@@ -19,13 +19,24 @@ const artifactAccessInputSchema = z
   })
   .default({ publicView: true, publicEdit: false });
 
+/** Max artifact source size in bytes (free tier). Tied to body limit + DB/S3 storage budget. */
+export const MAX_ARTIFACT_CONTENT_BYTES = 1_048_576;
+
+const artifactContentSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (value) => Buffer.byteLength(value, "utf-8") <= MAX_ARTIFACT_CONTENT_BYTES,
+    `Content exceeds ${MAX_ARTIFACT_CONTENT_BYTES} byte limit.`
+  );
+
 export const createArtifactInputSchema = z.object({
   ownerUsername: z.string().min(1),
   slug: z.string().min(1),
   type: artifactTypeSchema,
   title: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
-  content: z.string().min(1),
+  content: artifactContentSchema,
   changelog: z.string().max(1000).optional(),
   access: artifactAccessInputSchema
 });
@@ -34,7 +45,7 @@ export type CreateArtifactInput = z.infer<typeof createArtifactInputSchema>;
 
 export const updateArtifactInputSchema = z.object({
   artifactId: z.string().min(1),
-  content: z.string().min(1),
+  content: artifactContentSchema,
   changelog: z.string().max(1000).optional(),
   expectedLatestVersion: z.number().int().positive().optional()
 });

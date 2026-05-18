@@ -3,8 +3,12 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    ports:
-      - "3001:3001"
+    # Not exposed publicly. Reachable only from the web service over the
+    # internal docker network at http://api:3001. The web service rewrites
+    # /api/* to this host. Better Auth cookies are scoped to PUBLIC_APP_URL
+    # so direct API access wouldn't carry a session anyway.
+    expose:
+      - "3001"
     env_file:
       - .env
     environment:

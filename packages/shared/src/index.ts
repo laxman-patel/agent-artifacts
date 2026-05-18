@@ -79,12 +79,28 @@ export function normalizeSlug(slug: string): string {
     .replace(/-{2,}/g, "-");
 }
 
+export const RESERVED_USERNAMES = new Set<string>([
+  // App routes
+  "login", "logout", "signup", "signin", "signout", "auth",
+  "dashboard", "settings", "account", "profile", "preferences",
+  "share", "shares", "admin", "support", "help", "docs",
+  "about", "terms", "privacy", "legal", "security",
+  // API/infra paths
+  "api", "mcp", "static", "assets", "public", "_next",
+  "www", "mail", "ftp", "root", "system",
+  // Reserved words that could break things
+  "null", "undefined", "true", "false",
+  // Reserved for app branding / future
+  "agent", "agents", "artifact", "artifacts", "official"
+]);
+
 export const usernameSchema = z
   .string()
   .trim()
   .min(3)
   .max(32)
-  .regex(/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/, "Use lowercase letters, numbers, underscores, or hyphens.");
+  .regex(/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/, "Use lowercase letters, numbers, underscores, or hyphens.")
+  .refine((value) => !RESERVED_USERNAMES.has(value.toLowerCase()), "This username is reserved.");
 
 export function buildArtifactUrl(appUrl: string, username: string, slug: string): string {
   const base = appUrl.replace(/\/+$/, "");

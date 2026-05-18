@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import { rateLimit } from "./rate-limit.js";
+import { logger } from "./logger.js";
 import {
   ArtifactConflictError,
   ArtifactForbiddenError,
@@ -33,10 +34,25 @@ import { z } from "zod";
 export const app = new Hono();
 
 app.use("*", async (c, next) => {
+  const requestId = randomUUID();
+  const start = Date.now();
+  c.set("requestId" as never, requestId);
+  c.header("x-request-id", requestId);
+
   await next();
+
+  const duration = Date.now() - start;
   c.header("x-content-type-options", "nosniff");
   c.header("x-frame-options", "DENY");
   c.header("referrer-policy", "strict-origin-when-cross-origin");
+
+  logger.info("request", {
+    requestId,
+    method: c.req.method,
+    path: c.req.path,
+    status: c.res.status,
+    durationMs: duration
+  });
 });
 
 const writeLimiter = rateLimit({ windowMs: 60_000, max: 60 });

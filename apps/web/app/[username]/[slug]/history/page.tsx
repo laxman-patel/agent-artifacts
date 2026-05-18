@@ -65,6 +65,7 @@ export default async function ArtifactHistoryPage(props: { params: Promise<{ use
               <li key={version.id}>
                 <div>
                   <strong>Version {version.versionNumber}</strong>
+                  <span className={`render-badge render-badge--${version.renderStatus}`}>{version.renderStatus}</span>
                   <p className="muted small">{new Date(version.createdAt).toLocaleString()}</p>
                   {version.changelog ? <p>{version.changelog}</p> : null}
                 </div>

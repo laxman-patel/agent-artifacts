@@ -14,8 +14,10 @@
     "@agent-artifacts/config": "workspace:*",
     "@agent-artifacts/db": "workspace:*",
     "@agent-artifacts/renderer": "workspace:*",
+    "@agent-artifacts/shared": "workspace:*",
     "@agent-artifacts/storage": "workspace:*",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "pg-boss": "^12.18.2"
   },
   "devDependencies": {
     "tsx": "^4.22.0"

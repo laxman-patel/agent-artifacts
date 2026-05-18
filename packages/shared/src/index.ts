@@ -90,3 +90,10 @@ export function buildArtifactUrl(appUrl: string, username: string, slug: string)
   const base = appUrl.replace(/\/+$/, "");
   return `${base}/${username}/${slug}`;
 }
+
+export const RENDER_QUEUE_NAME = "render-artifact" as const;
+
+export interface RenderJobData {
+  artifactVersionId: string;
+}
+

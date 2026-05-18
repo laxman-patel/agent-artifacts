@@ -97,6 +97,28 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
 
+  apps/worker:
+    dependencies:
+      '@agent-artifacts/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@agent-artifacts/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@agent-artifacts/renderer':
+        specifier: workspace:*
+        version: link:../../packages/renderer
+      '@agent-artifacts/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.20.0)
+    devDependencies:
+      tsx:
+        specifier: ^4.22.0
+        version: 4.22.0
+
   packages/artifact:
     dependencies:
       '@agent-artifacts/db':

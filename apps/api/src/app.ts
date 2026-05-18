@@ -183,6 +183,17 @@ app.get("/api/artifacts/:artifactId", async (c) => {
   }
 });
 
+app.delete("/api/artifacts/:artifactId", async (c) => {
+  try {
+    const principal = await requirePrincipal(c.req.raw);
+    const result = await getArtifactService().deleteArtifact(c.req.param("artifactId"), principal);
+
+    return c.json(result);
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
 app.post("/api/artifacts/:artifactId/versions", async (c) => {
   try {
     const principal = await requirePrincipal(c.req.raw);

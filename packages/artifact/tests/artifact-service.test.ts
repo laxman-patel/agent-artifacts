@@ -265,6 +265,54 @@ describe("ArtifactService", () => {
     expect(diffResult.unifiedDiff).toContain("alpha");
     expect(diffResult.unifiedDiff).toContain("beta");
   });
+
+  it("soft-deletes an artifact for the owner and hides it from subsequent reads", async () => {
+    const repository = new MemoryArtifactRepository();
+    const storage = new MemoryArtifactStorage();
+    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        slug: "throwaway",
+        type: "markdown",
+        title: "Throwaway",
+        content: "# bye"
+      },
+      ownerPrincipal
+    );
+
+    const result = await service.deleteArtifact(created.artifactId, ownerPrincipal);
+    expect(result).toEqual({ artifactId: created.artifactId, deleted: true });
+
+    await expect(service.getArtifact(created.artifactId, ownerPrincipal)).rejects.toThrow(/not.found|forbidden|active/i);
+  });
+
+  it("rejects delete for non-owner principals", async () => {
+    const repository = new MemoryArtifactRepository();
+    const storage = new MemoryArtifactStorage();
+    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        slug: "protected",
+        type: "markdown",
+        title: "Protected",
+        content: "# keep"
+      },
+      ownerPrincipal
+    );
+
+    const editorAgent: Principal = {
+      type: "agent",
+      id: "agent_editor",
+      ownerUserId: "user_1",
+      scopes: ["artifacts:update"]
+    };
+
+    await expect(service.deleteArtifact(created.artifactId, editorAgent)).rejects.toBeInstanceOf(ArtifactForbiddenError);
+  });
 });
 
 class MemoryArtifactStorage implements ArtifactStorage {
@@ -425,6 +473,14 @@ class MemoryArtifactRepository implements ArtifactRepository {
     artifact.publicEdit = input.publicEdit;
     artifact.updatedAt = new Date();
     this.artifactEmailViewers.set(input.artifactId, new Set(input.viewerEmails));
+  }
+
+  async softDeleteArtifact(artifactId: string): Promise<void> {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact) return;
+    artifact.state = "deleted";
+    artifact.archivedAt = new Date();
+    artifact.updatedAt = new Date();
   }
 
   private toVersion(input: PersistCreateVersionInput["version"]): ArtifactVersionRecord {

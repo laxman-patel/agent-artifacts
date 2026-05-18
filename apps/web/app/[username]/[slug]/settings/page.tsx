@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { AccessSettingsForm } from "../../../components/access-settings-form";
+import { DeleteArtifactButton } from "../../../components/delete-artifact-button";
 import { ShareLinksManager } from "../../../components/share-links-manager";
 import { cookieHeader, fetchArtifactAccess, fetchArtifactMeta, fetchShareLinks } from "../../../../lib/server-api";
 
@@ -91,6 +92,14 @@ export default async function ArtifactSettingsPage(props: {
         <Link className="ghost-button" href={`/${meta.artifact.ownerUsername}/${meta.artifact.slug}/audit`}>
           View audit log
         </Link>
+      </section>
+
+      <section className="card flat danger-zone">
+        <h2>Danger zone</h2>
+        <p className="muted small">
+          Deleting hides this artifact from all reads and revokes all access. Audit history is preserved. Only the artifact owner can do this.
+        </p>
+        <DeleteArtifactButton artifactId={meta.artifact.id} artifactTitle={meta.artifact.title} />
       </section>
     </main>
   );

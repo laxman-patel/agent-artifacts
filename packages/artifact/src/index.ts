@@ -97,6 +97,7 @@ export interface ArtifactRepository {
   listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]>;
   listViewerEmailsForArtifact(artifactId: string): Promise<string[]>;
   replaceArtifactEmailAccess(input: ReplaceArtifactEmailAccessInput): Promise<void>;
+  softDeleteArtifact(artifactId: string): Promise<void>;
 }
 
 export interface ReplaceArtifactEmailAccessInput {
@@ -376,6 +377,20 @@ export class ArtifactService {
     const artifact = await this.requireArtifactById(artifactId);
     await this.assertArtifactAction(artifact, principal, "artifact.view");
     return artifact;
+  }
+
+  async deleteArtifact(artifactId: string, principal: Principal): Promise<{ artifactId: string; deleted: true }> {
+    const artifact = await this.requireArtifactById(artifactId);
+    await this.assertArtifactAction(artifact, principal, "artifact.delete");
+
+    await this.repository.softDeleteArtifact(artifact.id);
+
+    await this.audit(artifact.ownerUserId, artifact.id, principal, "artifact.deleted", "artifact", artifact.id, {
+      slug: artifact.slug,
+      title: artifact.title
+    });
+
+    return { artifactId: artifact.id, deleted: true };
   }
 
   async checkArtifactPermission(artifactId: string, action: ArtifactAction, principal: Principal): Promise<boolean> {
@@ -791,6 +806,14 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
         });
       }
     });
+  }
+
+  async softDeleteArtifact(artifactId: string): Promise<void> {
+    const now = new Date();
+    await this.db
+      .update(artifacts)
+      .set({ state: "deleted", archivedAt: now, updatedAt: now })
+      .where(eq(artifacts.id, artifactId));
   }
 
   private artifactQuery() {

@@ -40,6 +40,9 @@ export const mcpToolInputSchemas = {
   set_artifact_access: z.object({
     artifactId: z.string().min(1),
     access: setArtifactAccessInputSchema
+  }),
+  delete_artifact: z.object({
+    artifactId: z.string().min(1)
   })
 } as const;
 
@@ -57,7 +60,8 @@ export const mcpToolDescriptions: Record<McpToolName, string> = {
   list_artifact_versions: "List immutable versions for an artifact.",
   diff_artifact_versions: "Return a unified diff between two artifact versions.",
   get_artifact_access: "Read artifact access settings.",
-  set_artifact_access: "Update artifact access settings."
+  set_artifact_access: "Update artifact access settings.",
+  delete_artifact: "Soft-delete an artifact. Owner-only. Hides it from all reads but preserves audit history."
 };
 
 export function listMcpTools() {
@@ -121,6 +125,10 @@ export async function callMcpTool<TToolName extends McpToolName>(
     case "set_artifact_access": {
       const request = parsed as McpToolInput<"set_artifact_access">;
       return context.artifactService.setArtifactAccess(request.artifactId, request.access, context.principal);
+    }
+    case "delete_artifact": {
+      const request = parsed as McpToolInput<"delete_artifact">;
+      return context.artifactService.deleteArtifact(request.artifactId, context.principal);
     }
     default:
       return assertNever(toolName);

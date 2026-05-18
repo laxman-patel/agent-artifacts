@@ -15,6 +15,13 @@
       "when": 1779111428605,
       "tag": "0001_pretty_phantom_reporter",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779112129616,
+      "tag": "0002_secret_patch",
+      "breakpoints": true
     }
   ]
 }

@@ -117,29 +117,6 @@ export const userProfiles = pgTable(
   })
 );
 
-export const agentIdentities = pgTable(
-  "agent_identities",
-  {
-    id: text("id").primaryKey(),
-    ownerUserId: text("owner_user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    displayName: text("display_name").notNull(),
-    createdByUserId: text("created_by_user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    defaultRole: artifactRole("default_role").default("viewer").notNull(),
-    scopes: jsonb("scopes").$type<string[]>().default([]).notNull(),
-    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-  },
-  (table) => ({
-    ownerIdx: index("agent_identities_owner_idx").on(table.ownerUserId)
-  })
-);
-
 export const artifacts = pgTable(
   "artifacts",
   {
@@ -164,30 +141,6 @@ export const artifacts = pgTable(
   (table) => ({
     ownerSlugUnique: uniqueIndex("artifacts_owner_slug_unique").on(table.ownerUserId, sql`lower(${table.slug})`),
     ownerIdx: index("artifacts_owner_idx").on(table.ownerUserId)
-  })
-);
-
-export const apiKeys = pgTable(
-  "api_keys",
-  {
-    id: text("id").primaryKey(),
-    ownerUserId: text("owner_user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    keyHash: varchar("key_hash", { length: 64 }).notNull(),
-    scopes: jsonb("scopes").$type<string[]>().default([]).notNull(),
-    createdByUserId: text("created_by_user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-  },
-  (table) => ({
-    keyHashUnique: uniqueIndex("api_keys_key_hash_unique").on(table.keyHash),
-    ownerIdx: index("api_keys_owner_idx").on(table.ownerUserId)
   })
 );
 

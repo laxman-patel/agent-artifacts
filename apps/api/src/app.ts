@@ -15,18 +15,15 @@ import {
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
 import {
-  createApiKeyPrincipal,
   createAuth,
   createUserPrincipal,
-  generateApiKeySecret,
-  hashApiKeySecret,
   type BetterAuthHandle
 } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
-import { agentIdentities, apiKeys, auditEvents, createDb, shareLinks, userProfiles, users, type Database } from "@agent-artifacts/db";
+import { auditEvents, createDb, shareLinks, userProfiles, users, type Database } from "@agent-artifacts/db";
 import { callMcpTool, listMcpTools, mcpToolInputSchemas, type McpToolName } from "@agent-artifacts/mcp";
 import type { Principal } from "@agent-artifacts/shared";
-import { agentScopeSchema, buildArtifactUrl, principalSchema, usernameSchema } from "@agent-artifacts/shared";
+import { buildArtifactUrl, usernameSchema } from "@agent-artifacts/shared";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -357,136 +354,6 @@ app.get("/api/profile/artifacts", async (c) => {
   }
 });
 
-app.get("/api/agents", async (c) => {
-  try {
-    const principal = await requireHumanPrincipal(c.req.raw);
-    const db = getDb();
-    const agents = await db
-      .select({
-        id: agentIdentities.id,
-        displayName: agentIdentities.displayName,
-        defaultRole: agentIdentities.defaultRole,
-        scopes: agentIdentities.scopes,
-        lastUsedAt: agentIdentities.lastUsedAt,
-        revokedAt: agentIdentities.revokedAt,
-        createdAt: agentIdentities.createdAt
-      })
-      .from(agentIdentities)
-      .where(eq(agentIdentities.ownerUserId, principal.id));
-
-    return c.json({ agents });
-  } catch (error) {
-    return artifactErrorResponse(c, error);
-  }
-});
-
-app.post("/api/agents", async (c) => {
-  try {
-    const principal = await requireHumanPrincipal(c.req.raw);
-    const body = z
-      .object({
-        displayName: z.string().min(1).max(120),
-        scopes: z.array(agentScopeSchema).default(["artifacts:read"]),
-        defaultRole: z.enum(["viewer", "editor", "admin"]).default("viewer")
-      })
-      .parse(await c.req.json());
-
-    const agentId = randomUUID();
-    await getDb().insert(agentIdentities).values({
-      id: agentId,
-      ownerUserId: principal.id,
-      displayName: body.displayName,
-      createdByUserId: principal.id,
-      defaultRole: body.defaultRole,
-      scopes: body.scopes,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-
-    return c.json({ agentId }, 201);
-  } catch (error) {
-    return artifactErrorResponse(c, error);
-  }
-});
-
-app.post("/api/agents/:agentId/revoke", async (c) => {
-  try {
-    const principal = await requireHumanPrincipal(c.req.raw);
-    await getDb()
-      .update(agentIdentities)
-      .set({ revokedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(agentIdentities.id, c.req.param("agentId")), eq(agentIdentities.ownerUserId, principal.id)));
-
-    return c.json({ revoked: true });
-  } catch (error) {
-    return artifactErrorResponse(c, error);
-  }
-});
-
-app.get("/api/api-keys", async (c) => {
-  try {
-    const principal = await requireHumanPrincipal(c.req.raw);
-    const keys = await getDb()
-      .select({
-        id: apiKeys.id,
-        name: apiKeys.name,
-        scopes: apiKeys.scopes,
-        lastUsedAt: apiKeys.lastUsedAt,
-        revokedAt: apiKeys.revokedAt,
-        createdAt: apiKeys.createdAt
-      })
-      .from(apiKeys)
-      .where(eq(apiKeys.ownerUserId, principal.id));
-
-    return c.json({ apiKeys: keys });
-  } catch (error) {
-    return artifactErrorResponse(c, error);
-  }
-});
-
-app.post("/api/api-keys", async (c) => {
-  try {
-    const principal = await requireHumanPrincipal(c.req.raw);
-    const body = z
-      .object({
-        name: z.string().min(1).max(120),
-        scopes: z.array(agentScopeSchema).default(["artifacts:read"])
-      })
-      .parse(await c.req.json());
-
-    const keyId = randomUUID();
-    const secret = generateApiKeySecret();
-    await getDb().insert(apiKeys).values({
-      id: keyId,
-      ownerUserId: principal.id,
-      name: body.name,
-      keyHash: hashApiKeySecret(secret),
-      scopes: body.scopes,
-      createdByUserId: principal.id,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-
-    return c.json({ apiKeyId: keyId, secret }, 201);
-  } catch (error) {
-    return artifactErrorResponse(c, error);
-  }
-});
-
-app.post("/api/api-keys/:apiKeyId/revoke", async (c) => {
-  try {
-    const principal = await requireHumanPrincipal(c.req.raw);
-    await getDb()
-      .update(apiKeys)
-      .set({ revokedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(apiKeys.id, c.req.param("apiKeyId")), eq(apiKeys.ownerUserId, principal.id)));
-
-    return c.json({ revoked: true });
-  } catch (error) {
-    return artifactErrorResponse(c, error);
-  }
-});
-
 app.get("/api/by-path/:username/:slug", async (c) => {
   try {
     const principal = await resolvePrincipal(c.req.raw);
@@ -698,19 +565,7 @@ function hashShareToken(token: string): string {
 }
 
 async function resolvePrincipal(request: Request): Promise<Principal> {
-  const headerPrincipal = readPrincipal(request.headers);
-  if (headerPrincipal) {
-    return headerPrincipal;
-  }
-
-  const apiKeyPrincipal = await readApiKeyPrincipal(request.headers);
-  if (apiKeyPrincipal) {
-    return apiKeyPrincipal;
-  }
-
-  const session = await getAuth().api.getSession({
-    headers: request.headers
-  });
+  const session = await getAuth().api.getSession({ headers: request.headers });
 
   if (session?.user) {
     return createUserPrincipal({
@@ -727,19 +582,7 @@ async function resolvePrincipal(request: Request): Promise<Principal> {
 }
 
 async function requirePrincipal(request: Request): Promise<Principal> {
-  const headerPrincipal = readPrincipal(request.headers);
-  if (headerPrincipal) {
-    return headerPrincipal;
-  }
-
-  const apiKeyPrincipal = await readApiKeyPrincipal(request.headers);
-  if (apiKeyPrincipal) {
-    return apiKeyPrincipal;
-  }
-
-  const session = await getAuth().api.getSession({
-    headers: request.headers
-  });
+  const session = await getAuth().api.getSession({ headers: request.headers });
 
   if (session?.user) {
     return createUserPrincipal({
@@ -760,53 +603,6 @@ async function requireHumanPrincipal(request: Request): Promise<HumanPrincipal> 
   }
 
   return principal as HumanPrincipal;
-}
-
-function readPrincipal(headers: Headers): Principal | undefined {
-  const id = headers.get("x-principal-id");
-  const type = headers.get("x-principal-type") ?? "user";
-  if (!id) {
-    return undefined;
-  }
-
-  return principalSchema.parse({
-    id,
-    type,
-    ownerUserId: headers.get("x-principal-owner-user-id") ?? undefined,
-    email: headers.get("x-principal-email") ?? undefined,
-    scopes: headers
-      .get("x-principal-scopes")
-      ?.split(",")
-      .map((scope) => scope.trim())
-      .filter(Boolean)
-  });
-}
-
-async function readApiKeyPrincipal(headers: Headers): Promise<Principal | undefined> {
-  const authorization = headers.get("authorization");
-  const match = authorization?.match(/^Bearer\s+(.+)$/i);
-  if (!match?.[1]) {
-    return undefined;
-  }
-
-  const keyHash = hashApiKeySecret(match[1]);
-  const [key] = await getDb()
-    .select()
-    .from(apiKeys)
-    .where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)))
-    .limit(1);
-
-  if (!key) {
-    return undefined;
-  }
-
-  await getDb().update(apiKeys).set({ lastUsedAt: new Date(), updatedAt: new Date() }).where(eq(apiKeys.id, key.id));
-
-  return createApiKeyPrincipal({
-    apiKeyId: key.id,
-    ownerUserId: key.ownerUserId,
-    scopes: key.scopes
-  });
 }
 
 const mcpJsonRpcRequestSchema = z.object({

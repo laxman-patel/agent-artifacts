@@ -10,7 +10,6 @@ export const serverEnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
   PUBLIC_APP_URL: urlSchema,
-  ARTIFACT_RENDER_ORIGIN: urlSchema,
   S3_ENDPOINT: urlSchema,
   S3_BUCKET: z.string().min(1),
   S3_REGION: z.string().min(1),

@@ -41,7 +41,6 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/agent_artifacts_test
           GOOGLE_CLIENT_ID: ci-placeholder
           GOOGLE_CLIENT_SECRET: ci-placeholder
-          ARTIFACT_RENDER_ORIGIN: http://localhost:3002
           S3_ENDPOINT: http://localhost:9000
           S3_BUCKET: agent-artifacts-test
           S3_REGION: us-east-1

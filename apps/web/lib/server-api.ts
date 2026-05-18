@@ -124,7 +124,6 @@ export async function fetchArtifactVersions(artifactId: string, cookieHeaderValu
         versionNumber: number;
         changelog: string | null;
         createdAt: string;
-        renderStatus: "pending" | "rendered" | "failed" | "skipped";
       }>;
     }
   };

@@ -31,16 +31,3 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
-
-  worker:
-    build:
-      context: .
-      dockerfile: apps/worker/Dockerfile
-    env_file:
-      - .env
-    environment:
-      NODE_ENV: production
-    depends_on:
-      api:
-        condition: service_healthy
-    restart: unless-stopped

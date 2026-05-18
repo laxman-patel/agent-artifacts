@@ -156,9 +156,6 @@ export interface ArtifactVersionRecord {
   createdByPrincipalType: Principal["type"];
   createdByPrincipalId: string;
   createdAt: Date;
-  validationStatus: "pending" | "valid" | "invalid";
-  renderStatus: "pending" | "rendered" | "failed" | "skipped";
-  renderOutputId: string | null;
 }
 
 export interface PersistCreateArtifactInput {
@@ -190,8 +187,6 @@ export interface PersistCreateVersionInput {
     changelog?: string;
     createdByPrincipalType: Principal["type"];
     createdByPrincipalId: string;
-    validationStatus: "valid";
-    renderStatus: "skipped";
   };
 }
 
@@ -271,9 +266,7 @@ export class ArtifactService {
         contentBytes: content.contentBytes,
         changelog: parsed.changelog,
         createdByPrincipalType: principal.type,
-        createdByPrincipalId: principal.id,
-        validationStatus: "valid",
-        renderStatus: "skipped"
+        createdByPrincipalId: principal.id
       }
     });
 
@@ -331,9 +324,7 @@ export class ArtifactService {
         contentBytes: content.contentBytes,
         changelog: parsed.changelog,
         createdByPrincipalType: principal.type,
-        createdByPrincipalId: principal.id,
-        validationStatus: "valid",
-        renderStatus: "skipped"
+        createdByPrincipalId: principal.id
       }
     });
 

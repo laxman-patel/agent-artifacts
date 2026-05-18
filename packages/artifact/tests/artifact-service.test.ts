@@ -439,10 +439,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
       changelog: input.changelog ?? null,
       createdByPrincipalType: input.createdByPrincipalType,
       createdByPrincipalId: input.createdByPrincipalId,
-      createdAt: new Date(),
-      validationStatus: input.validationStatus,
-      renderStatus: input.renderStatus,
-      renderOutputId: null
+      createdAt: new Date()
     };
   }
 }

@@ -100,8 +100,6 @@ export const permissionSubjectType = pgEnum("permission_subject_type", [
   "api_key",
   "share_link"
 ]);
-export const validationStatus = pgEnum("validation_status", ["pending", "valid", "invalid"]);
-export const renderStatus = pgEnum("render_status", ["pending", "rendered", "failed", "skipped"]);
 
 export const userProfiles = pgTable(
   "user_profiles",
@@ -208,10 +206,7 @@ export const artifactVersions = pgTable(
     changelog: text("changelog"),
     createdByPrincipalType: principalType("created_by_principal_type").notNull(),
     createdByPrincipalId: text("created_by_principal_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    validationStatus: validationStatus("validation_status").default("pending").notNull(),
-    renderStatus: renderStatus("render_status").default("pending").notNull(),
-    renderOutputId: text("render_output_id")
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
     artifactVersionUnique: uniqueIndex("artifact_versions_artifact_version_unique").on(
@@ -288,39 +283,3 @@ export const auditEvents = pgTable(
   })
 );
 
-export const renderOutputs = pgTable(
-  "render_outputs",
-  {
-    id: text("id").primaryKey(),
-    artifactVersionId: text("artifact_version_id")
-      .notNull()
-      .references(() => artifactVersions.id, { onDelete: "cascade" }),
-    outputObjectKey: text("output_object_key").notNull(),
-    status: renderStatus("status").default("pending").notNull(),
-    diagnostics: jsonb("diagnostics").$type<Record<string, unknown>>().default({}).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-  },
-  (table) => ({
-    versionIdx: index("render_outputs_version_idx").on(table.artifactVersionId)
-  })
-);
-
-export const renderJobs = pgTable(
-  "render_jobs",
-  {
-    id: text("id").primaryKey(),
-    artifactVersionId: text("artifact_version_id")
-      .notNull()
-      .references(() => artifactVersions.id, { onDelete: "cascade" }),
-    status: renderStatus("status").default("pending").notNull(),
-    attempts: integer("attempts").default(0).notNull(),
-    lastError: text("last_error"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-  },
-  (table) => ({
-    versionIdx: index("render_jobs_version_idx").on(table.artifactVersionId),
-    statusIdx: index("render_jobs_status_idx").on(table.status)
-  })
-);

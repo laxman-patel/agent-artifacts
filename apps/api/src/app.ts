@@ -3,7 +3,6 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import { rateLimit } from "./rate-limit.js";
 import { logger } from "./logger.js";
-import { enqueueRenderJob } from "./queue.js";
 import {
   ArtifactConflictError,
   ArtifactForbiddenError,
@@ -160,11 +159,6 @@ app.post("/api/artifacts", async (c) => {
     const body = createArtifactInputSchema.parse(await c.req.json());
     const artifact = await getArtifactService().createArtifact(body, principal);
 
-    const env = loadServerEnv();
-    await enqueueRenderJob(env.DATABASE_URL, artifact.versionId).catch((err: unknown) => {
-      logger.warn("failed to enqueue render job", { versionId: artifact.versionId, error: String(err) });
-    });
-
     return c.json(artifact, 201);
   } catch (error) {
     return artifactErrorResponse(c, error);
@@ -190,11 +184,6 @@ app.post("/api/artifacts/:artifactId/versions", async (c) => {
       artifactId: c.req.param("artifactId")
     });
     const version = await getArtifactService().updateArtifact(body, principal);
-
-    const env = loadServerEnv();
-    await enqueueRenderJob(env.DATABASE_URL, version.versionId).catch((err: unknown) => {
-      logger.warn("failed to enqueue render job", { versionId: version.versionId, error: String(err) });
-    });
 
     return c.json(version, 201);
   } catch (error) {

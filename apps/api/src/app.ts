@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import {
   ArtifactConflictError,
@@ -21,12 +21,12 @@ import {
   type BetterAuthHandle
 } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
-import { agentIdentities, apiKeys, createDb, userProfiles, users, type Database } from "@agent-artifacts/db";
+import { agentIdentities, apiKeys, auditEvents, createDb, shareLinks, userProfiles, users, type Database } from "@agent-artifacts/db";
 import { callMcpTool, listMcpTools, mcpToolInputSchemas, type McpToolName } from "@agent-artifacts/mcp";
 import type { Principal } from "@agent-artifacts/shared";
 import { agentScopeSchema, buildArtifactUrl, principalSchema, usernameSchema } from "@agent-artifacts/shared";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 export const app = new Hono();
@@ -464,6 +464,187 @@ app.get("/api/by-path/:username/:slug", async (c) => {
   }
 });
 
+app.post("/api/artifacts/:artifactId/share-links", async (c) => {
+  try {
+    const principal = await requirePrincipal(c.req.raw);
+    const artifactId = c.req.param("artifactId");
+    const body = z
+      .object({
+        role: z.enum(["viewer", "editor"]).default("viewer"),
+        expiresAt: z.string().datetime().optional()
+      })
+      .parse(await c.req.json());
+
+    const artifact = await getArtifactService().getArtifact(artifactId, principal);
+    if (!artifact) {
+      return c.json({ error: "not_found", message: "Artifact not found." }, 404);
+    }
+
+    const canManage = await getArtifactService().checkArtifactPermission(artifactId, "artifact.manage_access", principal);
+    if (!canManage) {
+      return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
+    }
+
+    const token = generateShareToken();
+    const tokenHash = hashShareToken(token);
+    const linkId = randomUUID();
+    const db = getDb();
+
+    await db.insert(shareLinks).values({
+      id: linkId,
+      artifactId,
+      tokenHash,
+      role: body.role,
+      createdByPrincipalType: principal.type,
+      createdByPrincipalId: principal.id,
+      createdAt: new Date(),
+      expiresAt: body.expiresAt ? new Date(body.expiresAt) : null
+    });
+
+    const env = loadServerEnv();
+    return c.json(
+      {
+        id: linkId,
+        shareUrl: `${env.PUBLIC_APP_URL}/share/${token}`,
+        role: body.role,
+        expiresAt: body.expiresAt ?? null
+      },
+      201
+    );
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/artifacts/:artifactId/share-links", async (c) => {
+  try {
+    const principal = await requirePrincipal(c.req.raw);
+    const artifactId = c.req.param("artifactId");
+
+    const canManage = await getArtifactService().checkArtifactPermission(artifactId, "artifact.manage_access", principal);
+    if (!canManage) {
+      return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
+    }
+
+    const links = await getDb()
+      .select({
+        id: shareLinks.id,
+        role: shareLinks.role,
+        createdAt: shareLinks.createdAt,
+        expiresAt: shareLinks.expiresAt,
+        revokedAt: shareLinks.revokedAt,
+        lastUsedAt: shareLinks.lastUsedAt
+      })
+      .from(shareLinks)
+      .where(eq(shareLinks.artifactId, artifactId));
+
+    return c.json({ shareLinks: links });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.post("/api/share-links/:shareLinkId/revoke", async (c) => {
+  try {
+    const principal = await requirePrincipal(c.req.raw);
+    const shareLinkId = c.req.param("shareLinkId");
+
+    const [link] = await getDb()
+      .select()
+      .from(shareLinks)
+      .where(eq(shareLinks.id, shareLinkId))
+      .limit(1);
+
+    if (!link) {
+      return c.json({ error: "not_found", message: "Share link not found." }, 404);
+    }
+
+    const canManage = await getArtifactService().checkArtifactPermission(link.artifactId, "artifact.manage_access", principal);
+    if (!canManage) {
+      return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
+    }
+
+    await getDb()
+      .update(shareLinks)
+      .set({ revokedAt: new Date() })
+      .where(eq(shareLinks.id, shareLinkId));
+
+    return c.json({ revoked: true });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/audit-events", async (c) => {
+  try {
+    const principal = await requireHumanPrincipal(c.req.raw);
+    const artifactId = c.req.query("artifactId");
+    const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
+    const db = getDb();
+
+    const conditions = [eq(auditEvents.ownerUserId, principal.id)];
+    if (artifactId) {
+      conditions.push(eq(auditEvents.artifactId, artifactId));
+    }
+
+    const events = await db
+      .select()
+      .from(auditEvents)
+      .where(and(...conditions))
+      .orderBy(desc(auditEvents.createdAt))
+      .limit(limit);
+
+    return c.json({ events });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/share/:token", async (c) => {
+  try {
+    const token = c.req.param("token");
+    const tokenHash = hashShareToken(token);
+
+    const [link] = await getDb()
+      .select()
+      .from(shareLinks)
+      .where(
+        and(
+          eq(shareLinks.tokenHash, tokenHash),
+          isNull(shareLinks.revokedAt)
+        )
+      )
+      .limit(1);
+
+    if (!link) {
+      return c.json({ error: "not_found", message: "Share link not found or revoked." }, 404);
+    }
+
+    if (link.expiresAt && link.expiresAt < new Date()) {
+      return c.json({ error: "gone", message: "Share link has expired." }, 410);
+    }
+
+    await getDb()
+      .update(shareLinks)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(shareLinks.id, link.id));
+
+    const artifact = await getArtifactService().getArtifact(link.artifactId, {
+      type: "service",
+      id: `share_link:${link.id}`,
+      scopes: []
+    });
+
+    return c.json({
+      artifactId: link.artifactId,
+      role: link.role,
+      artifact
+    });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
 app.get("/api/slug-preview/:username/:slug", (c) => {
   const username = c.req.param("username");
   const slug = c.req.param("slug");
@@ -473,6 +654,14 @@ app.get("/api/slug-preview/:username/:slug", (c) => {
     url: buildArtifactUrl(appUrl, username, slug)
   });
 });
+
+function generateShareToken(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+function hashShareToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 async function resolvePrincipal(request: Request): Promise<Principal> {
   const headerPrincipal = readPrincipal(request.headers);

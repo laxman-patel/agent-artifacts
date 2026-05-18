@@ -376,6 +376,19 @@ export class ArtifactService {
     return artifact;
   }
 
+  async checkArtifactPermission(artifactId: string, action: ArtifactAction, principal: Principal): Promise<boolean> {
+    const artifact = await this.repository.getArtifactById(artifactId);
+    if (!artifact || artifact.state !== "active") return false;
+    const role = await this.repository.getEffectiveRole(artifact, principal);
+    const decision = canPerformArtifactAction({
+      principal,
+      action,
+      role,
+      isOwnerAccount: artifact.ownerUserId === principal.id || artifact.ownerUserId === principal.ownerUserId
+    });
+    return decision.allowed;
+  }
+
   async getArtifactContent(
     artifactId: string,
     principal: Principal,

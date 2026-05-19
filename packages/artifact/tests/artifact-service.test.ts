@@ -11,12 +11,16 @@ import {
   type PersistCreateVersionInput,
   type ReplaceArtifactEmailAccessInput
 } from "../src/index.js";
+import { createArtifactAccess, MemoryArtifactRoleResolver } from "@agent-artifacts/access";
 import type { Principal } from "@agent-artifacts/shared";
 import type { ArtifactStorage, GetObjectOutput, PutObjectInput } from "@agent-artifacts/storage";
+
+const APP_URL = "https://www.agents-artifacts";
 
 const ownerPrincipal: Principal = {
   type: "user",
   id: "user_1",
+  ownerUserId: "user_1",
   email: "owner@example.com",
   scopes: []
 };
@@ -28,11 +32,19 @@ const agentPrincipal: Principal = {
   scopes: ["artifacts:create", "artifacts:update", "artifacts:read"]
 };
 
+function createTestHarness() {
+  const roleResolver = new MemoryArtifactRoleResolver();
+  const repository = new MemoryArtifactRepository(roleResolver);
+  const storage = new MemoryArtifactStorage();
+  const access = createArtifactAccess(roleResolver);
+  const service = new ArtifactService(repository, storage, APP_URL, access);
+
+  return { repository, roleResolver, storage, service };
+}
+
 describe("ArtifactService", () => {
   it("creates an immutable first version and writes source content to storage", async () => {
-    const repository = new MemoryArtifactRepository();
-    const storage = new MemoryArtifactStorage();
-    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+    const { repository, storage, service } = createTestHarness();
 
     const created = await service.createArtifact(
       {
@@ -54,10 +66,31 @@ describe("ArtifactService", () => {
     expect(repository.auditEvents[0]?.action).toBe("artifact.created");
   });
 
+  it("denies create in another user's namespace", async () => {
+    const { service } = createTestHarness();
+
+    await expect(
+      service.createArtifact(
+        {
+          ownerUsername: "laxman",
+          slug: "hijack",
+          type: "markdown",
+          title: "Hijack",
+          content: "nope"
+        },
+        {
+          type: "user",
+          id: "user_2",
+          ownerUserId: "user_2",
+          email: "intruder@example.com",
+          scopes: []
+        }
+      )
+    ).rejects.toBeInstanceOf(ArtifactForbiddenError);
+  });
+
   it("appends updates as new versions and rejects stale version preconditions", async () => {
-    const repository = new MemoryArtifactRepository();
-    const storage = new MemoryArtifactStorage();
-    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+    const { repository, storage, service } = createTestHarness();
 
     const created = await service.createArtifact(
       {
@@ -96,9 +129,7 @@ describe("ArtifactService", () => {
   });
 
   it("enforces scopes for agent mutations and email rules for restricted reads", async () => {
-    const repository = new MemoryArtifactRepository();
-    const storage = new MemoryArtifactStorage();
-    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+    const { roleResolver, service } = createTestHarness();
 
     const created = await service.createArtifact(
       {
@@ -141,7 +172,7 @@ describe("ArtifactService", () => {
       })
     ).rejects.toBeInstanceOf(ArtifactForbiddenError);
 
-    repository.grantEmailViewer(created.artifactId, "allowed@example.com");
+    roleResolver.grantEmailViewer(created.artifactId, "allowed@example.com");
     const content = await service.getArtifactContent(created.artifactId, {
       type: "user",
       id: "user_3",
@@ -153,9 +184,7 @@ describe("ArtifactService", () => {
   });
 
   it("lists owned artifacts for human principals", async () => {
-    const repository = new MemoryArtifactRepository();
-    const storage = new MemoryArtifactStorage();
-    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+    const { service } = createTestHarness();
 
     await service.createArtifact(
       {
@@ -185,9 +214,7 @@ describe("ArtifactService", () => {
   });
 
   it("updates access flags and email viewers with auditing", async () => {
-    const repository = new MemoryArtifactRepository();
-    const storage = new MemoryArtifactStorage();
-    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+    const { repository, service } = createTestHarness();
 
     const created = await service.createArtifact(
       {
@@ -237,9 +264,7 @@ describe("ArtifactService", () => {
   });
 
   it("diffs two artifact versions", async () => {
-    const repository = new MemoryArtifactRepository();
-    const storage = new MemoryArtifactStorage();
-    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+    const { service } = createTestHarness();
 
     const created = await service.createArtifact(
       {
@@ -267,9 +292,7 @@ describe("ArtifactService", () => {
   });
 
   it("soft-deletes an artifact for the owner and hides it from subsequent reads", async () => {
-    const repository = new MemoryArtifactRepository();
-    const storage = new MemoryArtifactStorage();
-    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+    const { service } = createTestHarness();
 
     const created = await service.createArtifact(
       {
@@ -289,9 +312,7 @@ describe("ArtifactService", () => {
   });
 
   it("rejects delete for non-owner principals", async () => {
-    const repository = new MemoryArtifactRepository();
-    const storage = new MemoryArtifactStorage();
-    const service = new ArtifactService(repository, storage, "https://www.agents-artifacts");
+    const { service } = createTestHarness();
 
     const created = await service.createArtifact(
       {
@@ -349,6 +370,8 @@ class MemoryArtifactStorage implements ArtifactStorage {
 }
 
 class MemoryArtifactRepository implements ArtifactRepository {
+  constructor(private readonly roleResolver?: MemoryArtifactRoleResolver) {}
+
   readonly owners = new Map([["laxman", { userId: "user_1", username: "laxman" }]]);
   readonly artifacts = new Map<string, ArtifactRecord>();
   readonly versions = new Map<string, ArtifactVersionRecord[]>();
@@ -421,36 +444,8 @@ class MemoryArtifactRepository implements ArtifactRepository {
     this.versions.set(input.version.artifactId, [...(this.versions.get(input.version.artifactId) ?? []), this.toVersion(input.version)]);
   }
 
-  async getEffectiveRole(artifact: ArtifactRecord, principal: Principal): Promise<"viewer" | "editor" | "admin" | "owner" | undefined> {
-    if (principal.id === artifact.ownerUserId || principal.ownerUserId === artifact.ownerUserId) {
-      return "owner";
-    }
-
-    if (artifact.publicEdit) {
-      return "editor";
-    }
-
-    if (artifact.publicView) {
-      return "viewer";
-    }
-
-    const viewers = this.artifactEmailViewers.get(artifact.id);
-    if (principal.email && viewers?.has(principal.email.toLowerCase())) {
-      return "viewer";
-    }
-
-    return undefined;
-  }
-
   async createAuditEvent(input: PersistAuditEventInput): Promise<void> {
     this.auditEvents.push(input);
-  }
-
-  grantEmailViewer(artifactId: string, email: string): void {
-    const normalized = email.trim().toLowerCase();
-    const viewers = this.artifactEmailViewers.get(artifactId) ?? new Set<string>();
-    viewers.add(normalized);
-    this.artifactEmailViewers.set(artifactId, viewers);
   }
 
   async listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]> {
@@ -473,6 +468,9 @@ class MemoryArtifactRepository implements ArtifactRepository {
     artifact.publicEdit = input.publicEdit;
     artifact.updatedAt = new Date();
     this.artifactEmailViewers.set(input.artifactId, new Set(input.viewerEmails));
+    for (const email of input.viewerEmails) {
+      this.roleResolver?.grantEmailViewer(input.artifactId, email);
+    }
   }
 
   async softDeleteArtifact(artifactId: string): Promise<void> {

@@ -26,6 +26,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@agent-artifacts/access':
+        specifier: workspace:*
+        version: link:../../packages/access
       '@agent-artifacts/artifact':
         specifier: workspace:*
         version: link:../../packages/artifact
@@ -97,14 +100,23 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
 
-  packages/artifact:
+  packages/access:
     dependencies:
-      '@agent-artifacts/db':
-        specifier: workspace:*
-        version: link:../db
       '@agent-artifacts/policy':
         specifier: workspace:*
         version: link:../policy
+      '@agent-artifacts/shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/artifact:
+    dependencies:
+      '@agent-artifacts/access':
+        specifier: workspace:*
+        version: link:../access
+      '@agent-artifacts/db':
+        specifier: workspace:*
+        version: link:../db
       '@agent-artifacts/shared':
         specifier: workspace:*
         version: link:../shared

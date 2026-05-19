@@ -110,3 +110,10 @@ export function buildArtifactUrl(appUrl: string, username: string, slug: string)
   return `${base}/${username}/${slug}`;
 }
 
+export class ArtifactForbiddenError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = "ArtifactForbiddenError";
+  }
+}
+

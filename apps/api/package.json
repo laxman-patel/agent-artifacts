@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@agent-artifacts/access": "workspace:*",
     "@agent-artifacts/artifact": "workspace:*",
     "@agent-artifacts/auth": "workspace:*",
     "@agent-artifacts/config": "workspace:*",

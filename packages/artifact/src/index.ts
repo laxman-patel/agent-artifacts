@@ -2,9 +2,15 @@ import { createHash, randomUUID } from "node:crypto";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
 import { artifactPermissions, artifacts, artifactVersions, auditEvents, userProfiles } from "@agent-artifacts/db";
-import { canPerformArtifactAction } from "@agent-artifacts/policy";
-import type { ArtifactAction, ArtifactRole, ArtifactType, Principal } from "@agent-artifacts/shared";
-import { artifactRoleSchema, artifactTypeSchema, buildArtifactUrl, normalizeSlug, slugSchema } from "@agent-artifacts/shared";
+import type { ArtifactAccess } from "@agent-artifacts/access";
+import type { ArtifactAction, ArtifactType, Principal } from "@agent-artifacts/shared";
+import {
+  ArtifactForbiddenError,
+  artifactTypeSchema,
+  buildArtifactUrl,
+  normalizeSlug,
+  slugSchema
+} from "@agent-artifacts/shared";
 import type { ArtifactStorage } from "@agent-artifacts/storage";
 import { createVersionSourceKey } from "@agent-artifacts/storage";
 import { createTwoFilesPatch } from "diff";
@@ -92,7 +98,6 @@ export interface ArtifactRepository {
   listVersions(artifactId: string, limit: number): Promise<ArtifactVersionRecord[]>;
   createArtifact(input: PersistCreateArtifactInput): Promise<void>;
   createVersion(input: PersistCreateVersionInput): Promise<void>;
-  getEffectiveRole(artifact: ArtifactRecord, principal: Principal): Promise<ArtifactRole | undefined>;
   createAuditEvent(input: PersistAuditEventInput): Promise<void>;
   listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]>;
   listViewerEmailsForArtifact(artifactId: string): Promise<string[]>;
@@ -130,12 +135,7 @@ export class ArtifactConflictError extends Error {
   }
 }
 
-export class ArtifactForbiddenError extends Error {
-  constructor(reason: string) {
-    super(reason);
-    this.name = "ArtifactForbiddenError";
-  }
-}
+export { ArtifactForbiddenError } from "@agent-artifacts/shared";
 
 export interface ArtifactRecord {
   id: string;
@@ -218,7 +218,8 @@ export class ArtifactService {
   constructor(
     private readonly repository: ArtifactRepository,
     private readonly storage: ArtifactStorage,
-    private readonly appUrl: string
+    private readonly appUrl: string,
+    private readonly access: ArtifactAccess
   ) {}
 
   async checkSlugAvailability(
@@ -228,7 +229,11 @@ export class ArtifactService {
   ): Promise<{ available: boolean; ownerUserId: string; normalizedSlug: string }> {
     const normalizedSlug = validateSlug(slug);
     const owner = await this.requireOwner(ownerUsername);
-    this.assertAllowed(principal, "artifact.create", "owner", owner.userId === principal.id || owner.userId === principal.ownerUserId);
+    await this.access.assertAuthorized({
+      principal,
+      action: "artifact.create",
+      context: { kind: "namespace", ownerUserId: owner.userId }
+    });
     const available = !(await this.repository.slugExists(owner.userId, normalizedSlug));
 
     return { available, ownerUserId: owner.userId, normalizedSlug };
@@ -237,7 +242,11 @@ export class ArtifactService {
   async createArtifact(input: CreateArtifactInput, principal: Principal): Promise<ArtifactSummary> {
     const parsed = createArtifactInputSchema.parse(input);
     const owner = await this.requireOwner(parsed.ownerUsername);
-    this.assertAllowed(principal, "artifact.create", "owner", owner.userId === principal.id || owner.userId === principal.ownerUserId);
+    await this.access.assertAuthorized({
+      principal,
+      action: "artifact.create",
+      context: { kind: "namespace", ownerUserId: owner.userId }
+    });
 
     const normalizedSlug = validateSlug(parsed.slug);
     const available = !(await this.repository.slugExists(owner.userId, normalizedSlug));
@@ -396,12 +405,10 @@ export class ArtifactService {
   async checkArtifactPermission(artifactId: string, action: ArtifactAction, principal: Principal): Promise<boolean> {
     const artifact = await this.repository.getArtifactById(artifactId);
     if (!artifact || artifact.state !== "active") return false;
-    const role = await this.repository.getEffectiveRole(artifact, principal);
-    const decision = canPerformArtifactAction({
+    const decision = await this.access.authorize({
       principal,
       action,
-      role,
-      isOwnerAccount: artifact.ownerUserId === principal.id || artifact.ownerUserId === principal.ownerUserId
+      context: { kind: "artifact", artifact: this.artifactRoleContext(artifact) }
     });
     return decision.allowed;
   }
@@ -537,27 +544,21 @@ export class ArtifactService {
     return version;
   }
 
-  private assertAllowed(
-    principal: Principal,
-    action: ArtifactAction,
-    role: ArtifactRole | undefined,
-    isOwnerAccount = false
-  ): void {
-    const decision = canPerformArtifactAction({
+  private async assertArtifactAction(artifact: ArtifactRecord, principal: Principal, action: ArtifactAction): Promise<void> {
+    await this.access.assertAuthorized({
       principal,
       action,
-      role,
-      isOwnerAccount
+      context: { kind: "artifact", artifact: this.artifactRoleContext(artifact) }
     });
-
-    if (!decision.allowed) {
-      throw new ArtifactForbiddenError(decision.reason);
-    }
   }
 
-  private async assertArtifactAction(artifact: ArtifactRecord, principal: Principal, action: ArtifactAction): Promise<void> {
-    const role = await this.repository.getEffectiveRole(artifact, principal);
-    this.assertAllowed(principal, action, role, artifact.ownerUserId === principal.id || artifact.ownerUserId === principal.ownerUserId);
+  private artifactRoleContext(artifact: ArtifactRecord) {
+    return {
+      id: artifact.id,
+      ownerUserId: artifact.ownerUserId,
+      publicView: artifact.publicView,
+      publicEdit: artifact.publicEdit
+    };
   }
 
   private async writeContent(input: {
@@ -695,43 +696,6 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
     });
   }
 
-  async getEffectiveRole(artifact: ArtifactRecord, principal: Principal): Promise<ArtifactRole | undefined> {
-    if (principal.id === artifact.ownerUserId || principal.ownerUserId === artifact.ownerUserId) {
-      return "owner";
-    }
-
-    const candidates: ArtifactRole[] = [];
-
-    // Share-link grant resolved by the API request handler from the
-    // aa_share_{artifactId} cookie.
-    const shareGrant = principal.artifactRoleGrants?.[artifact.id];
-    if (shareGrant) candidates.push(shareGrant);
-
-    if (artifact.publicEdit) candidates.push("editor");
-    else if (artifact.publicView) candidates.push("viewer");
-
-    const now = new Date();
-    const permissionRows = await this.db
-      .select({ role: artifactPermissions.role })
-      .from(artifactPermissions)
-      .where(
-        and(
-          eq(artifactPermissions.artifactId, artifact.id),
-          isNull(artifactPermissions.revokedAt),
-          or(isNull(artifactPermissions.expiresAt), sql`${artifactPermissions.expiresAt} > ${now}`),
-          or(
-            and(eq(artifactPermissions.subjectType, "user"), eq(artifactPermissions.subjectId, principal.id)),
-            and(eq(artifactPermissions.subjectType, "email"), sql`lower(${artifactPermissions.email}) = ${principal.email?.toLowerCase() ?? ""}`),
-            eq(artifactPermissions.subjectType, "anyone")
-          )
-        )
-      );
-
-    for (const row of permissionRows) candidates.push(row.role);
-
-    return highestRole(candidates);
-  }
-
   async createAuditEvent(input: PersistAuditEventInput): Promise<void> {
     await this.db.insert(auditEvents).values(input);
   }
@@ -861,16 +825,10 @@ export function contentTypeForArtifact(type: ArtifactType): string {
   }
 }
 
-function highestRole(roles: ArtifactRole[]): ArtifactRole | undefined {
-  const rank: Record<ArtifactRole, number> = {
-    viewer: 1,
-    editor: 2,
-    admin: 3,
-    owner: 4
-  };
-
-  return roles
-    .map((role) => artifactRoleSchema.parse(role))
-    .sort((left, right) => rank[right]! - rank[left]!)
-    .at(0);
-}
+export { DrizzleArtifactRoleResolver } from "./drizzle-role-resolver.js";
+export {
+  createArtifactAccess,
+  MemoryArtifactRoleResolver,
+  type ArtifactAccess,
+  type ArtifactRoleResolver
+} from "@agent-artifacts/access";

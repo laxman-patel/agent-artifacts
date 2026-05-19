@@ -7,6 +7,7 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "references": [
+    { "path": "../../packages/access" },
     { "path": "../../packages/artifact" },
     { "path": "../../packages/auth" },
     { "path": "../../packages/config" },

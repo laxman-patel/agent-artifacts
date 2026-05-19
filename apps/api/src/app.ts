@@ -6,12 +6,13 @@ import { rateLimit } from "./rate-limit.js";
 import { logger } from "./logger.js";
 import { csrfOriginGuard } from "./csrf.js";
 import { resolveShareGrant } from "./share-session.js";
+import { createArtifactAccess } from "@agent-artifacts/access";
 import {
   ArtifactConflictError,
-  ArtifactForbiddenError,
   ArtifactNotFoundError,
   ArtifactService,
   DrizzleArtifactRepository,
+  DrizzleArtifactRoleResolver,
   MAX_ARTIFACT_CONTENT_BYTES,
   SlugUnavailableError,
   createArtifactInputSchema,
@@ -27,7 +28,7 @@ import {
 import { loadServerEnv } from "@agent-artifacts/config";
 import { auditEvents, createDb, shareLinks, userProfiles, users, type Database } from "@agent-artifacts/db";
 import { callMcpTool, listMcpTools, mcpToolInputSchemas, type McpToolName } from "@agent-artifacts/mcp";
-import type { Principal } from "@agent-artifacts/shared";
+import { ArtifactForbiddenError, type Principal } from "@agent-artifacts/shared";
 import { buildArtifactUrl, usernameSchema } from "@agent-artifacts/shared";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
@@ -130,7 +131,13 @@ function getArtifactService() {
       secretAccessKey: env.S3_SECRET_ACCESS_KEY
     });
 
-    return new ArtifactService(new DrizzleArtifactRepository(db), storage, env.PUBLIC_APP_URL);
+    const roleResolver = new DrizzleArtifactRoleResolver(db);
+    return new ArtifactService(
+      new DrizzleArtifactRepository(db),
+      storage,
+      env.PUBLIC_APP_URL,
+      createArtifactAccess(roleResolver)
+    );
   })();
 
   return artifactServiceInstance;
@@ -472,8 +479,12 @@ app.post("/api/artifacts/:artifactId/share-links", async (c) => {
       return c.json({ error: "not_found", message: "Artifact not found." }, 404);
     }
 
-    const canManage = await getArtifactService().checkArtifactPermission(artifactId, "artifact.manage_access", principal);
-    if (!canManage) {
+    const canCreateLink = await getArtifactService().checkArtifactPermission(
+      artifactId,
+      "artifact.create_share_link",
+      principal
+    );
+    if (!canCreateLink) {
       return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
     }
 
@@ -513,8 +524,12 @@ app.get("/api/artifacts/:artifactId/share-links", async (c) => {
     const principal = await requirePrincipal(c);
     const artifactId = c.req.param("artifactId");
 
-    const canManage = await getArtifactService().checkArtifactPermission(artifactId, "artifact.manage_access", principal);
-    if (!canManage) {
+    const canListLinks = await getArtifactService().checkArtifactPermission(
+      artifactId,
+      "artifact.create_share_link",
+      principal
+    );
+    if (!canListLinks) {
       return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
     }
 
@@ -551,8 +566,12 @@ app.post("/api/share-links/:shareLinkId/revoke", async (c) => {
       return c.json({ error: "not_found", message: "Share link not found." }, 404);
     }
 
-    const canManage = await getArtifactService().checkArtifactPermission(link.artifactId, "artifact.manage_access", principal);
-    if (!canManage) {
+    const canRevoke = await getArtifactService().checkArtifactPermission(
+      link.artifactId,
+      "artifact.revoke_share_link",
+      principal
+    );
+    if (!canRevoke) {
       return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
     }
 

@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { cookieHeader, fetchArtifactMeta, fetchArtifactVersions } from "../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactMeta, fetchArtifactVersions } from "../../../../../../lib/server-api";
 
-export default async function ArtifactHistoryPage(props: { params: Promise<{ username: string; slug: string }> }) {
+export default async function ArtifactHistoryPage(props: {
+  params: Promise<{ username: string; projectSlug: string; slug: string }>;
+}) {
   const params = await props.params;
   const cookieStore = await cookies();
   const header = cookieHeader(cookieStore);
+  const path = artifactPath({
+    ownerUsername: params.username,
+    projectSlug: params.projectSlug,
+    slug: params.slug
+  });
 
-  const meta = await fetchArtifactMeta(params.username, params.slug, header);
+  const meta = await fetchArtifactMeta(params.username, params.projectSlug, params.slug, header);
 
   if (meta.ok === false && meta.status === 404) {
     notFound();
@@ -19,7 +26,7 @@ export default async function ArtifactHistoryPage(props: { params: Promise<{ use
       <main className="shell narrow">
         <h1>Restricted artifact</h1>
         <p className="muted">{meta.message}</p>
-        <Link className="primary-button" href={`/login?next=/${encodeURIComponent(params.username)}/${encodeURIComponent(params.slug)}/history`}>
+        <Link className="primary-button" href={`/login?next=${encodeURIComponent(`${path}/history`)}`}>
           Sign in with Google
         </Link>
       </main>
@@ -41,17 +48,17 @@ export default async function ArtifactHistoryPage(props: { params: Promise<{ use
     );
   }
 
+  const base = artifactPath(meta.artifact);
+
   return (
     <main className="page-shell">
       <header className="page-header">
         <div>
           <p className="eyebrow">History</p>
           <h1>{meta.artifact.title}</h1>
-          <p className="subtle">
-            /{meta.artifact.ownerUsername}/{meta.artifact.slug}
-          </p>
+          <p className="subtle">{base}</p>
         </div>
-        <Link className="ghost-button" href={`/${meta.artifact.ownerUsername}/${meta.artifact.slug}`}>
+        <Link className="ghost-button" href={base}>
           Latest version
         </Link>
       </header>
@@ -69,11 +76,9 @@ export default async function ArtifactHistoryPage(props: { params: Promise<{ use
                   {version.changelog ? <p>{version.changelog}</p> : null}
                 </div>
                 <div className="row-actions">
-                  <Link href={`/${meta.artifact.ownerUsername}/${meta.artifact.slug}?version=${version.versionNumber}`}>View</Link>
+                  <Link href={`${base}?version=${version.versionNumber}`}>View</Link>
                   {previous ? (
-                    <Link
-                      href={`/${meta.artifact.ownerUsername}/${meta.artifact.slug}/diff/${previous.versionNumber}/${version.versionNumber}`}
-                    >
+                    <Link href={`${base}/diff/${previous.versionNumber}/${version.versionNumber}`}>
                       Diff vs v{previous.versionNumber}
                     </Link>
                   ) : null}

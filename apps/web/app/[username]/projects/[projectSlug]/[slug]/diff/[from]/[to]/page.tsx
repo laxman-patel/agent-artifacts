@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { cookieHeader, fetchArtifactDiff, fetchArtifactMeta } from "../../../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactDiff, fetchArtifactMeta } from "../../../../../../../../lib/server-api";
 
 export default async function ArtifactDiffPage(props: {
-  params: Promise<{ username: string; slug: string; from: string; to: string }>;
+  params: Promise<{ username: string; projectSlug: string; slug: string; from: string; to: string }>;
 }) {
   const params = await props.params;
   const fromVersion = Number.parseInt(params.from, 10);
@@ -16,8 +16,13 @@ export default async function ArtifactDiffPage(props: {
 
   const cookieStore = await cookies();
   const header = cookieHeader(cookieStore);
+  const path = artifactPath({
+    ownerUsername: params.username,
+    projectSlug: params.projectSlug,
+    slug: params.slug
+  });
 
-  const meta = await fetchArtifactMeta(params.username, params.slug, header);
+  const meta = await fetchArtifactMeta(params.username, params.projectSlug, params.slug, header);
 
   if (meta.ok === false && meta.status === 404) {
     notFound();
@@ -30,7 +35,7 @@ export default async function ArtifactDiffPage(props: {
         <p className="muted">{meta.message}</p>
         <Link
           className="primary-button"
-          href={`/login?next=/${encodeURIComponent(params.username)}/${encodeURIComponent(params.slug)}/diff/${params.from}/${params.to}`}
+          href={`/login?next=${encodeURIComponent(`${path}/diff/${params.from}/${params.to}`)}`}
         >
           Sign in with Google
         </Link>
@@ -53,6 +58,8 @@ export default async function ArtifactDiffPage(props: {
     );
   }
 
+  const base = artifactPath(meta.artifact);
+
   return (
     <main className="page-shell wide">
       <header className="page-header">
@@ -64,11 +71,9 @@ export default async function ArtifactDiffPage(props: {
               (v{fromVersion} → v{toVersion})
             </span>
           </h1>
-          <p className="subtle">
-            /{meta.artifact.ownerUsername}/{meta.artifact.slug}
-          </p>
+          <p className="subtle">{base}</p>
         </div>
-        <Link className="ghost-button" href={`/${meta.artifact.ownerUsername}/${meta.artifact.slug}/history`}>
+        <Link className="ghost-button" href={`${base}/history`}>
           Back to history
         </Link>
       </header>

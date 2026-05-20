@@ -1,19 +1,24 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { AccessSettingsForm } from "../../../components/access-settings-form";
-import { DeleteArtifactButton } from "../../../components/delete-artifact-button";
-import { ShareLinksManager } from "../../../components/share-links-manager";
-import { cookieHeader, fetchArtifactAccess, fetchArtifactMeta, fetchShareLinks } from "../../../../lib/server-api";
+import { AccessSettingsForm } from "../../../../../components/access-settings-form";
+import { DeleteArtifactButton } from "../../../../../components/delete-artifact-button";
+import { ShareLinksManager } from "../../../../../components/share-links-manager";
+import { artifactPath, cookieHeader, fetchArtifactAccess, fetchArtifactMeta, fetchShareLinks } from "../../../../../../lib/server-api";
 
 export default async function ArtifactSettingsPage(props: {
-  params: Promise<{ username: string; slug: string }>;
+  params: Promise<{ username: string; projectSlug: string; slug: string }>;
 }) {
   const params = await props.params;
   const cookieStore = await cookies();
   const header = cookieHeader(cookieStore);
+  const path = artifactPath({
+    ownerUsername: params.username,
+    projectSlug: params.projectSlug,
+    slug: params.slug
+  });
 
-  const meta = await fetchArtifactMeta(params.username, params.slug, header);
+  const meta = await fetchArtifactMeta(params.username, params.projectSlug, params.slug, header);
 
   if (meta.ok === false && meta.status === 404) {
     notFound();
@@ -24,7 +29,7 @@ export default async function ArtifactSettingsPage(props: {
       <main className="shell narrow">
         <h1>Restricted artifact</h1>
         <p className="muted">{meta.message}</p>
-        <Link className="primary-button" href={`/login?next=/${params.username}/${params.slug}/settings`}>
+        <Link className="primary-button" href={`/login?next=${encodeURIComponent(`${path}/settings`)}`}>
           Sign in with Google
         </Link>
       </main>
@@ -45,7 +50,7 @@ export default async function ArtifactSettingsPage(props: {
       <main className="shell narrow">
         <h1>Admin access required</h1>
         <p className="muted">Only artifact admins can change access rules.</p>
-        <Link href={`/${params.username}/${params.slug}`}>Back to artifact</Link>
+        <Link href={path}>Back to artifact</Link>
       </main>
     );
   }
@@ -54,17 +59,17 @@ export default async function ArtifactSettingsPage(props: {
     throw new Error("Unexpected access response");
   }
 
+  const base = artifactPath(meta.artifact);
+
   return (
     <main className="page-shell">
       <header className="page-header">
         <div>
           <p className="eyebrow">Settings</p>
           <h1>Access · {meta.artifact.title}</h1>
-          <p className="subtle">
-            Namespace /{meta.artifact.ownerUsername}/{meta.artifact.slug}
-          </p>
+          <p className="subtle">{base}</p>
         </div>
-        <Link className="ghost-button" href={`/${meta.artifact.ownerUsername}/${meta.artifact.slug}`}>
+        <Link className="ghost-button" href={base}>
           Back to artifact
         </Link>
       </header>
@@ -89,7 +94,7 @@ export default async function ArtifactSettingsPage(props: {
 
       <section className="card flat">
         <h2>Activity</h2>
-        <Link className="ghost-button" href={`/${meta.artifact.ownerUsername}/${meta.artifact.slug}/audit`}>
+        <Link className="ghost-button" href={`${base}/audit`}>
           View audit log
         </Link>
       </section>

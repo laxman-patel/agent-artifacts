@@ -22,13 +22,32 @@ export interface ProfileMeResponse {
   } | null;
 }
 
-export interface ArtifactOwnerSummary {
+export interface ProjectSummary {
   id: string;
   ownerUsername: string;
   slug: string;
   title: string;
+  description: string | null;
+  updatedAt: string;
+}
+
+export interface ArtifactOwnerSummary {
+  id: string;
+  ownerUsername: string;
+  projectId: string;
+  projectSlug: string;
+  slug: string;
+  title: string;
   type: string;
   updatedAt: string;
+}
+
+export function artifactPath(artifact: { ownerUsername: string; projectSlug: string; slug: string }): string {
+  return `/${artifact.ownerUsername}/projects/${artifact.projectSlug}/${artifact.slug}`;
+}
+
+export function projectPath(project: { ownerUsername: string; slug: string }): string {
+  return `/${project.ownerUsername}/projects/${project.slug}`;
 }
 
 export async function fetchProfileMe(cookieHeaderValue: string): Promise<{ status: number; body?: ProfileMeResponse }> {
@@ -42,6 +61,22 @@ export async function fetchProfileMe(cookieHeaderValue: string): Promise<{ statu
   }
 
   return { status: response.status, body: (await response.json()) as ProfileMeResponse };
+}
+
+export async function fetchOwnedProjects(cookieHeaderValue: string): Promise<{
+  status: number;
+  body?: { projects: ProjectSummary[] };
+}> {
+  const response = await fetch(`${internalApiOrigin()}/api/profile/projects`, {
+    headers: { cookie: cookieHeaderValue },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    return { status: response.status };
+  }
+
+  return { status: response.status, body: (await response.json()) as { projects: ProjectSummary[] } };
 }
 
 export async function fetchOwnedArtifacts(cookieHeaderValue: string): Promise<{
@@ -64,6 +99,8 @@ export interface ArtifactMeta {
   id: string;
   ownerUserId: string;
   ownerUsername: string;
+  projectId: string;
+  projectSlug: string;
   slug: string;
   title: string;
   description: string | null;
@@ -74,14 +111,44 @@ export interface ArtifactMeta {
   updatedAt: string;
 }
 
-export async function fetchArtifactMeta(username: string, slug: string, cookieHeaderValue: string | undefined) {
+export async function fetchProjectByPath(
+  username: string,
+  projectSlug: string,
+  cookieHeaderValue: string | undefined
+) {
   const headers: HeadersInit = {};
   if (cookieHeaderValue) {
     headers.cookie = cookieHeaderValue;
   }
 
   const response = await fetch(
-    `${internalApiOrigin()}/api/by-path/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`,
+    `${internalApiOrigin()}/api/by-path/${encodeURIComponent(username)}/projects/${encodeURIComponent(projectSlug)}`,
+    { headers, cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    return { ok: false as const, status: response.status };
+  }
+
+  return {
+    ok: true as const,
+    body: (await response.json()) as { project: ProjectSummary; artifacts: ArtifactOwnerSummary[] }
+  };
+}
+
+export async function fetchArtifactMeta(
+  username: string,
+  projectSlug: string,
+  slug: string,
+  cookieHeaderValue: string | undefined
+) {
+  const headers: HeadersInit = {};
+  if (cookieHeaderValue) {
+    headers.cookie = cookieHeaderValue;
+  }
+
+  const response = await fetch(
+    `${internalApiOrigin()}/api/by-path/${encodeURIComponent(username)}/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`,
     {
       headers,
       cache: "no-store"

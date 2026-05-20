@@ -1,11 +1,6 @@
-FROM node:24-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-
-FROM base AS builder
+FROM oven/bun:1 AS builder
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+COPY package.json bun.lock tsconfig.base.json tsconfig.json ./
 COPY packages/config/package.json packages/config/
 COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
@@ -14,8 +9,9 @@ COPY packages/policy/package.json packages/policy/
 COPY packages/storage/package.json packages/storage/
 COPY packages/artifact/package.json packages/artifact/
 COPY packages/mcp/package.json packages/mcp/
+COPY packages/access/package.json packages/access/
 COPY apps/api/package.json apps/api/
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 COPY packages/config/ packages/config/
 COPY packages/db/ packages/db/
@@ -25,10 +21,11 @@ COPY packages/policy/ packages/policy/
 COPY packages/storage/ packages/storage/
 COPY packages/artifact/ packages/artifact/
 COPY packages/mcp/ packages/mcp/
+COPY packages/access/ packages/access/
 COPY apps/api/ apps/api/
-RUN pnpm --filter @agent-artifacts/api... build
+RUN bunx turbo run build --filter=@agent-artifacts/api...
 
-FROM base AS runner
+FROM node:24-slim AS runner
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 apiuser
 

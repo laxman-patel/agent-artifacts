@@ -1,20 +1,15 @@
-FROM node:24-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-
-FROM base AS builder
+FROM oven/bun:1 AS builder
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+COPY package.json bun.lock tsconfig.base.json tsconfig.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/web/package.json apps/web/
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 COPY packages/shared/ packages/shared/
 COPY apps/web/ apps/web/
-RUN pnpm --filter @agent-artifacts/web... build
+RUN bunx turbo run build --filter=@agent-artifacts/web...
 
-FROM base AS runner
+FROM node:24-slim AS runner
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 

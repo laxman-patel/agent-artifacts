@@ -127,6 +127,29 @@ export const userProfiles = pgTable(
   })
 );
 
+export const projects = pgTable(
+  "projects",
+  {
+    id: text("id").primaryKey(),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    slug: varchar("slug", { length: 80 }).notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    ownerSlugUnique: uniqueIndex("projects_owner_slug_unique").on(table.ownerUserId, sql`lower(${table.slug})`),
+    ownerIdx: index("projects_owner_idx").on(table.ownerUserId),
+    slugFormat: check(
+      "projects_slug_format",
+      sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND length(${table.slug}) BETWEEN 1 AND 80`
+    )
+  })
+);
+
 export const artifacts = pgTable(
   "artifacts",
   {
@@ -134,6 +157,9 @@ export const artifacts = pgTable(
     ownerUserId: text("owner_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
     slug: varchar("slug", { length: 80 }).notNull(),
     title: text("title").notNull(),
     description: text("description"),
@@ -149,8 +175,9 @@ export const artifacts = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true })
   },
   (table) => ({
-    ownerSlugUnique: uniqueIndex("artifacts_owner_slug_unique").on(table.ownerUserId, sql`lower(${table.slug})`),
+    projectSlugUnique: uniqueIndex("artifacts_project_slug_unique").on(table.projectId, sql`lower(${table.slug})`),
     ownerIdx: index("artifacts_owner_idx").on(table.ownerUserId),
+    projectIdx: index("artifacts_project_idx").on(table.projectId),
     slugFormat: check(
       "artifacts_slug_format",
       sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND length(${table.slug}) BETWEEN 1 AND 80`

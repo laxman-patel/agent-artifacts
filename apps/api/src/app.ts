@@ -13,9 +13,14 @@ import {
   ArtifactService,
   DrizzleArtifactRepository,
   DrizzleArtifactRoleResolver,
+  DrizzleProjectRepository,
   MAX_ARTIFACT_CONTENT_BYTES,
+  ProjectNotFoundError,
+  ProjectService,
+  ProjectSlugUnavailableError,
   SlugUnavailableError,
   createArtifactInputSchema,
+  createProjectInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
@@ -26,10 +31,10 @@ import {
   type BetterAuthHandle
 } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
-import { auditEvents, createDb, shareLinks, userProfiles, users, type Database } from "@agent-artifacts/db";
+import { auditEvents, createDb, projects, shareLinks, userProfiles, users, type Database } from "@agent-artifacts/db";
 import { callMcpTool, listMcpTools, mcpToolInputSchemas, type McpToolName } from "@agent-artifacts/mcp";
 import { ArtifactForbiddenError, type Principal } from "@agent-artifacts/shared";
-import { buildArtifactUrl, usernameSchema } from "@agent-artifacts/shared";
+import { buildProjectArtifactUrl, usernameSchema } from "@agent-artifacts/shared";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -85,11 +90,13 @@ app.use("/api/artifacts/:id/access", csrfGuard);
 app.use("/api/artifacts/:id/share-links", writeLimiter, csrfGuard);
 app.use("/api/share-links/:id/revoke", writeLimiter, csrfGuard);
 app.use("/api/profile/username", csrfGuard);
+app.use("/api/projects", writeLimiter, csrfGuard);
 app.use("/api/artifacts/*", readLimiter);
 app.use("/mcp", writeLimiter, artifactBodyLimit);
 
 let authInstance: BetterAuthHandle | undefined;
 let artifactServiceInstance: ArtifactService | undefined;
+let projectServiceInstance: ProjectService | undefined;
 let dbInstance: Database | undefined;
 
 function getDb() {
@@ -141,6 +148,17 @@ function getArtifactService() {
   })();
 
   return artifactServiceInstance;
+}
+
+function getProjectService() {
+  projectServiceInstance ??= (() => {
+    const env = loadServerEnv();
+    const db = getDb();
+    const roleResolver = new DrizzleArtifactRoleResolver(db);
+    return new ProjectService(new DrizzleProjectRepository(db), env.PUBLIC_APP_URL, createArtifactAccess(roleResolver));
+  })();
+
+  return projectServiceInstance;
 }
 
 app.get("/health", (c) =>
@@ -220,15 +238,63 @@ app.get("/.well-known/oauth-protected-resource", (c) =>
   })
 );
 
-app.get("/api/artifacts/slug-availability/:username/:slug", async (c) => {
+app.get("/api/projects/slug-availability/:username/:slug", async (c) => {
   try {
     const principal = await requirePrincipal(c);
-    const result = await getArtifactService().checkSlugAvailability(c.req.param("username"), c.req.param("slug"), principal);
+    const result = await getProjectService().checkProjectSlugAvailability(
+      c.req.param("username"),
+      c.req.param("slug"),
+      principal
+    );
 
     return c.json({
       available: result.available,
       normalizedSlug: result.normalizedSlug,
       ownerUserId: result.ownerUserId
+    });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.post("/api/projects", async (c) => {
+  try {
+    const principal = await requirePrincipal(c);
+    const body = createProjectInputSchema.parse(await c.req.json());
+    const project = await getProjectService().createProject(body, principal);
+
+    return c.json(project, 201);
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/profile/projects", async (c) => {
+  try {
+    const principal = await requirePrincipal(c);
+    const projectList = await getProjectService().listOwnedProjects(principal);
+
+    return c.json({ projects: projectList });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/artifacts/slug-availability/:username/:projectSlug/:slug", async (c) => {
+  try {
+    const principal = await requirePrincipal(c);
+    const result = await getArtifactService().checkSlugAvailability(
+      c.req.param("username"),
+      c.req.param("projectSlug"),
+      c.req.param("slug"),
+      principal
+    );
+
+    return c.json({
+      available: result.available,
+      normalizedSlug: result.normalizedSlug,
+      ownerUserId: result.ownerUserId,
+      projectId: result.projectId
     });
   } catch (error) {
     return artifactErrorResponse(c, error);
@@ -427,12 +493,25 @@ app.post("/api/profile/username", async (c) => {
       return c.json({ error: "conflict", message: "That username is already taken." }, 409);
     }
 
-    await db.insert(userProfiles).values({
-      userId: principal.id,
-      username: normalizedUsername,
-      displayName: userRow.name ?? null,
-      createdAt: new Date(),
-      updatedAt: new Date()
+    const now = new Date();
+    await db.transaction(async (tx) => {
+      await tx.insert(userProfiles).values({
+        userId: principal.id,
+        username: normalizedUsername,
+        displayName: userRow.name ?? null,
+        createdAt: now,
+        updatedAt: now
+      });
+
+      await tx.insert(projects).values({
+        id: randomUUID(),
+        ownerUserId: principal.id,
+        slug: "default",
+        title: "Default",
+        description: null,
+        createdAt: now,
+        updatedAt: now
+      });
     });
 
     return c.json({ username: normalizedUsername }, 201);
@@ -452,10 +531,31 @@ app.get("/api/profile/artifacts", async (c) => {
   }
 });
 
-app.get("/api/by-path/:username/:slug", async (c) => {
+app.get("/api/by-path/:username/projects/:projectSlug", async (c) => {
   try {
     const principal = await resolvePrincipal(c);
-    const artifact = await getArtifactService().getArtifactByPath(c.req.param("username"), c.req.param("slug"), principal);
+    const project = await getProjectService().getProjectByPath(c.req.param("username"), c.req.param("projectSlug"));
+    const projectArtifacts = await getArtifactService().listArtifactsInProject(
+      c.req.param("username"),
+      c.req.param("projectSlug"),
+      principal
+    );
+
+    return c.json({ project, artifacts: projectArtifacts });
+  } catch (error) {
+    return artifactErrorResponse(c, error);
+  }
+});
+
+app.get("/api/by-path/:username/projects/:projectSlug/:slug", async (c) => {
+  try {
+    const principal = await resolvePrincipal(c);
+    const artifact = await getArtifactService().getArtifactByPath(
+      c.req.param("username"),
+      c.req.param("projectSlug"),
+      c.req.param("slug"),
+      principal
+    );
 
     return c.json(artifact);
   } catch (error) {
@@ -656,13 +756,14 @@ app.get("/api/share/:token", async (c) => {
   }
 });
 
-app.get("/api/slug-preview/:username/:slug", (c) => {
+app.get("/api/slug-preview/:username/:projectSlug/:slug", (c) => {
   const username = c.req.param("username");
+  const projectSlug = c.req.param("projectSlug");
   const slug = c.req.param("slug");
   const appUrl = process.env.PUBLIC_APP_URL ?? "http://localhost:3000";
 
   return c.json({
-    url: buildArtifactUrl(appUrl, username, slug)
+    url: buildProjectArtifactUrl(appUrl, username, projectSlug, slug)
   });
 });
 
@@ -790,6 +891,7 @@ async function handleMcpJsonRpc(message: McpJsonRpcRequest, principal: Principal
 
       const result = await callMcpTool(params.name, params.arguments ?? {}, {
         artifactService: getArtifactService(),
+        projectService: getProjectService(),
         principal
       });
 
@@ -930,8 +1032,16 @@ function artifactErrorResponse(c: Context, error: unknown) {
     return c.json({ error: "forbidden", message: error.message }, 403);
   }
 
-  if (error instanceof SlugUnavailableError || error instanceof ArtifactConflictError) {
+  if (
+    error instanceof SlugUnavailableError ||
+    error instanceof ProjectSlugUnavailableError ||
+    error instanceof ArtifactConflictError
+  ) {
     return c.json({ error: "conflict", message: error.message }, 409);
+  }
+
+  if (error instanceof ProjectNotFoundError) {
+    return c.json({ error: "not_found", message: error.message }, 404);
   }
 
   if (error instanceof z.ZodError) {

@@ -18,4 +18,5 @@ coverage/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+bun-debug.log*
 yarn-debug.log*

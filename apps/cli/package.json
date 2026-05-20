@@ -1,0 +1,22 @@
+{
+  "name": "@agent-artifacts/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "aa": "./dist/cli.js",
+    "agent-artifacts": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "tsc -b --pretty false",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@agent-artifacts/mcp": "workspace:*",
+    "commander": "^14.0.3",
+    "zod": "^4.4.3"
+  }
+}

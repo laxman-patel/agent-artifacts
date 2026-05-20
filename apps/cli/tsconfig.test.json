@@ -6,5 +6,5 @@
     "composite": false
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"],
-  "references": [{ "path": "../../packages/mcp" }]
+  "references": [{ "path": "../../packages/artifact" }]
 }

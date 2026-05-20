@@ -34,11 +34,10 @@
       "name": "@agent-artifacts/cli",
       "version": "0.1.0",
       "bin": {
-        "aa": "./dist/cli.js",
-        "agent-artifacts": "./dist/cli.js",
+        "artifacts": "./dist/cli.js",
       },
       "dependencies": {
-        "@agent-artifacts/mcp": "workspace:*",
+        "@agent-artifacts/artifact": "workspace:*",
         "commander": "^14.0.3",
         "zod": "^4.4.3",
       },

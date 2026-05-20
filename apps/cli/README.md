@@ -1,6 +1,6 @@
-# agent-artifacts CLI (`aa`)
+# artifacts CLI
 
-Primary interface for AI agents to use [agent-artifacts](https://github.com/agent-artifacts/agent-artifacts). Mirrors every MCP tool and the REST API.
+Primary interface for AI agents to use [agent-artifacts](https://github.com/agent-artifacts/agent-artifacts). A thin, deterministic wrapper over the REST API.
 
 ## Install
 
@@ -24,52 +24,49 @@ export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
 export AGENT_ARTIFACTS_TOKEN="your-bearer-token"
 ```
 
-Bearer auth skips CSRF checks on the API (same as MCP clients).
+Bearer auth skips CSRF checks on the API.
 
 ## Agent discovery
 
 Agents should **not** parse `--help`. Use the schema command:
 
 ```bash
-aa schema
+artifacts schema
 ```
 
-Returns JSON with every command, HTTP mapping, MCP tool name, input JSON Schema, and examples.
+Returns JSON with every command, HTTP method/path, request body JSON Schema, examples, and the stable output envelope contract.
 
 ## Output contract
 
-- **JSON** (default when stdout is not a TTY): `{ "ok": true, "data": ... }` or `{ "ok": false, "error": { "kind", "message" } }`
-- **Text** (interactive TTY): human-readable; errors on stderr
+Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https://www.infoq.com/articles/ai-agent-cli/)):
+
+- **JSON by default** when stdout is not a TTY: `{ "ok": true, "data": ... }` or `{ "ok": false, "error": { "kind", "message" } }`
+- **Text** when interactive (TTY): human-readable; errors on stderr
 - Data only on stdout; diagnostics on stderr
-- Exit codes: `0` ok, `2` invalid request, `3` not found, `4` forbidden/auth, `5` conflict
+- **Stable exit codes**: `0` ok, `2` invalid request, `3` not found, `4` forbidden/auth, `5` conflict
+- **`next_actions`** after create/get with suggested follow-up commands
 
-## MCP parity (`invoke`)
+## Commands
 
-Run any MCP tool by name:
-
-```bash
-aa invoke list_artifacts
-aa invoke create_artifact --json '{"ownerUsername":"alice","projectSlug":"default","slug":"demo","type":"markdown","title":"Demo","content":"# Hi"}'
-```
-
-## Resource commands
-
-| Command | MCP tool |
-|---------|----------|
-| `aa principal get` | `get_current_principal` |
-| `aa project list` | `list_projects` |
-| `aa project create --json '...'` | `create_project` |
-| `aa artifact list` | `list_artifacts` |
-| `aa artifact create --json '...'` | `create_artifact` |
-| `aa artifact get <id>` | `get_artifact` |
-| `aa artifact content <id>` | `get_artifact_content` |
-
-API-only: `aa profile set-username`, `aa path project`, `aa share create`, `aa audit list`, `aa health`.
+| Command | API |
+|---------|-----|
+| `artifacts profile get` | `GET /api/profile/me` |
+| `artifacts project list` | `GET /api/profile/projects` |
+| `artifacts project create --json '...'` | `POST /api/projects` |
+| `artifacts artifact list` | `GET /api/profile/artifacts` |
+| `artifacts artifact create --json '...'` | `POST /api/artifacts` |
+| `artifacts artifact get <id>` | `GET /api/artifacts/:id` |
+| `artifacts artifact content <id>` | `GET /api/artifacts/:id/content` |
+| `artifacts artifact update <id> --json '...'` | `POST /api/artifacts/:id/versions` |
+| `artifacts path artifact <owner> <project> <slug>` | `GET /api/by-path/...` |
+| `artifacts share create <id> --json '...'` | `POST /api/artifacts/:id/share-links` |
+| `artifacts audit list` | `GET /api/audit-events` |
+| `artifacts health` | `GET /health` |
 
 ## Mutations
 
-Pass full API/MCP payloads via `--json` or `--json-file`:
+Pass full API payloads via `--json` or `--json-file`:
 
 ```bash
-aa artifact update ART_ID --json '{"content":"# v2","changelog":"edit"}'
+artifacts artifact update ART_ID --json '{"content":"# v2","changelog":"edit"}'
 ```

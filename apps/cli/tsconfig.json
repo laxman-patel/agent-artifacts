@@ -6,7 +6,7 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "references": [{ "path": "../../packages/mcp" }],
+  "references": [{ "path": "../../packages/artifact" }],
   "include": ["src/**/*.ts"],
   "exclude": ["tests/**"]
 }

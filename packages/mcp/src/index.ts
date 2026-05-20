@@ -1,8 +1,10 @@
 import {
   createArtifactInputSchema,
+  createProjectInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema,
-  type ArtifactService
+  type ArtifactService,
+  type ProjectService
 } from "@agent-artifacts/artifact";
 import type { Principal } from "@agent-artifacts/shared";
 import { z } from "zod";
@@ -11,8 +13,15 @@ const versionNumberSchema = z.number().int().positive();
 
 export const mcpToolInputSchemas = {
   get_current_principal: z.object({}),
+  check_project_slug_availability: z.object({
+    ownerUsername: z.string().min(1),
+    slug: z.string().min(1)
+  }),
+  create_project: createProjectInputSchema,
+  list_projects: z.object({}),
   check_slug_availability: z.object({
     ownerUsername: z.string().min(1),
+    projectSlug: z.string().min(1),
     slug: z.string().min(1)
   }),
   create_artifact: createArtifactInputSchema,
@@ -51,7 +60,10 @@ export type McpToolInput<TToolName extends McpToolName> = z.infer<(typeof mcpToo
 
 export const mcpToolDescriptions: Record<McpToolName, string> = {
   get_current_principal: "Return the authenticated principal for the current MCP request.",
-  check_slug_availability: "Check whether a slug is available in an owner namespace.",
+  check_project_slug_availability: "Check whether a project slug is available in an owner namespace.",
+  create_project: "Create a new project to group artifacts.",
+  list_projects: "List projects owned by the authenticated human user.",
+  check_slug_availability: "Check whether an artifact slug is available within a project.",
   create_artifact: "Create a new artifact and immutable first version.",
   update_artifact: "Append a new immutable version to an artifact.",
   get_artifact: "Read artifact metadata for an authorized principal.",
@@ -74,6 +86,7 @@ export function listMcpTools() {
 
 export interface McpHandlerContext {
   artifactService: ArtifactService;
+  projectService: ProjectService;
   principal: Principal;
 }
 
@@ -87,9 +100,26 @@ export async function callMcpTool<TToolName extends McpToolName>(
   switch (toolName) {
     case "get_current_principal":
       return context.principal;
+    case "check_project_slug_availability": {
+      const request = parsed as McpToolInput<"check_project_slug_availability">;
+      return context.projectService.checkProjectSlugAvailability(
+        request.ownerUsername,
+        request.slug,
+        context.principal
+      );
+    }
+    case "create_project":
+      return context.projectService.createProject(parsed as McpToolInput<"create_project">, context.principal);
+    case "list_projects":
+      return context.projectService.listOwnedProjects(context.principal);
     case "check_slug_availability": {
       const request = parsed as McpToolInput<"check_slug_availability">;
-      return context.artifactService.checkSlugAvailability(request.ownerUsername, request.slug, context.principal);
+      return context.artifactService.checkSlugAvailability(
+        request.ownerUsername,
+        request.projectSlug,
+        request.slug,
+        context.principal
+      );
     }
     case "create_artifact":
       return context.artifactService.createArtifact(parsed as McpToolInput<"create_artifact">, context.principal);

@@ -35,6 +35,7 @@ describe("MCP tool handlers", () => {
       "create_artifact",
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "demo",
         type: "markdown",
         title: "Demo",
@@ -42,6 +43,7 @@ describe("MCP tool handlers", () => {
       },
       {
         artifactService: service,
+        projectService: {} as never,
         principal: apiKeyPrincipal
       }
     );

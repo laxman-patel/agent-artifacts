@@ -49,6 +49,7 @@ describe("ArtifactService", () => {
     const created = await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "Weekly Report!",
         type: "markdown",
         title: "Weekly Report",
@@ -60,7 +61,7 @@ describe("ArtifactService", () => {
 
     expect(created.normalizedSlug).toBe("weekly-report");
     expect(created.versionNumber).toBe(1);
-    expect(created.url).toBe("https://www.agents-artifacts/laxman/weekly-report");
+    expect(created.url).toBe("https://www.agents-artifacts/laxman/projects/default/weekly-report");
     expect(storage.text(created.contentObjectKey)).toBe("# Hello");
     expect(repository.auditEvents).toHaveLength(1);
     expect(repository.auditEvents[0]?.action).toBe("artifact.created");
@@ -73,6 +74,7 @@ describe("ArtifactService", () => {
       service.createArtifact(
         {
           ownerUsername: "laxman",
+        projectSlug: "default",
           slug: "hijack",
           type: "markdown",
           title: "Hijack",
@@ -95,6 +97,7 @@ describe("ArtifactService", () => {
     const created = await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "demo",
         type: "html",
         title: "Demo",
@@ -134,6 +137,7 @@ describe("ArtifactService", () => {
     const created = await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "restricted",
         type: "markdown",
         title: "Restricted",
@@ -189,6 +193,7 @@ describe("ArtifactService", () => {
     await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "a-one",
         type: "markdown",
         title: "One",
@@ -200,6 +205,7 @@ describe("ArtifactService", () => {
     await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "b-two",
         type: "markdown",
         title: "Two",
@@ -219,6 +225,7 @@ describe("ArtifactService", () => {
     const created = await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "policy-demo",
         type: "markdown",
         title: "Policy",
@@ -269,6 +276,7 @@ describe("ArtifactService", () => {
     const created = await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "diff-me",
         type: "markdown",
         title: "Diff",
@@ -297,6 +305,7 @@ describe("ArtifactService", () => {
     const created = await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "throwaway",
         type: "markdown",
         title: "Throwaway",
@@ -317,6 +326,7 @@ describe("ArtifactService", () => {
     const created = await service.createArtifact(
       {
         ownerUsername: "laxman",
+        projectSlug: "default",
         slug: "protected",
         type: "markdown",
         title: "Protected",
@@ -373,6 +383,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
   constructor(private readonly roleResolver?: MemoryArtifactRoleResolver) {}
 
   readonly owners = new Map([["laxman", { userId: "user_1", username: "laxman" }]]);
+  readonly defaultProject = { id: "project_default", slug: "default" };
   readonly artifacts = new Map<string, ArtifactRecord>();
   readonly versions = new Map<string, ArtifactVersionRecord[]>();
   readonly auditEvents: PersistAuditEventInput[] = [];
@@ -382,9 +393,17 @@ class MemoryArtifactRepository implements ArtifactRepository {
     return this.owners.get(username.toLowerCase());
   }
 
-  async slugExists(ownerUserId: string, normalizedSlug: string): Promise<boolean> {
+  async getProjectByOwnerSlug(username: string, projectSlug: string): Promise<{ id: string; slug: string } | undefined> {
+    if (username.toLowerCase() !== "laxman" || projectSlug !== "default") {
+      return undefined;
+    }
+
+    return this.defaultProject;
+  }
+
+  async slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean> {
     return [...this.artifacts.values()].some(
-      (artifact) => artifact.ownerUserId === ownerUserId && artifact.slug.toLowerCase() === normalizedSlug
+      (artifact) => artifact.projectId === projectId && artifact.slug.toLowerCase() === normalizedSlug
     );
   }
 
@@ -392,9 +411,22 @@ class MemoryArtifactRepository implements ArtifactRepository {
     return this.artifacts.get(artifactId);
   }
 
-  async getArtifactByOwnerSlug(username: string, slug: string): Promise<ArtifactRecord | undefined> {
+  async getArtifactByOwnerProjectSlug(
+    username: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord | undefined> {
     return [...this.artifacts.values()].find(
-      (artifact) => artifact.ownerUsername.toLowerCase() === username.toLowerCase() && artifact.slug === slug
+      (artifact) =>
+        artifact.ownerUsername.toLowerCase() === username.toLowerCase() &&
+        artifact.projectSlug === projectSlug &&
+        artifact.slug === slug
+    );
+  }
+
+  async listArtifactsForProject(projectId: string): Promise<ArtifactRecord[]> {
+    return [...this.artifacts.values()].filter(
+      (artifact) => artifact.projectId === projectId && artifact.state === "active"
     );
   }
 
@@ -416,6 +448,8 @@ class MemoryArtifactRepository implements ArtifactRepository {
       id: input.artifact.id,
       ownerUserId: input.artifact.ownerUserId,
       ownerUsername: "laxman",
+      projectId: input.artifact.projectId,
+      projectSlug: this.defaultProject.slug,
       slug: input.artifact.slug,
       title: input.artifact.title,
       description: input.artifact.description ?? null,

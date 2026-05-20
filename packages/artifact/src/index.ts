@@ -1,13 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
-import { artifactPermissions, artifacts, artifactVersions, auditEvents, userProfiles } from "@agent-artifacts/db";
+import { artifactPermissions, artifacts, artifactVersions, auditEvents, projects, userProfiles } from "@agent-artifacts/db";
 import type { ArtifactAccess } from "@agent-artifacts/access";
 import type { ArtifactAction, ArtifactType, Principal } from "@agent-artifacts/shared";
 import {
   ArtifactForbiddenError,
   artifactTypeSchema,
-  buildArtifactUrl,
+  buildProjectArtifactUrl,
   normalizeSlug,
   slugSchema
 } from "@agent-artifacts/shared";
@@ -15,6 +15,7 @@ import type { ArtifactStorage } from "@agent-artifacts/storage";
 import { createVersionSourceKey } from "@agent-artifacts/storage";
 import { createTwoFilesPatch } from "diff";
 import { z } from "zod";
+import { validateProjectSlug } from "./project.js";
 
 const textDecoder = new TextDecoder();
 
@@ -38,6 +39,7 @@ const artifactContentSchema = z
 
 export const createArtifactInputSchema = z.object({
   ownerUsername: z.string().min(1),
+  projectSlug: z.string().min(1),
   slug: z.string().min(1),
   type: artifactTypeSchema,
   title: z.string().min(1).max(200),
@@ -78,6 +80,8 @@ export interface ArtifactSummary {
   versionNumber: number;
   ownerUserId: string;
   ownerUsername: string;
+  projectId: string;
+  projectSlug: string;
   normalizedSlug: string;
   type: ArtifactType;
   title: string;
@@ -91,15 +95,21 @@ export interface ArtifactSummary {
 
 export interface ArtifactRepository {
   getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined>;
-  slugExists(ownerUserId: string, normalizedSlug: string): Promise<boolean>;
+  getProjectByOwnerSlug(username: string, projectSlug: string): Promise<{ id: string; slug: string } | undefined>;
+  slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean>;
   getArtifactById(artifactId: string): Promise<ArtifactRecord | undefined>;
-  getArtifactByOwnerSlug(username: string, slug: string): Promise<ArtifactRecord | undefined>;
+  getArtifactByOwnerProjectSlug(
+    username: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord | undefined>;
   getVersion(artifactId: string, versionNumber?: number): Promise<ArtifactVersionRecord | undefined>;
   listVersions(artifactId: string, limit: number): Promise<ArtifactVersionRecord[]>;
   createArtifact(input: PersistCreateArtifactInput): Promise<void>;
   createVersion(input: PersistCreateVersionInput): Promise<void>;
   createAuditEvent(input: PersistAuditEventInput): Promise<void>;
   listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]>;
+  listArtifactsForProject(projectId: string): Promise<ArtifactRecord[]>;
   listViewerEmailsForArtifact(artifactId: string): Promise<string[]>;
   replaceArtifactEmailAccess(input: ReplaceArtifactEmailAccessInput): Promise<void>;
   softDeleteArtifact(artifactId: string): Promise<void>;
@@ -141,6 +151,8 @@ export interface ArtifactRecord {
   id: string;
   ownerUserId: string;
   ownerUsername: string;
+  projectId: string;
+  projectSlug: string;
   slug: string;
   title: string;
   description: string | null;
@@ -174,6 +186,7 @@ export interface PersistCreateArtifactInput {
   artifact: {
     id: string;
     ownerUserId: string;
+    projectId: string;
     slug: string;
     title: string;
     description?: string;
@@ -224,19 +237,21 @@ export class ArtifactService {
 
   async checkSlugAvailability(
     ownerUsername: string,
+    projectSlug: string,
     slug: string,
     principal: Principal
-  ): Promise<{ available: boolean; ownerUserId: string; normalizedSlug: string }> {
+  ): Promise<{ available: boolean; ownerUserId: string; projectId: string; normalizedSlug: string }> {
     const normalizedSlug = validateSlug(slug);
     const owner = await this.requireOwner(ownerUsername);
+    const project = await this.requireProject(owner.username, projectSlug);
     await this.access.assertAuthorized({
       principal,
       action: "artifact.create",
       context: { kind: "namespace", ownerUserId: owner.userId }
     });
-    const available = !(await this.repository.slugExists(owner.userId, normalizedSlug));
+    const available = !(await this.repository.slugExistsInProject(project.id, normalizedSlug));
 
-    return { available, ownerUserId: owner.userId, normalizedSlug };
+    return { available, ownerUserId: owner.userId, projectId: project.id, normalizedSlug };
   }
 
   async createArtifact(input: CreateArtifactInput, principal: Principal): Promise<ArtifactSummary> {
@@ -248,8 +263,9 @@ export class ArtifactService {
       context: { kind: "namespace", ownerUserId: owner.userId }
     });
 
+    const project = await this.requireProject(owner.username, parsed.projectSlug);
     const normalizedSlug = validateSlug(parsed.slug);
-    const available = !(await this.repository.slugExists(owner.userId, normalizedSlug));
+    const available = !(await this.repository.slugExistsInProject(project.id, normalizedSlug));
     if (!available) {
       throw new SlugUnavailableError(normalizedSlug);
     }
@@ -268,6 +284,7 @@ export class ArtifactService {
       artifact: {
         id: artifactId,
         ownerUserId: owner.userId,
+        projectId: project.id,
         slug: normalizedSlug,
         title: parsed.title,
         description: parsed.description,
@@ -302,10 +319,12 @@ export class ArtifactService {
       versionNumber: 1,
       ownerUserId: owner.userId,
       ownerUsername: owner.username,
+      projectId: project.id,
+      projectSlug: project.slug,
       normalizedSlug,
       type: parsed.type,
       title: parsed.title,
-      url: buildArtifactUrl(this.appUrl, owner.username, normalizedSlug),
+      url: buildProjectArtifactUrl(this.appUrl, owner.username, project.slug, normalizedSlug),
       contentObjectKey: content.contentObjectKey,
       contentSha256: content.contentSha256,
       contentBytes: content.contentBytes,
@@ -360,10 +379,12 @@ export class ArtifactService {
       versionNumber: nextVersionNumber,
       ownerUserId: artifact.ownerUserId,
       ownerUsername: artifact.ownerUsername,
+      projectId: artifact.projectId,
+      projectSlug: artifact.projectSlug,
       normalizedSlug: artifact.slug,
       type: artifact.type,
       title: artifact.title,
-      url: buildArtifactUrl(this.appUrl, artifact.ownerUsername, artifact.slug),
+      url: buildProjectArtifactUrl(this.appUrl, artifact.ownerUsername, artifact.projectSlug, artifact.slug),
       contentObjectKey: content.contentObjectKey,
       contentSha256: content.contentSha256,
       contentBytes: content.contentBytes,
@@ -372,8 +393,17 @@ export class ArtifactService {
     };
   }
 
-  async getArtifactByPath(username: string, slug: string, principal: Principal): Promise<ArtifactRecord> {
-    const artifact = await this.repository.getArtifactByOwnerSlug(username, validateSlug(slug));
+  async getArtifactByPath(
+    username: string,
+    projectSlug: string,
+    slug: string,
+    principal: Principal
+  ): Promise<ArtifactRecord> {
+    const artifact = await this.repository.getArtifactByOwnerProjectSlug(
+      username,
+      validateProjectSlug(projectSlug),
+      validateSlug(slug)
+    );
     if (!artifact || artifact.state !== "active") {
       throw new ArtifactNotFoundError();
     }
@@ -445,6 +475,28 @@ export class ArtifactService {
     }
 
     return this.repository.listArtifactsForOwner(principal.id);
+  }
+
+  async listArtifactsInProject(
+    username: string,
+    projectSlug: string,
+    principal: Principal
+  ): Promise<ArtifactRecord[]> {
+    const project = await this.requireProject(username, projectSlug);
+    const artifacts = await this.repository.listArtifactsForProject(project.id);
+    const visible: ArtifactRecord[] = [];
+    for (const artifact of artifacts) {
+      const decision = await this.access.authorize({
+        principal,
+        action: "artifact.view",
+        context: { kind: "artifact", artifact: this.artifactRoleContext(artifact) }
+      });
+      if (decision.allowed) {
+        visible.push(artifact);
+      }
+    }
+
+    return visible;
   }
 
   async getArtifactAccess(artifactId: string, principal: Principal): Promise<ArtifactAccessSnapshot> {
@@ -524,6 +576,15 @@ export class ArtifactService {
     }
 
     return owner;
+  }
+
+  private async requireProject(ownerUsername: string, projectSlug: string): Promise<{ id: string; slug: string }> {
+    const project = await this.repository.getProjectByOwnerSlug(ownerUsername, validateProjectSlug(projectSlug));
+    if (!project) {
+      throw new ArtifactNotFoundError();
+    }
+
+    return project;
   }
 
   private async requireArtifactById(artifactId: string): Promise<ArtifactRecord> {
@@ -625,11 +686,26 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
     return owner;
   }
 
-  async slugExists(ownerUserId: string, normalizedSlug: string): Promise<boolean> {
+  async getProjectByOwnerSlug(
+    username: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string } | undefined> {
+    const normalizedUsername = username.trim().toLowerCase();
+    const [project] = await this.db
+      .select({ id: projects.id, slug: projects.slug })
+      .from(projects)
+      .innerJoin(userProfiles, eq(userProfiles.userId, projects.ownerUserId))
+      .where(and(sql`lower(${userProfiles.username}) = ${normalizedUsername}`, sql`lower(${projects.slug}) = ${projectSlug}`))
+      .limit(1);
+
+    return project;
+  }
+
+  async slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean> {
     const [artifact] = await this.db
       .select({ id: artifacts.id })
       .from(artifacts)
-      .where(and(eq(artifacts.ownerUserId, ownerUserId), sql`lower(${artifacts.slug}) = ${normalizedSlug}`))
+      .where(and(eq(artifacts.projectId, projectId), sql`lower(${artifacts.slug}) = ${normalizedSlug}`))
       .limit(1);
 
     return artifact !== undefined;
@@ -640,11 +716,21 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
     return artifact;
   }
 
-  async getArtifactByOwnerSlug(username: string, slug: string): Promise<ArtifactRecord | undefined> {
+  async getArtifactByOwnerProjectSlug(
+    username: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord | undefined> {
     const normalizedUsername = username.trim().toLowerCase();
     const normalizedSlug = validateSlug(slug);
     const [artifact] = await this.artifactQuery()
-      .where(and(sql`lower(${userProfiles.username}) = ${normalizedUsername}`, sql`lower(${artifacts.slug}) = ${normalizedSlug}`))
+      .where(
+        and(
+          sql`lower(${userProfiles.username}) = ${normalizedUsername}`,
+          sql`lower(${projects.slug}) = ${projectSlug}`,
+          sql`lower(${artifacts.slug}) = ${normalizedSlug}`
+        )
+      )
       .limit(1);
 
     return artifact;
@@ -701,11 +787,25 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
   }
 
   async listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]> {
+    return this.artifactQuery()
+      .where(and(eq(artifacts.ownerUserId, ownerUserId), eq(artifacts.state, "active")))
+      .orderBy(desc(artifacts.updatedAt));
+  }
+
+  async listArtifactsForProject(projectId: string): Promise<ArtifactRecord[]> {
+    return this.artifactQuery()
+      .where(and(eq(artifacts.projectId, projectId), eq(artifacts.state, "active")))
+      .orderBy(desc(artifacts.updatedAt));
+  }
+
+  private artifactQuery() {
     return this.db
       .select({
         id: artifacts.id,
         ownerUserId: artifacts.ownerUserId,
         ownerUsername: userProfiles.username,
+        projectId: artifacts.projectId,
+        projectSlug: projects.slug,
         slug: artifacts.slug,
         title: artifacts.title,
         description: artifacts.description,
@@ -722,8 +822,7 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
       })
       .from(artifacts)
       .innerJoin(userProfiles, eq(userProfiles.userId, artifacts.ownerUserId))
-      .where(and(eq(artifacts.ownerUserId, ownerUserId), eq(artifacts.state, "active")))
-      .orderBy(desc(artifacts.updatedAt));
+      .innerJoin(projects, eq(projects.id, artifacts.projectId));
   }
 
   async listViewerEmailsForArtifact(artifactId: string): Promise<string[]> {
@@ -784,30 +883,19 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
       .where(eq(artifacts.id, artifactId));
   }
 
-  private artifactQuery() {
-    return this.db
-      .select({
-        id: artifacts.id,
-        ownerUserId: artifacts.ownerUserId,
-        ownerUsername: userProfiles.username,
-        slug: artifacts.slug,
-        title: artifacts.title,
-        description: artifacts.description,
-        type: artifacts.type,
-        state: artifacts.state,
-        latestVersionId: artifacts.latestVersionId,
-        publicView: artifacts.publicView,
-        publicEdit: artifacts.publicEdit,
-        createdByPrincipalType: artifacts.createdByPrincipalType,
-        createdByPrincipalId: artifacts.createdByPrincipalId,
-        createdAt: artifacts.createdAt,
-        updatedAt: artifacts.updatedAt,
-        archivedAt: artifacts.archivedAt
-      })
-      .from(artifacts)
-      .innerJoin(userProfiles, eq(userProfiles.userId, artifacts.ownerUserId));
-  }
 }
+
+export {
+  createProjectInputSchema,
+  DrizzleProjectRepository,
+  ProjectService,
+  ProjectSlugUnavailableError,
+  ProjectNotFoundError,
+  validateProjectSlug,
+  type CreateProjectInput,
+  type ProjectRecord,
+  type ProjectSummary
+} from "./project.js";
 
 export function validateSlug(slug: string): string {
   const normalized = normalizeSlug(slug);

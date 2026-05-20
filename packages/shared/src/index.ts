@@ -94,7 +94,9 @@ export const RESERVED_USERNAMES = new Set<string>([
   // Reserved words that could break things
   "null", "undefined", "true", "false",
   // Reserved for app branding / future
-  "agent", "agents", "artifact", "artifacts", "official"
+  "agent", "agents", "artifact", "artifacts", "official",
+  // Project routes
+  "projects", "project"
 ]);
 
 export const usernameSchema = z
@@ -105,9 +107,24 @@ export const usernameSchema = z
   .regex(/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/, "Use lowercase letters, numbers, underscores, or hyphens.")
   .refine((value) => !RESERVED_USERNAMES.has(value.toLowerCase()), "This username is reserved.");
 
+/** @deprecated Use buildProjectArtifactUrl */
 export function buildArtifactUrl(appUrl: string, username: string, slug: string): string {
+  return buildProjectArtifactUrl(appUrl, username, "default", slug);
+}
+
+export function buildProjectUrl(appUrl: string, username: string, projectSlug: string): string {
   const base = appUrl.replace(/\/+$/, "");
-  return `${base}/${username}/${slug}`;
+  return `${base}/${username}/projects/${projectSlug}`;
+}
+
+export function buildProjectArtifactUrl(
+  appUrl: string,
+  username: string,
+  projectSlug: string,
+  artifactSlug: string
+): string {
+  const base = appUrl.replace(/\/+$/, "");
+  return `${base}/${username}/projects/${projectSlug}/${artifactSlug}`;
 }
 
 export class ArtifactForbiddenError extends Error {

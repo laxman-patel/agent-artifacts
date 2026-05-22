@@ -18,16 +18,29 @@ export default async function DashboardPage() {
     fetchOwnedArtifacts(header)
   ]);
 
-  if (projectsResult.status === 401 || projectsResult.status === 403) {
+  if (projectsResult.status === 401 || artifactsResult.status === 401) {
     redirect("/login?next=/dashboard");
   }
 
-  if (!projectsResult.body || !artifactsResult.body) {
-    throw new Error("Dashboard response was empty.");
+  if (projectsResult.status === 403 || artifactsResult.status === 403) {
+    redirect("/login?next=/dashboard");
   }
 
-  const { projects } = projectsResult.body;
-  const { artifacts } = artifactsResult.body;
+  const projects = projectsResult.body?.projects ?? [];
+  const artifacts = artifactsResult.body?.artifacts ?? [];
+  const loadWarnings: string[] = [];
+
+  if (!projectsResult.body) {
+    loadWarnings.push("Projects could not be loaded.");
+  }
+
+  if (!artifactsResult.body) {
+    loadWarnings.push("Artifacts could not be loaded. Refresh the page if your database was waking up.");
+  }
+
+  if (loadWarnings.length === 2) {
+    throw new Error(loadWarnings.join(" "));
+  }
 
   const artifactsByProject = new Map<string, typeof artifacts>();
   for (const artifact of artifacts) {
@@ -48,6 +61,12 @@ export default async function DashboardPage() {
           Account settings
         </Link>
       </header>
+
+      {loadWarnings.length > 0 ? (
+        <section className="card flat">
+          <p className="muted">{loadWarnings.join(" ")}</p>
+        </section>
+      ) : null}
 
       {projects.length === 0 ? (
         <section className="card flat">

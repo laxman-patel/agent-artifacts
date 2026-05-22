@@ -775,9 +775,53 @@ function hashShareToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function isTransientDbError(error: unknown): boolean {
+  const codes = new Set(["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ENOTFOUND"]);
+  const queue: unknown[] = [error];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || typeof current !== "object") {
+      continue;
+    }
+
+    if ("code" in current && typeof current.code === "string" && codes.has(current.code)) {
+      return true;
+    }
+
+    if ("cause" in current) {
+      queue.push(current.cause);
+    }
+
+    if ("errors" in current && Array.isArray(current.errors)) {
+      queue.push(...current.errors);
+    }
+  }
+
+  return false;
+}
+
+async function getSessionFromRequest(request: Request) {
+  const maxAttempts = 3;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await getAuth().api.getSession({ headers: request.headers });
+    } catch (error) {
+      if (!isTransientDbError(error) || attempt === maxAttempts - 1) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+    }
+  }
+
+  return null;
+}
+
 async function resolvePrincipal(c: Context | Request): Promise<Principal> {
   const request = isContext(c) ? c.req.raw : c;
-  const session = await getAuth().api.getSession({ headers: request.headers });
+  const session = await getSessionFromRequest(request);
 
   let principal: Principal;
   if (session?.user) {
@@ -802,7 +846,7 @@ async function resolvePrincipal(c: Context | Request): Promise<Principal> {
 
 async function requirePrincipal(c: Context | Request): Promise<Principal> {
   const request = isContext(c) ? c.req.raw : c;
-  const session = await getAuth().api.getSession({ headers: request.headers });
+  const session = await getSessionFromRequest(request);
 
   if (!session?.user) {
     throw new ArtifactForbiddenError("Authentication is required.");

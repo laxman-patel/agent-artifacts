@@ -1,3 +1,4 @@
+import { accounts, sessions, users, verifications } from "@agent-artifacts/db/schema";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, mcp, withMcpAuth } from "better-auth/plugins";
@@ -41,7 +42,13 @@ export function createAuth(config: AuthConfig): BetterAuthHandle {
 
   return betterAuth({
     database: drizzleAdapter(config.database as never, {
-      provider: "pg"
+      provider: "pg",
+      schema: {
+        user: users,
+        session: sessions,
+        account: accounts,
+        verification: verifications
+      }
     }),
     secret: config.secret,
     baseURL: config.baseUrl,

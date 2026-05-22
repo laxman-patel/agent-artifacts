@@ -86,6 +86,7 @@
       "name": "@agent-artifacts/auth",
       "version": "0.1.0",
       "dependencies": {
+        "@agent-artifacts/db": "workspace:*",
         "@agent-artifacts/shared": "workspace:*",
         "better-auth": "^1.6.11",
       },

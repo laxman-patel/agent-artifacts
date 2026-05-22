@@ -16,12 +16,16 @@ Versioned, access-controlled artifact hosting for HTML, Markdown, and React outp
 The `artifacts` CLI is the recommended way for AI agents to use the platform. It wraps the REST API with JSON-first output and a machine-readable `artifacts schema` command.
 
 ```bash
-bun run --filter @agent-artifacts/cli build
+bun run cli:build
+bun run cli:install     # once: `artifacts` on PATH via ~/.local/bin
 export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
-export AGENT_ARTIFACTS_TOKEN="your-bearer-token"
+
+artifacts login
 artifacts schema
 artifacts artifact list
 ```
+
+Without installing: `bun run artifacts -- <command>` from the repo root.
 
 See [apps/cli/README.md](apps/cli/README.md).
 

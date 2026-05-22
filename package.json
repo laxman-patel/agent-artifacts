@@ -14,7 +14,12 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "db:generate": "bun --env-file=.env run --filter @agent-artifacts/db db:generate",
-    "db:migrate": "bun --env-file=.env run --filter @agent-artifacts/db db:migrate"
+    "db:migrate": "bun --env-file=.env run --filter @agent-artifacts/db db:migrate",
+    "cli:build": "bun run --filter @agent-artifacts/cli build",
+    "cli:build:prod": "bun --env-file=.env run --filter @agent-artifacts/cli build:prod",
+    "cli:install": "bun run cli:build && mkdir -p \"$HOME/.local/bin\" && ln -sf \"$PWD/apps/cli/dist/cli.js\" \"$HOME/.local/bin/artifacts\"",
+    "cli:install:prod": "bun run cli:build:prod && mkdir -p \"$HOME/.local/bin\" && ln -sf \"$PWD/apps/cli/dist/artifacts\" \"$HOME/.local/bin/artifacts\"",
+    "artifacts": "bun apps/cli/dist/cli.js"
   },
   "engines": {
     "node": ">=24.0.0"

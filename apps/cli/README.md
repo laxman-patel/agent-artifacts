@@ -8,14 +8,44 @@ From the monorepo root:
 
 ```bash
 bun install
-bun link --cwd apps/cli   # optional: global `artifacts` command
+bun run cli:build
+bun run cli:install   # symlinks `artifacts` into ~/.local/bin (ensure that dir is on your PATH)
 ```
 
-The CLI entrypoint is `apps/cli/src/cli.ts` (Bun shebang). You can also run:
+After install, run `artifacts` from anywhere. Without installing globally:
 
 ```bash
-bun run --filter @agent-artifacts/cli dev -- <command>
+bun run artifacts -- <command>          # from repo root (uses built dist/cli.js)
+./apps/cli/dist/cli.js <command>      # direct path after cli:build
+bun run --filter @agent-artifacts/cli dev -- <command>  # run from TypeScript source
 ```
+
+Rebuild after CLI code changes: `bun run cli:build`.
+
+### Production bundle (URLs baked in)
+
+Ship a standalone binary with your deployed API and web URLs as defaults. The build reads the repo **`.env`** file automatically (same vars as the web app):
+
+| Baked into CLI | From `.env` (first match wins) |
+|----------------|--------------------------------|
+| API base URL | `AGENT_ARTIFACTS_BASE_URL` or `INTERNAL_API_URL` |
+| Web URL (browser login) | `AGENT_ARTIFACTS_WEB_URL` or `PUBLIC_APP_URL` or `NEXT_PUBLIC_APP_URL` or `BETTER_AUTH_URL` |
+
+Set production values in `.env`, then:
+
+```bash
+bun run cli:build:prod
+```
+
+Output: `apps/cli/dist/artifacts` — a compiled Bun binary. Install globally:
+
+```bash
+bun run cli:install:prod
+```
+
+Users can still override URLs with env vars, flags, or by running `artifacts login` against another environment. Resolution order: flags → env → saved credentials → **build-time defaults**.
+
+Dev builds (`cli:build`) keep localhost defaults.
 
 ## Authentication
 

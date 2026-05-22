@@ -3,11 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "bin": {
-    "artifacts": "./src/cli.ts"
+    "artifacts": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && chmod +x dist/cli.js",
+    "build:prod": "bun run scripts/build-prod.ts",
+    "prelink": "bun run build",
     "dev": "bun run src/cli.ts",
     "typecheck": "tsc -b --pretty false",
     "lint": "tsc -b --pretty false",

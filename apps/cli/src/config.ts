@@ -1,3 +1,4 @@
+import { DEFAULT_BASE_URL, DEFAULT_WEB_URL } from "./build-defaults.js";
 import { loadStoredCredentials } from "./auth/credentials.js";
 
 export type OutputFormat = "json" | "text";
@@ -9,9 +10,6 @@ export interface CliConfig {
   format: OutputFormat;
   quiet: boolean;
 }
-
-const DEFAULT_BASE_URL = "http://127.0.0.1:3001";
-const DEFAULT_WEB_URL = "http://localhost:3000";
 
 export function resolveConfig(options: {
   baseUrl?: string;

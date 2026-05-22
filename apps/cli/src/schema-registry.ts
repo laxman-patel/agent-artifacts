@@ -28,6 +28,27 @@ const usernameBodySchema = z.object({ username: z.string().min(1) });
 
 export const cliCommandSpecs: CliCommandSpec[] = [
   {
+    command: "login",
+    description: "Sign in via browser and store credentials locally.",
+    http: { method: "GET", path: "/cli/login" },
+    mutates: true,
+    example: "artifacts login"
+  },
+  {
+    command: "logout",
+    description: "Remove locally stored credentials.",
+    http: { method: "DELETE", path: "~/.config/agent-artifacts/credentials.json" },
+    mutates: true,
+    example: "artifacts logout"
+  },
+  {
+    command: "whoami",
+    description: "Show the authenticated user and profile.",
+    http: { method: "GET", path: "/api/profile/me" },
+    mutates: false,
+    example: "artifacts whoami"
+  },
+  {
     command: "health",
     description: "Check API health.",
     http: { method: "GET", path: "/health" },

@@ -19,6 +19,8 @@ describe("CLI schema", () => {
       "artifact versions",
       "audit list",
       "health",
+      "login",
+      "logout",
       "path artifact",
       "path project",
       "profile get",
@@ -28,7 +30,8 @@ describe("CLI schema", () => {
       "project slug-availability",
       "share create",
       "share list",
-      "share revoke"
+      "share revoke",
+      "whoami"
     ]);
   });
 

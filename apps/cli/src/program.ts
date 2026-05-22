@@ -8,9 +8,12 @@ import { CliError } from "./errors.js";
 import { emitFailure, emitSuccess } from "./output.js";
 import { parseJsonInput } from "./json-input.js";
 import type { NextAction } from "./output.js";
+import { browserLogin } from "./auth/browser-login.js";
+import { clearStoredCredentials, credentialsPath } from "./auth/credentials.js";
 
 interface GlobalOpts {
   baseUrl?: string;
+  webUrl?: string;
   token?: string;
   format?: OutputFormat;
   quiet?: boolean;
@@ -23,10 +26,58 @@ export async function runCli(argv: string[]): Promise<void> {
     .name("artifacts")
     .description("Agent-friendly CLI for agent-artifacts REST API")
     .option("--base-url <url>", "API base URL (env: AGENT_ARTIFACTS_BASE_URL)")
+    .option("--web-url <url>", "Web app URL for browser login (env: AGENT_ARTIFACTS_WEB_URL)")
     .option("--token <token>", "Bearer token (env: AGENT_ARTIFACTS_TOKEN)")
     .option("--format <format>", "Output format: json or text", (value) => value as OutputFormat)
     .option("-q, --quiet", "Suppress stderr progress messages")
     .showHelpAfterError("(add --help for command list; use `artifacts schema` for machine-readable capabilities)");
+
+  program
+    .command("login")
+    .description("Sign in via browser (stores credentials locally)")
+    .option("--no-localhost", "Print URL instead of using a localhost callback (limited support)")
+    .action(async (opts: { noLocalhost?: boolean }, cmd) => {
+      const config = resolveConfig(getGlobalOpts(cmd));
+      const result = await browserLogin({
+        baseUrl: config.baseUrl,
+        webUrl: config.webUrl,
+        noLocalhost: opts.noLocalhost,
+        quiet: config.quiet
+      });
+      emitSuccess(
+        {
+          email: result.credentials.email ?? null,
+          baseUrl: result.credentials.baseUrl,
+          webUrl: result.credentials.webUrl,
+          credentialsPath: credentialsPath()
+        },
+        config.format
+      );
+    });
+
+  program
+    .command("logout")
+    .description("Remove locally stored credentials")
+    .action((_opts, cmd) => {
+      const config = resolveConfig(getGlobalOpts(cmd));
+      clearStoredCredentials();
+      emitSuccess({ loggedOut: true, credentialsPath: credentialsPath() }, config.format);
+    });
+
+  program
+    .command("whoami")
+    .description("Show the current authenticated user")
+    .action(async (_opts, cmd) => {
+      const config = resolveConfig(getGlobalOpts(cmd));
+      if (!config.token) {
+        emitFailure(
+          new CliError("forbidden", "Not signed in. Run `artifacts login` first.", 4),
+          config.format
+        );
+      }
+      const data = await api.getProfileMe(new ApiClient(config));
+      emitSuccess(data, config.format);
+    });
 
   program
     .command("schema")
@@ -293,6 +344,7 @@ function getGlobalOpts(cmd: Command): GlobalOpts {
   const opts = cmd.optsWithGlobals() as GlobalOpts & Record<string, unknown>;
   return {
     baseUrl: opts.baseUrl,
+    webUrl: opts.webUrl,
     token: opts.token,
     format: opts.format,
     quiet: opts.quiet

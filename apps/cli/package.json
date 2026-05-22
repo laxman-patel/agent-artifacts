@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "bin": {
-    "artifacts": "./dist/cli.js"
+    "artifacts": "./src/cli.ts"
   },
   "scripts": {
     "build": "tsc -b",
-    "dev": "tsx src/cli.ts",
+    "dev": "bun run src/cli.ts",
     "typecheck": "tsc -b --pretty false",
     "lint": "tsc -b --pretty false",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "bun x vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@agent-artifacts/artifact": "workspace:*",

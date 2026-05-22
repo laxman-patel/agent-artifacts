@@ -1,6 +1,6 @@
 # artifacts CLI
 
-Primary interface for AI agents to use [agent-artifacts](https://github.com/agent-artifacts/agent-artifacts). A thin, deterministic wrapper over the REST API.
+Primary interface for AI agents to use [agent-artifacts](https://github.com/agent-artifacts/agent-artifacts). A thin, deterministic wrapper over the REST API. Runs on **Bun**.
 
 ## Install
 
@@ -8,16 +8,43 @@ From the monorepo root:
 
 ```bash
 bun install
-bun run --filter @agent-artifacts/cli build
+bun link --cwd apps/cli   # optional: global `artifacts` command
 ```
 
-Link globally (optional):
+The CLI entrypoint is `apps/cli/src/cli.ts` (Bun shebang). You can also run:
 
 ```bash
-cd apps/cli && bun link
+bun run --filter @agent-artifacts/cli dev -- <command>
 ```
 
 ## Authentication
+
+### Browser login (recommended)
+
+Like Firebase CLI, `artifacts login` opens your browser, completes Google sign-in on the web app, and stores credentials locally:
+
+```bash
+artifacts login
+artifacts whoami
+```
+
+Credentials are saved to `~/.config/agent-artifacts/credentials.json` (mode `0600`).
+
+Override defaults if needed:
+
+```bash
+export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
+export AGENT_ARTIFACTS_WEB_URL="http://localhost:3000"
+artifacts login
+```
+
+Sign out:
+
+```bash
+artifacts logout
+```
+
+### Manual token (CI / automation)
 
 ```bash
 export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
@@ -50,6 +77,9 @@ Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https:
 
 | Command | API |
 |---------|-----|
+| `artifacts login` | Browser OAuth via web app |
+| `artifacts logout` | Clear local credentials |
+| `artifacts whoami` | `GET /api/profile/me` |
 | `artifacts profile get` | `GET /api/profile/me` |
 | `artifacts project list` | `GET /api/profile/projects` |
 | `artifacts project create --json '...'` | `POST /api/projects` |

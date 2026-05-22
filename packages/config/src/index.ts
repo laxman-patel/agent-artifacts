@@ -22,3 +22,5 @@ export type ServerEnv = z.infer<typeof serverEnvSchema>;
 export function loadServerEnv(source: NodeJS.ProcessEnv = process.env): ServerEnv {
   return serverEnvSchema.parse(source);
 }
+
+export { loadMonorepoEnv } from "./load-monorepo-env.js";

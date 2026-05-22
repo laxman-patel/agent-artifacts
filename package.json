@@ -9,12 +9,12 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "bun --env-file=.env x turbo run dev --filter=@agent-artifacts/web --filter=@agent-artifacts/api",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "db:generate": "bun run --filter @agent-artifacts/db db:generate",
-    "db:migrate": "bun run --filter @agent-artifacts/db db:migrate"
+    "db:generate": "bun --env-file=.env run --filter @agent-artifacts/db db:generate",
+    "db:migrate": "bun --env-file=.env run --filter @agent-artifacts/db db:migrate"
   },
   "engines": {
     "node": ">=24.0.0"

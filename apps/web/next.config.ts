@@ -1,5 +1,8 @@
+import { loadMonorepoEnv } from "../../packages/config/src/load-monorepo-env";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+
+loadMonorepoEnv();
 
 const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001";
 

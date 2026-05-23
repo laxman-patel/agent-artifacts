@@ -50,14 +50,23 @@ export function projectPath(project: { ownerUsername: string; slug: string }): s
   return `/${project.ownerUsername}/projects/${project.slug}`;
 }
 
-export async function fetchProfileMe(cookieHeaderValue: string): Promise<{ status: number; body?: ProfileMeResponse }> {
+async function readApiError(response: Response): Promise<string> {
+  const body = (await response.json().catch(() => ({}))) as { message?: string };
+  return body.message ?? response.statusText;
+}
+
+export async function fetchProfileMe(cookieHeaderValue: string): Promise<{
+  status: number;
+  body?: ProfileMeResponse;
+  message?: string;
+}> {
   const response = await fetch(`${internalApiOrigin()}/api/profile/me`, {
     headers: { cookie: cookieHeaderValue },
     cache: "no-store"
   });
 
   if (!response.ok) {
-    return { status: response.status };
+    return { status: response.status, message: await readApiError(response) };
   }
 
   return { status: response.status, body: (await response.json()) as ProfileMeResponse };
@@ -66,6 +75,7 @@ export async function fetchProfileMe(cookieHeaderValue: string): Promise<{ statu
 export async function fetchOwnedProjects(cookieHeaderValue: string): Promise<{
   status: number;
   body?: { projects: ProjectSummary[] };
+  message?: string;
 }> {
   const response = await fetch(`${internalApiOrigin()}/api/profile/projects`, {
     headers: { cookie: cookieHeaderValue },
@@ -73,7 +83,7 @@ export async function fetchOwnedProjects(cookieHeaderValue: string): Promise<{
   });
 
   if (!response.ok) {
-    return { status: response.status };
+    return { status: response.status, message: await readApiError(response) };
   }
 
   return { status: response.status, body: (await response.json()) as { projects: ProjectSummary[] } };
@@ -82,6 +92,7 @@ export async function fetchOwnedProjects(cookieHeaderValue: string): Promise<{
 export async function fetchOwnedArtifacts(cookieHeaderValue: string): Promise<{
   status: number;
   body?: { artifacts: ArtifactOwnerSummary[] };
+  message?: string;
 }> {
   const response = await fetch(`${internalApiOrigin()}/api/profile/artifacts`, {
     headers: { cookie: cookieHeaderValue },
@@ -89,7 +100,7 @@ export async function fetchOwnedArtifacts(cookieHeaderValue: string): Promise<{
   });
 
   if (!response.ok) {
-    return { status: response.status };
+    return { status: response.status, message: await readApiError(response) };
   }
 
   return { status: response.status, body: (await response.json()) as { artifacts: ArtifactOwnerSummary[] } };

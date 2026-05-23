@@ -31,11 +31,13 @@ export default async function DashboardPage() {
   const loadWarnings: string[] = [];
 
   if (!projectsResult.body) {
-    loadWarnings.push("Projects could not be loaded.");
+    loadWarnings.push(projectsResult.message ?? "Projects could not be loaded.");
   }
 
   if (!artifactsResult.body) {
-    loadWarnings.push("Artifacts could not be loaded. Refresh the page if your database was waking up.");
+    loadWarnings.push(
+      artifactsResult.message ?? "Artifacts could not be loaded. Refresh the page if your database was waking up."
+    );
   }
 
   if (loadWarnings.length === 2) {

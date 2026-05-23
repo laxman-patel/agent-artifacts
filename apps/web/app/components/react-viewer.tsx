@@ -51,28 +51,13 @@ function buildSandboxHtml(source: string): string {
         var result = Babel.transform(source, {
           presets: [
             ["react", { runtime: "classic" }],
-            ["env", { targets: { browsers: ["last 2 chrome versions"] }, modules: false }]
-          ],
-          filename: "component.jsx"
-        });
-
-        // Execute the transpiled code in a function scope where React is available
-        var fn = new Function("React", "ReactDOM", result.code + "\\nreturn typeof exports !== 'undefined' ? exports : (typeof module !== 'undefined' ? module.exports : null);");
-        var exports = {};
-        fn(React, ReactDOM, exports);
-
-        // The component file likely uses export default; Babel's "modules: false"
-        // keeps ES export syntax, so we need to handle that. Re-transpile with commonjs.
-        var result2 = Babel.transform(source, {
-          presets: [
-            ["react", { runtime: "classic" }],
             ["env", { targets: { browsers: ["last 2 chrome versions"] }, modules: "commonjs" }]
           ],
           filename: "component.jsx"
         });
 
         var module2 = { exports: {} };
-        var fn2 = new Function("React", "ReactDOM", "module", "exports", "require", result2.code);
+        var fn2 = new Function("React", "ReactDOM", "module", "exports", "require", result.code);
         fn2(React, ReactDOM, module2, module2.exports, function () { return {}; });
 
         var Component = module2.exports.default || module2.exports[Object.keys(module2.exports)[0]];

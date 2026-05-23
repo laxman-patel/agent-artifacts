@@ -13,7 +13,7 @@ export function ClaimUsernameForm() {
     event.preventDefault();
     setError(null);
 
-    const response = await fetch(`${window.location.origin}/api/profile/username`, {
+    const response = await fetch("/api/profile/username", {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },

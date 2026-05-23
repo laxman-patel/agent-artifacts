@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { hasAuthenticatedSession } from "./lib/server-auth";
 
 function needsAuthProtection(pathname: string): boolean {
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/settings")) {
@@ -16,26 +17,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionResponse = await fetch(new URL("/api/auth/get-session", request.nextUrl.origin), {
-    headers: {
-      cookie: request.headers.get("cookie") ?? ""
-    },
-    cache: "no-store"
-  });
-
-  let payload: unknown;
-  try {
-    payload = await sessionResponse.json();
-  } catch {
-    payload = null;
-  }
-
-  const hasSession =
-    Boolean(payload) &&
-    typeof payload === "object" &&
-    payload !== null &&
-    "session" in payload &&
-    Boolean((payload as { session?: unknown }).session);
+  const hasSession = await hasAuthenticatedSession(request.headers.get("cookie"));
 
   if (!hasSession) {
     const loginUrl = new URL("/login", request.url);

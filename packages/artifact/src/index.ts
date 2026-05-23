@@ -897,6 +897,28 @@ export {
   type ProjectSummary
 } from "./project.js";
 
+export {
+  AuditService
+} from "./audit-service.js";
+
+export {
+  ProfileService,
+  ProfileNotFoundError,
+  UsernameAlreadySetError,
+  UsernameTakenError,
+  type ProfileDetails,
+  type ProfileUser
+} from "./profile-service.js";
+
+export {
+  ShareLinkService,
+  ShareLinkNotFoundError,
+  ShareLinkExpiredError,
+  hashShareToken,
+  type CreatedShareLink,
+  type ShareLinkSummary
+} from "./share-link-service.js";
+
 export function validateSlug(slug: string): string {
   const normalized = normalizeSlug(slug);
   return slugSchema.parse(normalized);

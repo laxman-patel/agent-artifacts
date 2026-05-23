@@ -644,9 +644,6 @@ app.post("/api/artifacts/:artifactId/share-links", async (c) => {
       .parse(await c.req.json());
 
     const artifact = await getArtifactService().getArtifact(artifactId, principal);
-    if (!artifact) {
-      return c.json({ error: "not_found", message: "Artifact not found." }, 404);
-    }
 
     const canCreateLink = await getArtifactService().checkArtifactPermission(
       artifactId,
@@ -830,7 +827,7 @@ app.get("/api/slug-preview/:username/:projectSlug/:slug", (c) => {
   const username = c.req.param("username");
   const projectSlug = c.req.param("projectSlug");
   const slug = c.req.param("slug");
-  const appUrl = process.env.PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = loadServerEnv().PUBLIC_APP_URL;
 
   return c.json({
     url: buildProjectArtifactUrl(appUrl, username, projectSlug, slug)
@@ -1137,6 +1134,10 @@ function mcpErrorResponse(c: Context, error: unknown) {
   throw error;
 }
 
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "23505";
+}
+
 function artifactErrorResponse(c: Context, error: unknown) {
   if (error instanceof ArtifactNotFoundError) {
     return c.json({ error: "not_found", message: error.message }, 404);
@@ -1160,6 +1161,10 @@ function artifactErrorResponse(c: Context, error: unknown) {
 
   if (error instanceof z.ZodError) {
     return c.json({ error: "invalid_request", issues: error.issues }, 400);
+  }
+
+  if (isUniqueViolation(error)) {
+    return c.json({ error: "conflict", message: "That username is already taken." }, 409);
   }
 
   throw error;

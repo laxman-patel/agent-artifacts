@@ -1,12 +1,18 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+function needsAuthProtection(pathname: string): boolean {
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/settings")) {
+    return true;
+  }
+
+  return /\/projects\/[^/]+\/[^/]+\/(settings|audit|history)(\/|$)/.test(pathname);
+}
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  const needsProtection = pathname.startsWith("/dashboard") || pathname.startsWith("/settings");
-
-  if (!needsProtection) {
+  if (!needsAuthProtection(pathname)) {
     return NextResponse.next();
   }
 
@@ -41,5 +47,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/settings/:path*"]
+  matcher: ["/dashboard/:path*", "/settings/:path*", "/:username/projects/:path*"]
 };

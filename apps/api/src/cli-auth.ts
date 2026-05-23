@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 export interface CliAuthCodeEntry {
   state: string;
@@ -58,8 +58,4 @@ export function parseSessionTokenFromCookie(cookieHeader: string | undefined): s
   }
 
   return undefined;
-}
-
-export function hashCliAuthCode(code: string): string {
-  return createHash("sha256").update(code).digest("hex");
 }

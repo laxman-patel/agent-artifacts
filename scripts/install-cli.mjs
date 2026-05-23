@@ -1,4 +1,4 @@
-import { chmod, copyFile, existsSync, mkdir, symlink, unlink } from "node:fs/promises";
+import { chmod, copyFile, mkdir, symlink, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,13 +11,18 @@ const target = path.join(binDir, process.platform === "win32" ? "artifacts.cmd" 
 await mkdir(binDir, { recursive: true });
 
 if (process.platform === "win32") {
-  await copyFile(source, target);
-  await chmod(target, 0o755);
+  if (useProd) {
+    await copyFile(source, path.join(binDir, "artifacts.exe"));
+    await writeFile(target, `@echo off\r\n"%~dp0artifacts.exe" %*\r\n`, "utf8");
+  } else {
+    const launcher = source.replace(/\\/g, "\\\\");
+    await writeFile(target, `@echo off\r\nnode "${launcher}" %*\r\n`, "utf8");
+  }
 } else {
   try {
     await unlink(target);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+    if (error && typeof error === "object" && "code" in error && error.code !== "ENOENT") {
       throw error;
     }
   }

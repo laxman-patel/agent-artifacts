@@ -26,7 +26,7 @@ export function AccessSettingsForm(props: {
       .map((line) => line.trim())
       .filter(Boolean);
 
-    const response = await fetch(`${window.location.origin}/api/artifacts/${props.artifactId}/access`, {
+    const response = await fetch(`/api/artifacts/${props.artifactId}/access`, {
       method: "PATCH",
       credentials: "include",
       headers: { "content-type": "application/json" },

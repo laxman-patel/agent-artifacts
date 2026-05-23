@@ -63,7 +63,7 @@ export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
 export const setArtifactAccessInputSchema = z.object({
   publicView: z.boolean(),
   publicEdit: z.boolean(),
-  viewerEmails: z.array(z.string().email()).default([])
+  viewerEmails: z.array(z.email()).default([])
 });
 
 export type SetArtifactAccessInput = z.infer<typeof setArtifactAccessInputSchema>;

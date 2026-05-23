@@ -58,7 +58,7 @@ export const principalSchema = z.object({
   type: principalTypeSchema,
   id: z.string().min(1),
   ownerUserId: z.string().min(1).optional(),
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   scopes: z.array(agentScopeSchema).default([]),
   // Per-artifact role grants resolved from share-link cookies. Augments the
   // effective role computed from the artifact's own permission rules.
@@ -106,11 +106,6 @@ export const usernameSchema = z
   .max(32)
   .regex(/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/, "Use lowercase letters, numbers, underscores, or hyphens.")
   .refine((value) => !RESERVED_USERNAMES.has(value.toLowerCase()), "This username is reserved.");
-
-/** @deprecated Use buildProjectArtifactUrl */
-export function buildArtifactUrl(appUrl: string, username: string, slug: string): string {
-  return buildProjectArtifactUrl(appUrl, username, "default", slug);
-}
 
 export function buildProjectUrl(appUrl: string, username: string, projectSlug: string): string {
   const base = appUrl.replace(/\/+$/, "");

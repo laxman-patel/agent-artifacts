@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const urlSchema = z.string().url();
+const urlSchema = z.url();
 
 export const serverEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

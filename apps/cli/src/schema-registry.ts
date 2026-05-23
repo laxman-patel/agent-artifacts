@@ -21,7 +21,7 @@ export interface CliCommandSpec {
 
 const shareLinkBodySchema = z.object({
   role: z.enum(["viewer", "editor"]).default("viewer"),
-  expiresAt: z.string().datetime().optional()
+  expiresAt: z.iso.datetime().optional()
 });
 
 const usernameBodySchema = z.object({ username: z.string().min(1) });

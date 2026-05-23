@@ -4,6 +4,7 @@ import { artifactPermissions } from "@agent-artifacts/db";
 import {
   type ArtifactRoleContext,
   type ArtifactRoleResolver,
+  baseArtifactRoleCandidates,
   actsForOwner,
   highestRole
 } from "@agent-artifacts/access";
@@ -24,13 +25,7 @@ export class DrizzleArtifactRoleResolver implements ArtifactRoleResolver {
       return { role: "owner", isOwnerAccount: true };
     }
 
-    const candidates: ArtifactRole[] = [];
-
-    const shareGrant = principal.artifactRoleGrants?.[artifact.id];
-    if (shareGrant) candidates.push(shareGrant);
-
-    if (artifact.publicEdit) candidates.push("editor");
-    else if (artifact.publicView) candidates.push("viewer");
+    const candidates = baseArtifactRoleCandidates(principal, artifact);
 
     const now = new Date();
     const permissionRows = await this.db

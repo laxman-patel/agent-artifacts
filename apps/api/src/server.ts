@@ -1,6 +1,7 @@
 import "./load-env.js";
 import { serve } from "@hono/node-server";
 import { app } from "./app.js";
+import { logger } from "./logger.js";
 
 const port = Number(process.env.PORT ?? 3001);
 
@@ -10,6 +11,6 @@ serve(
     port
   },
   (info) => {
-    console.log(`agent-artifacts API listening on http://localhost:${info.port}`);
+    logger.info("api listening", { url: `http://localhost:${info.port}` });
   }
 );

@@ -74,6 +74,7 @@ export async function runCli(argv: string[]): Promise<void> {
           new CliError("forbidden", "Not signed in. Run `artifacts login` first.", 4),
           config.format
         );
+        return;
       }
       const data = await api.getProfileMe(new ApiClient(config));
       emitSuccess(data, config.format);
@@ -329,7 +330,10 @@ export async function runCli(argv: string[]): Promise<void> {
   try {
     await program.parseAsync(argv);
   } catch (error) {
-    const config = resolveConfig({});
+    const format = argv.includes("--format")
+      ? (argv[argv.indexOf("--format") + 1] === "json" ? "json" : undefined)
+      : undefined;
+    const config = resolveConfig({ format });
     if (error instanceof CliError) {
       emitFailure(error, config.format);
     }

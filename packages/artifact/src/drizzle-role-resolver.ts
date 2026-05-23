@@ -45,7 +45,11 @@ export class DrizzleArtifactRoleResolver implements ArtifactRoleResolver {
             and(eq(artifactPermissions.subjectType, "user"), eq(artifactPermissions.subjectId, principal.id)),
             and(
               eq(artifactPermissions.subjectType, "email"),
-              sql`lower(${artifactPermissions.email}) = ${principal.email?.toLowerCase() ?? ""}`
+              sql`${artifactPermissions.email} IS NOT NULL`,
+              sql`length(trim(${artifactPermissions.email})) > 0`,
+              principal.email
+                ? sql`lower(${artifactPermissions.email}) = ${principal.email.toLowerCase()}`
+                : sql`false`
             ),
             eq(artifactPermissions.subjectType, "anyone")
           )

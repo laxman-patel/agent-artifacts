@@ -49,10 +49,26 @@ function successHtml(): string {
 </html>`;
 }
 
+async function exchangeCliCode(baseUrl: string, code: string, state: string): Promise<{ token: string; email?: string }> {
+  const response = await fetch(new URL("/api/cli/exchange", baseUrl), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ code, state })
+  });
+
+  const payload = (await response.json()) as { token?: string; email?: string; message?: string };
+  if (!response.ok || !payload.token) {
+    throw new Error(payload.message ?? "Login callback failed: could not exchange authorization code.");
+  }
+
+  return { token: payload.token, email: payload.email };
+}
+
 export async function browserLogin(options: BrowserLoginOptions): Promise<BrowserLoginResult> {
   const state = randomBytes(16).toString("hex");
   const port = pickPort();
   const webUrl = options.webUrl.replace(/\/+$/, "");
+  const baseUrl = options.baseUrl.replace(/\/+$/, "");
   const loginUrl = new URL("/cli/login", webUrl);
   loginUrl.searchParams.set("port", String(port));
   loginUrl.searchParams.set("state", state);
@@ -74,43 +90,53 @@ export async function browserLogin(options: BrowserLoginOptions): Promise<Browse
     }, 5 * 60_000);
 
     server = createServer((req, res) => {
-      const requestUrl = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
+      void (async () => {
+        const requestUrl = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
 
-      if (requestUrl.pathname !== "/callback") {
-        res.writeHead(404, { "Content-Type": "text/plain" });
-        res.end("Not found");
-        return;
-      }
+        if (requestUrl.pathname !== "/callback") {
+          res.writeHead(404, { "Content-Type": "text/plain" });
+          res.end("Not found");
+          return;
+        }
 
-      const token = requestUrl.searchParams.get("token");
-      const returnedState = requestUrl.searchParams.get("state");
-      const email = requestUrl.searchParams.get("email") ?? undefined;
+        const code = requestUrl.searchParams.get("code");
+        const returnedState = requestUrl.searchParams.get("state");
 
-      if (!token || returnedState !== state) {
-        res.writeHead(400, { "Content-Type": "text/plain" });
-        res.end("Invalid callback");
-        reject(new Error("Login callback failed: invalid or missing token."));
-        clearTimeout(timeout);
-        server?.close();
-        return;
-      }
+        if (!code || returnedState !== state) {
+          res.writeHead(400, { "Content-Type": "text/plain" });
+          res.end("Invalid callback");
+          reject(new Error("Login callback failed: invalid or missing authorization code."));
+          clearTimeout(timeout);
+          server?.close();
+          return;
+        }
 
-      const credentials: StoredCredentials = {
-        baseUrl: options.baseUrl,
-        webUrl: options.webUrl,
-        token,
-        email,
-        updatedAt: new Date().toISOString()
-      };
+        try {
+          const exchanged = await exchangeCliCode(baseUrl, code, state);
+          const credentials: StoredCredentials = {
+            baseUrl: options.baseUrl,
+            webUrl: options.webUrl,
+            token: exchanged.token,
+            email: exchanged.email,
+            updatedAt: new Date().toISOString()
+          };
 
-      saveStoredCredentials(credentials);
+          saveStoredCredentials(credentials);
 
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(successHtml());
+          res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+          res.end(successHtml());
 
-      clearTimeout(timeout);
-      server?.close();
-      resolve({ credentials });
+          clearTimeout(timeout);
+          server?.close();
+          resolve({ credentials });
+        } catch (error) {
+          res.writeHead(400, { "Content-Type": "text/plain" });
+          res.end("Exchange failed");
+          reject(error instanceof Error ? error : new Error(String(error)));
+          clearTimeout(timeout);
+          server?.close();
+        }
+      })();
     });
 
     server.listen(port, "127.0.0.1", () => {

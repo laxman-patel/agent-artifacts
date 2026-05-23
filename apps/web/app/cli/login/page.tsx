@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { CliLoginAuthorize } from "./cli-login-authorize";
 
 interface CliLoginPageProps {
   searchParams: Promise<{ port?: string; state?: string }>;
@@ -43,9 +44,5 @@ export default async function CliLoginPage({ searchParams }: CliLoginPageProps) 
     redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
 
-  const callbackUrl = new URL(`http://127.0.0.1:${port}/callback`);
-  callbackUrl.searchParams.set("token", sessionToken);
-  callbackUrl.searchParams.set("state", state);
-
-  redirect(callbackUrl.toString());
+  return <CliLoginAuthorize port={port} state={state} />;
 }

@@ -79,7 +79,18 @@ const artifactBodyLimit = bodyLimit({
 // so MCP/CLI clients with Authorization: Bearer ... are unaffected.
 // Wrapped lazily so env validation errors don't prevent the module from loading.
 const csrfGuard: MiddlewareHandler = async (c, next) => {
-  csrfGuardImpl ??= csrfOriginGuard([loadServerEnv().PUBLIC_APP_URL, loadServerEnv().BETTER_AUTH_URL]);
+  csrfGuardImpl ??= csrfOriginGuard(
+    [loadServerEnv().PUBLIC_APP_URL, loadServerEnv().BETTER_AUTH_URL],
+    async (requestContext) => {
+      const authorization = requestContext.req.header("authorization");
+      if (!authorization || !/^bearer\s+\S+/i.test(authorization)) {
+        return false;
+      }
+
+      const session = await getAuth().api.getSession({ headers: requestContext.req.raw.headers });
+      return Boolean(session?.user);
+    }
+  );
   return csrfGuardImpl(c, next);
 };
 let csrfGuardImpl: MiddlewareHandler | undefined;

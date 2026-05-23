@@ -7,13 +7,16 @@ import type { Context, MiddlewareHandler } from "hono";
  * Same-origin form submissions also send Origin (set to the page's origin).
  * If the Origin is missing or not in the trusted set, the request is rejected.
  *
- * Bearer-authenticated requests (Authorization: Bearer ...) are skipped because
- * an attacker on another origin cannot read the victim's bearer token from
- * inside a browser — CSRF only weaponizes the auto-attached cookie.
+ * Bearer-authenticated requests skip CSRF only after bearer auth succeeds, because
+ * an attacker on another origin cannot read the victim's bearer token from inside
+ * a browser — CSRF only weaponizes the auto-attached cookie.
  *
  * Apply to mutation routes only. Read routes don't need CSRF protection.
  */
-export function csrfOriginGuard(trustedOrigins: string[]): MiddlewareHandler {
+export function csrfOriginGuard(
+  trustedOrigins: string[],
+  isBearerAuthenticated?: (c: Context) => Promise<boolean>
+): MiddlewareHandler {
   const trusted = new Set(trustedOrigins.map(normalizeOrigin));
 
   return async (c, next) => {
@@ -21,7 +24,7 @@ export function csrfOriginGuard(trustedOrigins: string[]): MiddlewareHandler {
       return next();
     }
 
-    if (hasBearerAuthorization(c)) {
+    if (isBearerAuthenticated && (await isBearerAuthenticated(c))) {
       return next();
     }
 
@@ -38,11 +41,6 @@ export function csrfOriginGuard(trustedOrigins: string[]): MiddlewareHandler {
       403
     );
   };
-}
-
-function hasBearerAuthorization(c: Context): boolean {
-  const value = c.req.header("authorization");
-  return !!value && /^bearer\s+\S+/i.test(value);
 }
 
 function normalizeOrigin(origin: string): string {

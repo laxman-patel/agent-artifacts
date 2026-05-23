@@ -812,7 +812,8 @@ app.get("/api/share/:token", async (c) => {
     const artifact = await getArtifactService().getArtifact(link.artifactId, {
       type: "service",
       id: `share_link:${link.id}`,
-      scopes: []
+      scopes: ["artifacts:read"],
+      artifactRoleGrants: { [link.artifactId]: link.role }
     });
 
     return c.json({
@@ -902,7 +903,7 @@ async function resolvePrincipal(c: Context | Request): Promise<Principal> {
     principal = {
       type: "service",
       id: "anonymous-public-viewer",
-      scopes: []
+      scopes: ["artifacts:read"]
     };
   }
 

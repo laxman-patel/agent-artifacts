@@ -68,13 +68,15 @@ export function hasScope(
   principal: Principal,
   requiredScope: AgentScope | undefined,
 ): boolean {
-  if (principal.type === "user" || principal.type === "service") {
+  if (requiredScope === undefined) {
     return true;
   }
 
-  return (
-    requiredScope !== undefined && principal.scopes.includes(requiredScope)
-  );
+  if (principal.type === "user") {
+    return true;
+  }
+
+  return principal.scopes.includes(requiredScope);
 }
 
 export function canPerformArtifactAction(

@@ -40,12 +40,16 @@ import { S3ArtifactStorage } from "@agent-artifacts/storage";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
-export const app = new Hono();
+type AppVariables = {
+  requestId: string;
+};
+
+export const app = new Hono<{ Variables: AppVariables }>();
 
 app.use("*", async (c, next) => {
   const requestId = randomUUID();
   const start = Date.now();
-  c.set("requestId" as never, requestId);
+  c.set("requestId", requestId);
   c.header("x-request-id", requestId);
 
   await next();
@@ -101,9 +105,11 @@ app.use("/api/artifacts/:id/versions", writeLimiter, artifactBodyLimit, csrfGuar
 app.use("/api/artifacts/:id/access", csrfGuard);
 app.use("/api/artifacts/:id/share-links", writeLimiter, csrfGuard);
 app.use("/api/share-links/:id/revoke", writeLimiter, csrfGuard);
-app.use("/api/profile/username", csrfGuard);
-app.use("/api/cli/authorize", csrfGuard);
 app.use("/api/projects", writeLimiter, csrfGuard);
+
+for (const route of ["/api/profile/username", "/api/cli/authorize"] as const) {
+  app.use(route, csrfGuard);
+}
 app.use("/api/artifacts/*", readLimiter);
 app.use("/mcp", writeLimiter, artifactBodyLimit);
 
@@ -639,7 +645,7 @@ app.post("/api/artifacts/:artifactId/share-links", async (c) => {
     const body = z
       .object({
         role: z.enum(["viewer", "editor"]).default("viewer"),
-        expiresAt: z.string().datetime().optional()
+        expiresAt: z.iso.datetime().optional()
       })
       .parse(await c.req.json());
 
@@ -905,7 +911,7 @@ async function resolvePrincipal(c: Context | Request): Promise<Principal> {
   }
 
   if (isContext(c)) {
-    await attachShareGrant(c, principal);
+    return resolveShareGrantPrincipal(c, principal);
   }
 
   return principal;
@@ -925,7 +931,7 @@ async function requirePrincipal(c: Context | Request): Promise<Principal> {
   });
 
   if (isContext(c)) {
-    await attachShareGrant(c, principal);
+    return resolveShareGrantPrincipal(c, principal);
   }
 
   return principal;
@@ -945,16 +951,23 @@ function isContext(value: Context | Request): value is Context {
   return typeof (value as Context).req?.param === "function";
 }
 
-async function attachShareGrant(c: Context, principal: Principal): Promise<void> {
+async function resolveShareGrantPrincipal(c: Context, principal: Principal): Promise<Principal> {
   const artifactId = c.req.param("artifactId");
-  if (!artifactId) return;
+  if (!artifactId) {
+    return principal;
+  }
 
   const grant = await resolveShareGrant(getDb(), c.req.raw, artifactId);
-  if (!grant) return;
+  if (!grant) {
+    return principal;
+  }
 
-  principal.artifactRoleGrants = {
-    ...(principal.artifactRoleGrants ?? {}),
-    [artifactId]: grant.role
+  return {
+    ...principal,
+    artifactRoleGrants: {
+      ...(principal.artifactRoleGrants ?? {}),
+      [artifactId]: grant.role
+    }
   };
 }
 
@@ -1060,78 +1073,7 @@ function mcpErrorPayload(error: unknown): { jsonrpc: "2.0"; id: null; error: { c
 }
 
 function mcpErrorResponse(c: Context, error: unknown) {
-  if (error instanceof McpJsonRpcError) {
-    return c.json(
-      {
-        jsonrpc: "2.0",
-        id: null,
-        error: {
-          code: error.code,
-          message: error.message
-        }
-      },
-      200
-    );
-  }
-
-  if (error instanceof z.ZodError) {
-    return c.json(
-      {
-        jsonrpc: "2.0",
-        id: null,
-        error: {
-          code: -32602,
-          message: "Invalid MCP request.",
-          data: error.issues
-        }
-      },
-      200
-    );
-  }
-
-  if (error instanceof ArtifactForbiddenError) {
-    return c.json(
-      {
-        jsonrpc: "2.0",
-        id: null,
-        error: {
-          code: -32001,
-          message: error.message
-        }
-      },
-      200
-    );
-  }
-
-  if (error instanceof ArtifactNotFoundError) {
-    return c.json(
-      {
-        jsonrpc: "2.0",
-        id: null,
-        error: {
-          code: -32004,
-          message: error.message
-        }
-      },
-      200
-    );
-  }
-
-  if (error instanceof SlugUnavailableError || error instanceof ArtifactConflictError) {
-    return c.json(
-      {
-        jsonrpc: "2.0",
-        id: null,
-        error: {
-          code: -32009,
-          message: error.message
-        }
-      },
-      200
-    );
-  }
-
-  throw error;
+  return c.json(mcpErrorPayload(error), 200);
 }
 
 function isUniqueViolation(error: unknown): boolean {

@@ -51,10 +51,22 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
 }
 
 function clientIp(c: Context): string {
-  return (
-    c.req.header("cf-connecting-ip") ??
-    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-    c.req.header("x-real-ip") ??
-    "unknown"
-  );
+  const cfConnectingIp = c.req.header("cf-connecting-ip");
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim();
+  }
+
+  const realIp = c.req.header("x-real-ip");
+  if (realIp) {
+    return realIp.trim();
+  }
+
+  if (process.env.TRUST_PROXY === "true") {
+    const forwardedFor = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+    if (forwardedFor) {
+      return forwardedFor;
+    }
+  }
+
+  return "unknown";
 }

@@ -1,10 +1,8 @@
 import { Command } from "commander";
-import { z } from "zod";
 import { allCommands } from "./commands/index.js";
 import { buildAgentSchema } from "./schema-registry.js";
-import { resolveConfig, extractFormatFlag, type OutputFormat } from "./config.js";
-import { CliError } from "./errors.js";
-import { emitFailure, emitSuccess } from "./output.js";
+import { type OutputFormat } from "./config.js";
+import { emitSuccess } from "./output.js";
 import { registerSpec } from "./register-commands.js";
 import { readCliVersion } from "./version.js";
 
@@ -17,10 +15,16 @@ export async function runCli(argv: string[]): Promise<void> {
     .version(readCliVersion(), "-V, --version", "Print CLI version and exit")
     .option("--base-url <url>", "API base URL (env: AGENT_ARTIFACTS_BASE_URL)")
     .option("--web-url <url>", "Web app URL for browser login (env: AGENT_ARTIFACTS_WEB_URL)")
-    .option("--token <token>", "Bearer token (env: AGENT_ARTIFACTS_TOKEN)")
+    .option(
+      "--token <token>",
+      "Bearer token (env: AGENT_ARTIFACTS_TOKEN; discouraged on shared hosts — prefer env or --token-stdin)"
+    )
+    .option("--token-stdin", "Read bearer token from stdin (single trimmed line)")
     .option("--format <format>", "Output format: json or text (env: AGENT_ARTIFACTS_FORMAT)", (value) => value as OutputFormat)
+    .option("--ndjson", "Stream list results as one JSON object per line (mutually exclusive with envelope JSON)")
     .option("-q, --quiet", "Suppress stderr progress messages")
     .option("--no-input", "Never prompt or wait for interactive input; fail fast (env: AGENT_ARTIFACTS_NO_INPUT=1)")
+    .option("-v, --verbose", "Alias for --debug (extra stderr diagnostics)")
     .option("--debug", "Print stack traces on failure (env: AGENT_ARTIFACTS_DEBUG=1)")
     .option("-n, --dry-run", "Preview mutating commands without calling the API")
     .showHelpAfterError("(add --help for command list; use `artifacts schema` for machine-readable capabilities)");
@@ -28,13 +32,6 @@ export async function runCli(argv: string[]): Promise<void> {
   program.addHelpText(
     "afterAll",
     `
-Global flags (apply to any subcommand):
-  --base-url <url>     API base URL (env: AGENT_ARTIFACTS_BASE_URL)
-  --token <token>      Bearer token (env: AGENT_ARTIFACTS_TOKEN)
-  --format json|text   Output format (env: AGENT_ARTIFACTS_FORMAT)
-  --no-input           Fail instead of prompting (env: AGENT_ARTIFACTS_NO_INPUT=1)
-  -n, --dry-run        Preview mutating commands without calling the API
-
 Discovery:
   artifacts schema     Machine-readable command catalog (preferred over --help)
 
@@ -58,23 +55,5 @@ Examples:
     registerSpec(program, spec);
   }
 
-  try {
-    await program.parseAsync(argv);
-  } catch (error) {
-    const config = resolveConfig({
-      format: extractFormatFlag(argv),
-      noInput: argv.includes("--no-input"),
-      debug: argv.includes("--debug")
-    });
-    if (error instanceof CliError) {
-      emitFailure(error, config.format);
-    }
-    if (error instanceof z.ZodError) {
-      emitFailure(new CliError("invalid_request", error.message, 2, error.issues), config.format);
-    }
-    if (config.debug && error instanceof Error && error.stack) {
-      process.stderr.write(`${error.stack}\n`);
-    }
-    throw error;
-  }
+  await program.parseAsync(argv);
 }

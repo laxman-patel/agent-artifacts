@@ -1,4 +1,5 @@
 import { DEFAULT_BASE_URL, DEFAULT_WEB_URL } from "./build-defaults.js";
+import { readFileSync } from "node:fs";
 import { loadStoredCredentials } from "./auth/credentials.js";
 
 export type OutputFormat = "json" | "text";
@@ -12,11 +13,7 @@ export interface CliConfig {
   noInput: boolean;
   debug: boolean;
   dryRun: boolean;
-}
-
-function envFlag(name: string): boolean {
-  const value = process.env[name];
-  return value === "1" || value === "true" || value === "yes";
+  ndjson: boolean;
 }
 
 export function extractFormatFlag(argv: string[]): OutputFormat | undefined {
@@ -34,6 +31,33 @@ export function extractFormatFlag(argv: string[]): OutputFormat | undefined {
   return undefined;
 }
 
+function envFlag(name: string): boolean {
+  const value = process.env[name];
+  return value === "1" || value === "true" || value === "yes";
+}
+
+export function preParseGlobals(argv: string[]): {
+  format?: OutputFormat;
+  noInput?: boolean;
+  debug?: boolean;
+  ndjson?: boolean;
+} {
+  return {
+    format: extractFormatFlag(argv),
+    noInput: argv.includes("--no-input"),
+    debug: argv.includes("--debug") || argv.includes("--verbose") || argv.includes("-v"),
+    ndjson: argv.includes("--ndjson")
+  };
+}
+
+export async function readTokenFromStdin(): Promise<string> {
+  const token = readFileSync(0, "utf8").trim();
+  if (!token) {
+    throw new Error("Expected a bearer token on stdin for --token-stdin.");
+  }
+  return token;
+}
+
 export function resolveConfig(options: {
   baseUrl?: string;
   webUrl?: string;
@@ -43,6 +67,7 @@ export function resolveConfig(options: {
   noInput?: boolean;
   debug?: boolean;
   dryRun?: boolean;
+  ndjson?: boolean;
 }): CliConfig {
   const stored = loadStoredCredentials();
   const baseUrl = (
@@ -70,6 +95,7 @@ export function resolveConfig(options: {
     quiet: options.quiet ?? false,
     noInput: options.noInput ?? envFlag("AGENT_ARTIFACTS_NO_INPUT"),
     debug: options.debug ?? envFlag("AGENT_ARTIFACTS_DEBUG"),
-    dryRun: options.dryRun ?? false
+    dryRun: options.dryRun ?? false,
+    ndjson: options.ndjson ?? false
   };
 }

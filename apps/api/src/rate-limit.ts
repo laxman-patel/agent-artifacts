@@ -51,6 +51,10 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
 }
 
 function clientIp(c: Context): string {
+  if (process.env.TRUST_PROXY !== "true") {
+    return "direct";
+  }
+
   const cfConnectingIp = c.req.header("cf-connecting-ip");
   if (cfConnectingIp) {
     return cfConnectingIp.trim();
@@ -61,11 +65,9 @@ function clientIp(c: Context): string {
     return realIp.trim();
   }
 
-  if (process.env.TRUST_PROXY === "true") {
-    const forwardedFor = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
-    if (forwardedFor) {
-      return forwardedFor;
-    }
+  const forwardedFor = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+  if (forwardedFor) {
+    return forwardedFor;
   }
 
   return "unknown";

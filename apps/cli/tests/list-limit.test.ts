@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { resolveListLimit, sliceListResult } from "../src/list-limit.js";
 import type { CliConfig } from "../src/config.js";
+import { CliError } from "../src/errors.js";
 
 describe("resolveListLimit", () => {
   it("defaults to 50 records", () => {
@@ -19,8 +20,14 @@ describe("resolveListLimit", () => {
     });
   });
 
-  it("caps explicit limits at 100", () => {
-    expect(resolveListLimit({ limit: 500 }).apiLimit).toBe(100);
+  it("rejects limits outside the allowed range", () => {
+    expect(() => resolveListLimit({ limit: 0 })).toThrow(CliError);
+    expect(() => resolveListLimit({ limit: -5 })).toThrow(CliError);
+    expect(() => resolveListLimit({ limit: 9999 })).toThrow(CliError);
+  });
+
+  it("accepts explicit limits within range", () => {
+    expect(resolveListLimit({ limit: 100 }).apiLimit).toBe(100);
   });
 });
 

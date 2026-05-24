@@ -1,4 +1,5 @@
 import type { CliConfig } from "./config.js";
+import { CliError } from "./errors.js";
 
 export const DEFAULT_LIST_LIMIT = 50;
 export const MAX_LIST_LIMIT = 100;
@@ -21,9 +22,15 @@ export function resolveListLimit(
   }
 
   const raw = options.limit as number | undefined;
+  if (raw !== undefined && (!Number.isInteger(raw) || raw < 1 || raw > MAX_LIST_LIMIT)) {
+    throw new CliError(
+      "invalid_request",
+      `--limit must be an integer between 1 and ${MAX_LIST_LIMIT}; got ${raw}. Use --all for every record.`,
+      2
+    );
+  }
   const limit = raw ?? defaultLimit;
-  const bounded = Math.min(Math.max(1, limit), MAX_LIST_LIMIT);
-  return { apiLimit: bounded, clientLimit: bounded, all: false };
+  return { apiLimit: limit, clientLimit: limit, all: false };
 }
 
 export function sliceListResult<T>(

@@ -136,9 +136,10 @@ artifacts audit list --artifact-id ARTIFACT_ID --all
 Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https://www.infoq.com/articles/ai-agent-cli/)):
 
 - **JSON by default** when stdout is not a TTY: `{ "ok": true, "data": ... }` or `{ "ok": false, "error": { "kind", "message" } }`
-- **Text** when interactive (TTY): human-readable; errors on stderr
-- Data only on stdout; diagnostics on stderr
-- **Stable exit codes**: `0` ok, `2` invalid request, `3` not found, `4` forbidden/auth, `5` conflict
+- **Text** when interactive (TTY): human-readable
+- **Successful data on stdout**; **errors on stderr** in both text and JSON modes
+- **`--ndjson`** on list commands streams one record per line for pipeline processing
+- **Stable exit codes**: `0` ok, `2` invalid request, `3` not found, `4` forbidden/auth, `5` conflict, `69` network (retryable)
 - **`next_actions`** after create/get with suggested follow-up commands
 
 ## Commands

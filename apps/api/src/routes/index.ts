@@ -2,7 +2,8 @@ import type { Hono } from "hono";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { buildProjectArtifactUrl } from "@agent-artifacts/shared";
 import { getAuth } from "../deps.js";
-import { mcpErrorResponse, handleMcpRequest } from "../http/mcp.js";
+import { handleMcp } from "../http/handler.js";
+import { handleMcpRequest } from "../http/mcp.js";
 import { registerArtifactRoutes } from "./artifacts.js";
 import { registerCliRoutes } from "./cli.js";
 import { registerProfileRoutes } from "./profile.js";
@@ -22,13 +23,7 @@ export function registerRoutes(app: Hono<{ Variables: AppVariables }>) {
 
   registerCliRoutes(app);
 
-  app.post("/mcp", async (c) => {
-    try {
-      return await handleMcpRequest(c);
-    } catch (error) {
-      return mcpErrorResponse(c, error);
-    }
-  });
+  app.post("/mcp", (c) => handleMcp(c, () => handleMcpRequest(c)));
 
   app.get("/.well-known/oauth-protected-resource", (c) =>
     c.json({

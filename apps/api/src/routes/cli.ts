@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { createCliAuthCode, consumeCliAuthCode, parseSessionTokenFromCookie } from "../cli-auth.js";
-import { artifactErrorResponse } from "../http/errors.js";
+import { handle } from "../http/handler.js";
 import { requirePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
 
@@ -16,8 +16,8 @@ const cliExchangeInputSchema = z.object({
 });
 
 export function registerCliRoutes(app: Hono<{ Variables: AppVariables }>) {
-  app.post("/api/cli/authorize", async (c) => {
-    try {
+  app.post("/api/cli/authorize", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       if (principal.type !== "user") {
         return c.json({ error: "forbidden", message: "User session required." }, 403);
@@ -39,26 +39,22 @@ export function registerCliRoutes(app: Hono<{ Variables: AppVariables }>) {
       callbackUrl.searchParams.set("code", code);
       callbackUrl.searchParams.set("state", body.state);
 
-      return c.json({ callbackUrl: callbackUrl.toString() });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return { callbackUrl: callbackUrl.toString() };
+    })
+  );
 
-  app.post("/api/cli/exchange", async (c) => {
-    try {
+  app.post("/api/cli/exchange", (c) =>
+    handle(c, async () => {
       const body = cliExchangeInputSchema.parse(await c.req.json());
       const entry = consumeCliAuthCode(body.code, body.state);
       if (!entry) {
         return c.json({ error: "invalid_code", message: "CLI authorization code is invalid or expired." }, 400);
       }
 
-      return c.json({
+      return {
         token: entry.sessionToken,
         email: entry.email || undefined
-      });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      };
+    })
+  );
 }

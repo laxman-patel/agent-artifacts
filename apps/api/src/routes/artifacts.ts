@@ -6,13 +6,13 @@ import {
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
 import { getArtifactService } from "../deps.js";
-import { artifactErrorResponse } from "../http/errors.js";
+import { handle } from "../http/handler.js";
 import { requirePrincipal, resolvePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
 
 export function registerArtifactRoutes(app: Hono<{ Variables: AppVariables }>) {
-  app.get("/api/artifacts/slug-availability/:username/:projectSlug/:slug", async (c) => {
-    try {
+  app.get("/api/artifacts/slug-availability/:username/:projectSlug/:slug", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const result = await getArtifactService().checkSlugAvailability(
         c.req.param("username"),
@@ -21,53 +21,45 @@ export function registerArtifactRoutes(app: Hono<{ Variables: AppVariables }>) {
         principal
       );
 
-      return c.json({
+      return {
         available: result.available,
         normalizedSlug: result.normalizedSlug,
         ownerUserId: result.ownerUserId,
         projectId: result.projectId
-      });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      };
+    })
+  );
 
-  app.post("/api/artifacts", async (c) => {
-    try {
+  app.post("/api/artifacts", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const body = createArtifactInputSchema.parse(await c.req.json());
       const artifact = await getArtifactService().createArtifact(body, principal);
 
-      return c.json(artifact, 201);
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return { body: artifact, status: 201 };
+    })
+  );
 
-  app.get("/api/artifacts/:artifactId", async (c) => {
-    try {
+  app.get("/api/artifacts/:artifactId", (c) =>
+    handle(c, async () => {
       const principal = await resolvePrincipal(c);
       const artifact = await getArtifactService().getArtifact(c.req.param("artifactId"), principal);
 
-      return c.json(artifact);
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return artifact;
+    })
+  );
 
-  app.delete("/api/artifacts/:artifactId", async (c) => {
-    try {
+  app.delete("/api/artifacts/:artifactId", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const result = await getArtifactService().deleteArtifact(c.req.param("artifactId"), principal);
 
-      return c.json(result);
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return result;
+    })
+  );
 
-  app.post("/api/artifacts/:artifactId/versions", async (c) => {
-    try {
+  app.post("/api/artifacts/:artifactId/versions", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const body = updateArtifactInputSchema.parse({
         ...(await c.req.json()),
@@ -75,67 +67,61 @@ export function registerArtifactRoutes(app: Hono<{ Variables: AppVariables }>) {
       });
       const version = await getArtifactService().updateArtifact(body, principal);
 
-      return c.json(version, 201);
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return { body: version, status: 201 };
+    })
+  );
 
-  app.get("/api/artifacts/:artifactId/versions", async (c) => {
-    try {
+  app.get("/api/artifacts/:artifactId/versions", (c) =>
+    handle(c, async () => {
       const principal = await resolvePrincipal(c);
       const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
       const versions = await getArtifactService().listArtifactVersions(c.req.param("artifactId"), principal, limit);
 
-      return c.json({ versions });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return { versions };
+    })
+  );
 
-  app.get("/api/artifacts/:artifactId/content", async (c) => {
-    try {
+  app.get("/api/artifacts/:artifactId/content", (c) =>
+    handle(c, async () => {
       const principal = await resolvePrincipal(c);
       const versionNumber = z.coerce.number().int().positive().optional().parse(c.req.query("version"));
       const result = await getArtifactService().getArtifactContent(c.req.param("artifactId"), principal, versionNumber);
 
-      return c.text(result.content, 200, {
-        "content-type": result.contentType,
-        "x-content-type-options": "nosniff",
-        "content-disposition": `inline; filename="artifact-${result.artifact.id}-v${result.version.versionNumber}"`,
-        "x-artifact-id": result.artifact.id,
-        "x-artifact-version": String(result.version.versionNumber)
-      });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return {
+        text: result.content,
+        status: 200,
+        headers: {
+          "content-type": result.contentType,
+          "x-content-type-options": "nosniff",
+          "content-disposition": `inline; filename="artifact-${result.artifact.id}-v${result.version.versionNumber}"`,
+          "x-artifact-id": result.artifact.id,
+          "x-artifact-version": String(result.version.versionNumber)
+        }
+      };
+    })
+  );
 
-  app.get("/api/artifacts/:artifactId/access", async (c) => {
-    try {
+  app.get("/api/artifacts/:artifactId/access", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const access = await getArtifactService().getArtifactAccess(c.req.param("artifactId"), principal);
 
-      return c.json(access);
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return access;
+    })
+  );
 
-  app.patch("/api/artifacts/:artifactId/access", async (c) => {
-    try {
+  app.patch("/api/artifacts/:artifactId/access", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const body = setArtifactAccessInputSchema.parse(await c.req.json());
       const access = await getArtifactService().setArtifactAccess(c.req.param("artifactId"), body, principal);
 
-      return c.json(access);
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return access;
+    })
+  );
 
-  app.get("/api/artifacts/:artifactId/diff", async (c) => {
-    try {
+  app.get("/api/artifacts/:artifactId/diff", (c) =>
+    handle(c, async () => {
       const principal = await resolvePrincipal(c);
       const fromVersion = z.coerce.number().int().positive().parse(c.req.query("from"));
       const toVersion = z.coerce.number().int().positive().parse(c.req.query("to"));
@@ -146,9 +132,7 @@ export function registerArtifactRoutes(app: Hono<{ Variables: AppVariables }>) {
         toVersion
       );
 
-      return c.json(diffResult);
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return diffResult;
+    })
+  );
 }

@@ -1,13 +1,13 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { getArtifactService, getAuditService, getShareLinkService } from "../deps.js";
-import { artifactErrorResponse } from "../http/errors.js";
+import { handle } from "../http/handler.js";
 import { requireHumanPrincipal, requirePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
 
 export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) {
-  app.post("/api/artifacts/:artifactId/share-links", async (c) => {
-    try {
+  app.post("/api/artifacts/:artifactId/share-links", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const artifactId = c.req.param("artifactId");
       const body = z
@@ -36,14 +36,12 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
         createdByPrincipalId: principal.id
       });
 
-      return c.json(created, 201);
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return { body: created, status: 201 };
+    })
+  );
 
-  app.get("/api/artifacts/:artifactId/share-links", async (c) => {
-    try {
+  app.get("/api/artifacts/:artifactId/share-links", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const artifactId = c.req.param("artifactId");
 
@@ -58,14 +56,12 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
 
       const links = await getShareLinkService().listShareLinks(artifactId);
 
-      return c.json({ shareLinks: links });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return { shareLinks: links };
+    })
+  );
 
-  app.post("/api/share-links/:shareLinkId/revoke", async (c) => {
-    try {
+  app.post("/api/share-links/:shareLinkId/revoke", (c) =>
+    handle(c, async () => {
       const principal = await requirePrincipal(c);
       const shareLinkId = c.req.param("shareLinkId");
 
@@ -86,27 +82,23 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
 
       await getShareLinkService().revokeShareLink(shareLinkId);
 
-      return c.json({ revoked: true });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return { revoked: true };
+    })
+  );
 
-  app.get("/api/audit-events", async (c) => {
-    try {
+  app.get("/api/audit-events", (c) =>
+    handle(c, async () => {
       const principal = await requireHumanPrincipal(c);
       const artifactId = c.req.query("artifactId");
       const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
       const events = await getAuditService().listAuditEvents(principal.id, { artifactId, limit });
 
-      return c.json({ events });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      return { events };
+    })
+  );
 
-  app.get("/api/share/:token", async (c) => {
-    try {
+  app.get("/api/share/:token", (c) =>
+    handle(c, async () => {
       const link = await getShareLinkService().resolveActiveShareLink(c.req.param("token"));
 
       const artifact = await getArtifactService().getArtifact(link.artifactId, {
@@ -116,13 +108,11 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
         artifactRoleGrants: { [link.artifactId]: link.role === "editor" ? "editor" : "viewer" }
       });
 
-      return c.json({
+      return {
         artifactId: link.artifactId,
         role: link.role,
         artifact
-      });
-    } catch (error) {
-      return artifactErrorResponse(c, error);
-    }
-  });
+      };
+    })
+  );
 }

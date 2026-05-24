@@ -7,82 +7,9 @@ import {
   type ProjectService
 } from "@agent-artifacts/artifact";
 import type { Principal } from "@agent-artifacts/shared";
-import { z } from "zod";
+import { z, type ZodTypeAny } from "zod";
 
 const versionNumberSchema = z.number().int().positive();
-
-export const mcpToolInputSchemas = {
-  get_current_principal: z.object({}),
-  check_project_slug_availability: z.object({
-    ownerUsername: z.string().min(1),
-    slug: z.string().min(1)
-  }),
-  create_project: createProjectInputSchema,
-  list_projects: z.object({}),
-  check_slug_availability: z.object({
-    ownerUsername: z.string().min(1),
-    projectSlug: z.string().min(1),
-    slug: z.string().min(1)
-  }),
-  create_artifact: createArtifactInputSchema,
-  update_artifact: updateArtifactInputSchema,
-  get_artifact: z.object({
-    artifactId: z.string().min(1)
-  }),
-  get_artifact_content: z.object({
-    artifactId: z.string().min(1),
-    versionNumber: versionNumberSchema.optional()
-  }),
-  list_artifacts: z.object({}),
-  list_artifact_versions: z.object({
-    artifactId: z.string().min(1),
-    limit: z.number().int().positive().max(100).optional()
-  }),
-  diff_artifact_versions: z.object({
-    artifactId: z.string().min(1),
-    fromVersion: versionNumberSchema,
-    toVersion: versionNumberSchema
-  }),
-  get_artifact_access: z.object({
-    artifactId: z.string().min(1)
-  }),
-  set_artifact_access: z.object({
-    artifactId: z.string().min(1),
-    access: setArtifactAccessInputSchema
-  }),
-  delete_artifact: z.object({
-    artifactId: z.string().min(1)
-  })
-} as const;
-
-export type McpToolName = keyof typeof mcpToolInputSchemas;
-export type McpToolInput<TToolName extends McpToolName> = z.infer<(typeof mcpToolInputSchemas)[TToolName]>;
-
-export const mcpToolDescriptions: Record<McpToolName, string> = {
-  get_current_principal: "Return the authenticated principal for the current MCP request.",
-  check_project_slug_availability: "Check whether a project slug is available in an owner namespace.",
-  create_project: "Create a new project to group artifacts.",
-  list_projects: "List projects owned by the authenticated human user.",
-  check_slug_availability: "Check whether an artifact slug is available within a project.",
-  create_artifact: "Create a new artifact and immutable first version.",
-  update_artifact: "Append a new immutable version to an artifact.",
-  get_artifact: "Read artifact metadata for an authorized principal.",
-  get_artifact_content: "Read source content for an artifact version.",
-  list_artifacts: "List artifacts owned by the authenticated human user.",
-  list_artifact_versions: "List immutable versions for an artifact.",
-  diff_artifact_versions: "Return a unified diff between two artifact versions.",
-  get_artifact_access: "Read artifact access settings.",
-  set_artifact_access: "Update artifact access settings.",
-  delete_artifact: "Soft-delete an artifact. Owner-only. Hides it from all reads but preserves audit history."
-};
-
-export function listMcpTools() {
-  return (Object.keys(mcpToolInputSchemas) as McpToolName[]).map((name) => ({
-    name,
-    description: mcpToolDescriptions[name],
-    inputSchema: z.toJSONSchema(mcpToolInputSchemas[name])
-  }));
-}
 
 export interface McpHandlerContext {
   artifactService: ArtifactService;
@@ -90,81 +17,167 @@ export interface McpHandlerContext {
   principal: Principal;
 }
 
+interface ToolDef<S extends ZodTypeAny, R> {
+  description: string;
+  schema: S;
+  handler: (input: z.infer<S>, ctx: McpHandlerContext) => Promise<R>;
+}
+
+const def = <S extends ZodTypeAny, R>(tool: ToolDef<S, R>) => tool;
+
+export const mcpTools = {
+  get_current_principal: def({
+    description: "Return the authenticated principal for the current MCP request.",
+    schema: z.object({}),
+    handler: async (_input, ctx) => ctx.principal
+  }),
+  check_project_slug_availability: def({
+    description: "Check whether a project slug is available in an owner namespace.",
+    schema: z.object({
+      ownerUsername: z.string().min(1),
+      slug: z.string().min(1)
+    }),
+    handler: (input, ctx) =>
+      ctx.projectService.checkProjectSlugAvailability(input.ownerUsername, input.slug, ctx.principal)
+  }),
+  create_project: def({
+    description: "Create a new project to group artifacts.",
+    schema: createProjectInputSchema,
+    handler: (input, ctx) => ctx.projectService.createProject(input, ctx.principal)
+  }),
+  list_projects: def({
+    description: "List projects owned by the authenticated human user.",
+    schema: z.object({}),
+    handler: async (_input, ctx) => ctx.projectService.listOwnedProjects(ctx.principal)
+  }),
+  check_slug_availability: def({
+    description: "Check whether an artifact slug is available within a project.",
+    schema: z.object({
+      ownerUsername: z.string().min(1),
+      projectSlug: z.string().min(1),
+      slug: z.string().min(1)
+    }),
+    handler: (input, ctx) =>
+      ctx.artifactService.checkSlugAvailability(
+        input.ownerUsername,
+        input.projectSlug,
+        input.slug,
+        ctx.principal
+      )
+  }),
+  create_artifact: def({
+    description: "Create a new artifact and immutable first version.",
+    schema: createArtifactInputSchema,
+    handler: (input, ctx) => ctx.artifactService.createArtifact(input, ctx.principal)
+  }),
+  update_artifact: def({
+    description: "Append a new immutable version to an artifact.",
+    schema: updateArtifactInputSchema,
+    handler: (input, ctx) => ctx.artifactService.updateArtifact(input, ctx.principal)
+  }),
+  get_artifact: def({
+    description: "Read artifact metadata for an authorized principal.",
+    schema: z.object({
+      artifactId: z.string().min(1)
+    }),
+    handler: (input, ctx) => ctx.artifactService.getArtifact(input.artifactId, ctx.principal)
+  }),
+  get_artifact_content: def({
+    description: "Read source content for an artifact version.",
+    schema: z.object({
+      artifactId: z.string().min(1),
+      versionNumber: versionNumberSchema.optional()
+    }),
+    handler: (input, ctx) =>
+      ctx.artifactService.getArtifactContent(input.artifactId, ctx.principal, input.versionNumber)
+  }),
+  list_artifacts: def({
+    description: "List artifacts owned by the authenticated human user.",
+    schema: z.object({}),
+    handler: async (_input, ctx) => ctx.artifactService.listOwnedArtifacts(ctx.principal)
+  }),
+  list_artifact_versions: def({
+    description: "List immutable versions for an artifact.",
+    schema: z.object({
+      artifactId: z.string().min(1),
+      limit: z.number().int().positive().max(100).optional()
+    }),
+    handler: (input, ctx) =>
+      ctx.artifactService.listArtifactVersions(input.artifactId, ctx.principal, input.limit)
+  }),
+  diff_artifact_versions: def({
+    description: "Return a unified diff between two artifact versions.",
+    schema: z.object({
+      artifactId: z.string().min(1),
+      fromVersion: versionNumberSchema,
+      toVersion: versionNumberSchema
+    }),
+    handler: (input, ctx) =>
+      ctx.artifactService.diffArtifactVersions(
+        input.artifactId,
+        ctx.principal,
+        input.fromVersion,
+        input.toVersion
+      )
+  }),
+  get_artifact_access: def({
+    description: "Read artifact access settings.",
+    schema: z.object({
+      artifactId: z.string().min(1)
+    }),
+    handler: (input, ctx) => ctx.artifactService.getArtifactAccess(input.artifactId, ctx.principal)
+  }),
+  set_artifact_access: def({
+    description: "Update artifact access settings.",
+    schema: z.object({
+      artifactId: z.string().min(1),
+      access: setArtifactAccessInputSchema
+    }),
+    handler: (input, ctx) =>
+      ctx.artifactService.setArtifactAccess(input.artifactId, input.access, ctx.principal)
+  }),
+  delete_artifact: def({
+    description: "Soft-delete an artifact. Owner-only. Hides it from all reads but preserves audit history.",
+    schema: z.object({
+      artifactId: z.string().min(1)
+    }),
+    handler: (input, ctx) => ctx.artifactService.deleteArtifact(input.artifactId, ctx.principal)
+  })
+} as const;
+
+export type McpToolName = keyof typeof mcpTools;
+
+export const mcpToolInputSchemas = Object.fromEntries(
+  Object.entries(mcpTools).map(([name, tool]) => [name, tool.schema])
+) as { [K in McpToolName]: (typeof mcpTools)[K]["schema"] };
+
+export type McpToolInput<TToolName extends McpToolName> = z.infer<(typeof mcpToolInputSchemas)[TToolName]>;
+
+export const mcpToolDescriptions = Object.fromEntries(
+  Object.entries(mcpTools).map(([name, tool]) => [name, tool.description])
+) as Record<McpToolName, string>;
+
+export function listMcpTools() {
+  return (Object.keys(mcpTools) as McpToolName[]).map((name) => ({
+    name,
+    description: mcpTools[name].description,
+    inputSchema: z.toJSONSchema(mcpTools[name].schema)
+  }));
+}
+
+async function invokeTool<S extends ZodTypeAny>(
+  tool: ToolDef<S, unknown>,
+  input: unknown,
+  context: McpHandlerContext
+): Promise<unknown> {
+  const parsed = tool.schema.parse(input);
+  return tool.handler(parsed, context);
+}
+
 export async function callMcpTool<TToolName extends McpToolName>(
   toolName: TToolName,
   input: unknown,
   context: McpHandlerContext
 ): Promise<unknown> {
-  const parsed = mcpToolInputSchemas[toolName].parse(input);
-
-  switch (toolName) {
-    case "get_current_principal":
-      return context.principal;
-    case "check_project_slug_availability": {
-      const request = parsed as McpToolInput<"check_project_slug_availability">;
-      return context.projectService.checkProjectSlugAvailability(
-        request.ownerUsername,
-        request.slug,
-        context.principal
-      );
-    }
-    case "create_project":
-      return context.projectService.createProject(parsed as McpToolInput<"create_project">, context.principal);
-    case "list_projects":
-      return context.projectService.listOwnedProjects(context.principal);
-    case "check_slug_availability": {
-      const request = parsed as McpToolInput<"check_slug_availability">;
-      return context.artifactService.checkSlugAvailability(
-        request.ownerUsername,
-        request.projectSlug,
-        request.slug,
-        context.principal
-      );
-    }
-    case "create_artifact":
-      return context.artifactService.createArtifact(parsed as McpToolInput<"create_artifact">, context.principal);
-    case "update_artifact":
-      return context.artifactService.updateArtifact(parsed as McpToolInput<"update_artifact">, context.principal);
-    case "get_artifact": {
-      const request = parsed as McpToolInput<"get_artifact">;
-      return context.artifactService.getArtifact(request.artifactId, context.principal);
-    }
-    case "get_artifact_content": {
-      const request = parsed as McpToolInput<"get_artifact_content">;
-      return context.artifactService.getArtifactContent(request.artifactId, context.principal, request.versionNumber);
-    }
-    case "list_artifacts":
-      return context.artifactService.listOwnedArtifacts(context.principal);
-    case "list_artifact_versions": {
-      const request = parsed as McpToolInput<"list_artifact_versions">;
-      return context.artifactService.listArtifactVersions(request.artifactId, context.principal, request.limit);
-    }
-    case "diff_artifact_versions": {
-      const request = parsed as McpToolInput<"diff_artifact_versions">;
-      return context.artifactService.diffArtifactVersions(
-        request.artifactId,
-        context.principal,
-        request.fromVersion,
-        request.toVersion
-      );
-    }
-    case "get_artifact_access": {
-      const request = parsed as McpToolInput<"get_artifact_access">;
-      return context.artifactService.getArtifactAccess(request.artifactId, context.principal);
-    }
-    case "set_artifact_access": {
-      const request = parsed as McpToolInput<"set_artifact_access">;
-      return context.artifactService.setArtifactAccess(request.artifactId, request.access, context.principal);
-    }
-    case "delete_artifact": {
-      const request = parsed as McpToolInput<"delete_artifact">;
-      return context.artifactService.deleteArtifact(request.artifactId, context.principal);
-    }
-    default:
-      return assertNever(toolName);
-  }
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled MCP tool: ${String(value)}`);
+  return invokeTool(mcpTools[toolName], input, context);
 }

@@ -110,9 +110,9 @@ artifacts artifact delete --artifact-id ARTIFACT_ID --dry-run
 echo '{"content":"# v2"}' | artifacts artifact update --artifact-id ART_ID --json-file -
 ```
 
-### Named flags (preferred for agents)
+### Flag-only inputs
 
-Resource IDs and path segments accept **named flags** instead of positional arguments:
+All command inputs are **named flags** — there are no positional arguments:
 
 ```bash
 artifacts artifact get --artifact-id ARTIFACT_ID
@@ -120,7 +120,7 @@ artifacts share revoke --share-link-id SHARE_LINK_ID
 artifacts path artifact --owner alice --project-slug default --slug readme
 ```
 
-Positional forms still work for scripts that already use them.
+Missing required flags exit with code 2 and include a copy-pasteable example.
 
 ### Bounded list output
 

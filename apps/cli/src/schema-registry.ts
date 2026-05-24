@@ -11,6 +11,7 @@ export interface CliCommandSpec {
   bodySchema?: Record<string, unknown>;
   mutates: boolean;
   example?: string;
+  flags?: { flag: string; required?: boolean; description: string }[];
 }
 
 export function listCliCommandSpecs(): CliCommandSpec[] {
@@ -20,7 +21,16 @@ export function listCliCommandSpecs(): CliCommandSpec[] {
     ...(spec.http ? { http: { method: spec.http.method, path: spec.http.pathTemplate } } : {}),
     ...(spec.bodySchema ? { bodySchema: z.toJSONSchema(spec.bodySchema) as Record<string, unknown> } : {}),
     mutates: spec.mutates,
-    ...(spec.example ? { example: spec.example } : {})
+    ...(spec.example ? { example: spec.example } : {}),
+    ...(spec.options?.length
+      ? {
+          flags: spec.options.map((o) => ({
+            flag: o.flag,
+            description: o.description,
+            ...(o.required ? { required: true } : {})
+          }))
+        }
+      : {})
   }));
 }
 
@@ -48,15 +58,16 @@ export function buildAgentSchema() {
       quiet: { flag: "-q, --quiet", description: "Suppress stderr progress messages" }
     },
     input: {
+      positionalArgs: false,
       jsonBody: { flags: ["--json", "--json-file"], stdin: "Use --json-file - to pipe JSON from stdin" },
       resourceIds: {
-        artifactId: { flag: "--artifact-id", positional: "[artifactId]" },
-        shareLinkId: { flag: "--share-link-id", positional: "[shareLinkId]" }
+        artifactId: { flag: "--artifact-id", required: true },
+        shareLinkId: { flag: "--share-link-id", required: true }
       },
       path: {
-        owner: "--owner",
-        projectSlug: "--project-slug",
-        slug: "--slug"
+        owner: { flag: "--owner", required: true },
+        projectSlug: { flag: "--project-slug", required: true },
+        slug: { flag: "--slug", required: true }
       }
     },
     list: {
@@ -81,7 +92,7 @@ export function buildAgentSchema() {
       }
     },
     discovery: "Run `artifacts schema` — do not parse --help.",
-    help: "Every subcommand --help ends with copy-pasteable Examples; bare `artifacts` prints the command index.",
+    help: "Every subcommand --help ends with copy-pasteable Examples; all inputs are flags (no positional arguments).",
     commands: listCliCommandSpecs()
   };
 }

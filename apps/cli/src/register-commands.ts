@@ -31,7 +31,6 @@ const GROUP_DESCRIPTIONS: Record<string, string> = {
 
 export function registerSpec(program: Command, spec: CommandSpec): void {
   const cmd = registerCommandPath(program, spec.name);
-  spec.positional?.forEach((p) => cmd.argument(p.required ? `<${p.name}>` : `[${p.name}]`));
   spec.options?.forEach((o) => {
     if (o.required) {
       cmd.requiredOption(o.flag, o.description, o.parse as never);
@@ -46,7 +45,6 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
   cmd.action(async (...args: unknown[]) => {
     const opts = args.at(-2) as Record<string, unknown>;
     const cmdObj = args.at(-1) as Command;
-    const positionals = args.slice(0, -2) as string[];
     const config = resolveConfig(getGlobalOpts(cmdObj));
     const client = new ApiClient(config);
     const body = spec.bodySchema
@@ -58,11 +56,11 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
       : undefined;
     try {
       if (config.dryRun && spec.mutates) {
-        emitSuccess(buildDryRunPreview(spec, positionals, body, opts), config.format);
+        emitSuccess(buildDryRunPreview(spec, body, opts), config.format);
         return;
       }
 
-      const result = await spec.run({ config, client, positionals, options: opts, body });
+      const result = await spec.run({ config, client, options: opts, body });
       if (result.emitRawText) {
         const text = String(result.data);
         process.stdout.write(text.endsWith("\n") ? text : `${text}\n`);

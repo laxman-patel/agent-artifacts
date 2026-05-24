@@ -1,5 +1,5 @@
 import { createProjectInputSchema } from "@agent-artifacts/artifact";
-import { resolveResourceArg } from "../args.js";
+import { requireFlag } from "../args.js";
 import { LIST_LIMIT_OPTIONS, OWNER_OPTION, SLUG_OPTION } from "../command-options.js";
 import type { CommandSpec } from "../command-spec.js";
 import { resolveListLimit, sliceListResult } from "../list-limit.js";
@@ -43,24 +43,18 @@ export const projectCreateCommand: CommandSpec = {
 export const projectSlugAvailabilityCommand: CommandSpec = {
   name: "project slug-availability",
   description: "Check project slug availability",
-  positional: [
-    { name: "owner", required: false },
-    { name: "slug", required: false }
-  ],
   options: [OWNER_OPTION, SLUG_OPTION],
   http: { method: "GET", pathTemplate: "/api/projects/slug-availability/{ownerUsername}/{slug}" },
   mutates: false,
   example: SLUG_EXAMPLE,
-  async run({ client, positionals, options }) {
-    const owner = resolveResourceArg(positionals, options, {
-      positionalIndex: 0,
+  async run({ client, options }) {
+    const owner = requireFlag(options, {
       optionKey: "owner",
-      label: "owner",
+      label: "username",
       flag: "--owner",
       example: SLUG_EXAMPLE
     });
-    const slug = resolveResourceArg(positionals, options, {
-      positionalIndex: 1,
+    const slug = requireFlag(options, {
       optionKey: "slug",
       label: "slug",
       flag: "--slug",

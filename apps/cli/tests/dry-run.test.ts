@@ -3,8 +3,8 @@ import { buildDryRunPreview } from "../src/dry-run.js";
 import { artifactDeleteCommand } from "../src/commands/artifact.js";
 
 describe("buildDryRunPreview", () => {
-  it("describes the HTTP call that would run", () => {
-    const preview = buildDryRunPreview(artifactDeleteCommand, ["art_123"]);
+  it("describes the HTTP call from required flags", () => {
+    const preview = buildDryRunPreview(artifactDeleteCommand, undefined, { artifactId: "art_123" });
     expect(preview).toMatchObject({
       dry_run: true,
       command: "artifact delete",
@@ -14,19 +14,6 @@ describe("buildDryRunPreview", () => {
         path: "/api/artifacts/art_123"
       },
       example: "artifacts artifact delete --artifact-id ARTIFACT_ID"
-    });
-  });
-
-  it("resolves path params from named flags when positionals are omitted", () => {
-    const preview = buildDryRunPreview(
-      artifactDeleteCommand,
-      [],
-      undefined,
-      { artifactId: "art_flag" }
-    );
-    expect(preview.http).toEqual({
-      method: "DELETE",
-      path: "/api/artifacts/art_flag"
     });
   });
 });

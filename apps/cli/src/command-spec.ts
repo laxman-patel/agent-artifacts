@@ -8,7 +8,6 @@ export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 export interface CommandSpec {
   name: string;
   description: string;
-  positional?: { name: string; required: boolean }[];
   options?: {
     flag: string;
     description: string;
@@ -25,7 +24,6 @@ export interface CommandSpec {
 export interface RunContext {
   config: CliConfig;
   client: ApiClient;
-  positionals: string[];
   options: Record<string, unknown>;
   body?: unknown;
 }

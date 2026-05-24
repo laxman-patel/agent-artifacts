@@ -44,6 +44,7 @@ describe("CLI schema", () => {
     expect(schema.globalFlags.dryRun.flag).toContain("--dry-run");
     expect(schema.input.jsonBody.stdin).toContain("--json-file -");
     expect(schema.input.resourceIds.artifactId.flag).toBe("--artifact-id");
+    expect(schema.input.positionalArgs).toBe(false);
     expect(schema.list.defaultLimit).toBe(50);
     expect(schema.output.envelope.success.ok).toBe(true);
   });
@@ -52,5 +53,15 @@ describe("CLI schema", () => {
     const create = listCliCommandSpecs().find((c) => c.command === "artifact create");
     expect(create?.http).toEqual({ method: "POST", path: "/api/artifacts" });
     expect(create?.bodySchema).toBeDefined();
+    expect(create?.flags?.some((f) => f.flag.startsWith("--json"))).toBe(true);
+  });
+
+  it("documents required flags on resource commands", () => {
+    const get = listCliCommandSpecs().find((c) => c.command === "artifact get");
+    expect(get?.flags).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ flag: "--artifact-id <id>", required: true })
+      ])
+    );
   });
 });

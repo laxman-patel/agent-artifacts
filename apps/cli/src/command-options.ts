@@ -11,41 +11,44 @@ export const LIST_LIMIT_OPTIONS: NonNullable<CommandSpec["options"]> = [
 
 export const ARTIFACT_ID_OPTION = {
   flag: "--artifact-id <id>",
-  description: "Artifact ID (alternative to positional argument)"
-};
+  description: "Artifact ID",
+  required: true
+} as const;
 
-export const ARTIFACT_ID_ARG = {
-  positionalIndex: 0,
+export const ARTIFACT_ID_FLAG = {
   optionKey: "artifactId",
-  label: "artifactId",
+  label: "id",
   flag: "--artifact-id",
   example: "artifacts artifact get --artifact-id ARTIFACT_ID"
 } as const;
 
 export const SHARE_LINK_ID_OPTION = {
   flag: "--share-link-id <id>",
-  description: "Share link ID (alternative to positional argument)"
-};
+  description: "Share link ID",
+  required: true
+} as const;
 
-export const SHARE_LINK_ID_ARG = {
-  positionalIndex: 0,
+export const SHARE_LINK_ID_FLAG = {
   optionKey: "shareLinkId",
-  label: "shareLinkId",
+  label: "id",
   flag: "--share-link-id",
   example: "artifacts share revoke --share-link-id SHARE_LINK_ID"
 } as const;
 
 export const OWNER_OPTION = {
   flag: "--owner <username>",
-  description: "Owner username (alternative to first positional)"
-};
+  description: "Owner username",
+  required: true
+} as const;
 
 export const PROJECT_SLUG_OPTION = {
   flag: "--project-slug <slug>",
-  description: "Project slug (alternative to project positional)"
-};
+  description: "Project slug",
+  required: true
+} as const;
 
 export const SLUG_OPTION = {
   flag: "--slug <slug>",
-  description: "Artifact slug (alternative to slug positional)"
-};
+  description: "Artifact slug",
+  required: true
+} as const;

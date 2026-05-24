@@ -58,7 +58,7 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
       : undefined;
     try {
       if (config.dryRun && spec.mutates) {
-        emitSuccess(buildDryRunPreview(spec, positionals, body), config.format);
+        emitSuccess(buildDryRunPreview(spec, positionals, body, opts), config.format);
         return;
       }
 

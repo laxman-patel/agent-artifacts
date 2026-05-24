@@ -13,7 +13,20 @@ describe("buildDryRunPreview", () => {
         method: "DELETE",
         path: "/api/artifacts/art_123"
       },
-      example: "artifacts artifact delete ARTIFACT_ID"
+      example: "artifacts artifact delete --artifact-id ARTIFACT_ID"
+    });
+  });
+
+  it("resolves path params from named flags when positionals are omitted", () => {
+    const preview = buildDryRunPreview(
+      artifactDeleteCommand,
+      [],
+      undefined,
+      { artifactId: "art_flag" }
+    );
+    expect(preview.http).toEqual({
+      method: "DELETE",
+      path: "/api/artifacts/art_flag"
     });
   });
 });

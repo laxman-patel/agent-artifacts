@@ -92,6 +92,7 @@ export const verifications = pgTable(
 export const artifactType = pgEnum("artifact_type", ["html", "markdown", "react"]);
 export const artifactState = pgEnum("artifact_state", ["active", "archived", "deleted"]);
 export const artifactRole = pgEnum("artifact_role", ["owner", "admin", "editor", "viewer"]);
+export const shareLinkRole = pgEnum("share_link_role", ["viewer", "editor"]);
 // Principal types. Currently produced by the auth layer:
 //   - "user"    — Better Auth session (cookie or bearer-resolved)
 //   - "service" — anonymous public-viewer fallback
@@ -243,7 +244,7 @@ export const shareLinks = pgTable(
       .notNull()
       .references(() => artifacts.id, { onDelete: "cascade" }),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
-    role: artifactRole("role").notNull(),
+    role: shareLinkRole("role").notNull(),
     createdByPrincipalType: principalType("created_by_principal_type").notNull(),
     createdByPrincipalId: text("created_by_principal_id").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

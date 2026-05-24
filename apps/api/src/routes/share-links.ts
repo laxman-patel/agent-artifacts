@@ -105,7 +105,7 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
         type: "service",
         id: `share_link:${link.id}`,
         scopes: ["artifacts:read"],
-        artifactRoleGrants: { [link.artifactId]: link.role === "editor" ? "editor" : "viewer" }
+        artifactRoleGrants: { [link.artifactId]: link.role }
       });
 
       return {

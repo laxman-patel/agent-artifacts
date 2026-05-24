@@ -83,10 +83,7 @@ export class ShareLinkService {
       .from(shareLinks)
       .where(eq(shareLinks.artifactId, artifactId));
 
-    return rows.map((row) => ({
-      ...row,
-      role: row.role === "editor" ? "editor" : "viewer"
-    }));
+    return rows;
   }
 
   async getShareLinkById(shareLinkId: string) {

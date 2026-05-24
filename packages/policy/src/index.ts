@@ -5,7 +5,7 @@ import type {
   Principal,
 } from "@agent-artifacts/shared";
 
-const roleRank: Record<ArtifactRole, number> = {
+export const roleRank: Record<ArtifactRole, number> = {
   viewer: 1,
   editor: 2,
   admin: 3,

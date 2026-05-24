@@ -1,4 +1,4 @@
-import { canPerformArtifactAction } from "@agent-artifacts/policy";
+import { canPerformArtifactAction, roleRank } from "@agent-artifacts/policy";
 import type { ArtifactAction, ArtifactRole, Principal } from "@agent-artifacts/shared";
 import { ArtifactForbiddenError, artifactRoleSchema } from "@agent-artifacts/shared";
 
@@ -72,16 +72,9 @@ export interface ArtifactAccess {
 }
 
 export function highestRole(roles: ArtifactRole[]): ArtifactRole | undefined {
-  const rank: Record<ArtifactRole, number> = {
-    viewer: 1,
-    editor: 2,
-    admin: 3,
-    owner: 4
-  };
-
   return roles
     .map((role) => artifactRoleSchema.parse(role))
-    .sort((left, right) => rank[right]! - rank[left]!)
+    .sort((left, right) => roleRank[right]! - roleRank[left]!)
     .at(0);
 }
 

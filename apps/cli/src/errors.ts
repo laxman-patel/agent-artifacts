@@ -51,6 +51,8 @@ export function exitCodeForKind(kind: ErrorKind): number {
     case "invalid_request":
     case "payload_too_large":
       return 2;
+    case "network":
+      return 69;
     default:
       return 1;
   }

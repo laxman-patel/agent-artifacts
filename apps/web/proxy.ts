@@ -2,23 +2,16 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { hasAuthenticatedSession } from "./lib/server-auth";
 
+// Coarse login redirect for /dashboard and /settings only; artifact pages gate themselves (share links, partial visibility).
 function needsAuthProtection(pathname: string): boolean {
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/settings")) {
-    return true;
-  }
-
-  return /\/[^/]+\/[^/]+\/[^/]+\/(settings|audit|history)(\/|$)/.test(pathname);
+  return pathname.startsWith("/dashboard") || pathname.startsWith("/settings");
 }
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-
-  if (!needsAuthProtection(pathname)) {
-    return NextResponse.next();
-  }
+  if (!needsAuthProtection(pathname)) return NextResponse.next();
 
   const hasSession = await hasAuthenticatedSession(request.headers.get("cookie"));
-
   if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
@@ -28,6 +21,4 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = {
-  matcher: ["/dashboard/:path*", "/settings/:path*", "/:username/:path*"]
-};
+export const config = { matcher: ["/dashboard/:path*", "/settings/:path*"] };

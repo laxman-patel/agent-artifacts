@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { z } from "zod";
 import { allCommands } from "./commands/index.js";
 import { buildAgentSchema } from "./schema-registry.js";
-import { resolveConfig, type OutputFormat } from "./config.js";
+import { resolveConfig, extractFormatFlag, type OutputFormat } from "./config.js";
 import { CliError } from "./errors.js";
 import { emitFailure, emitSuccess } from "./output.js";
 import { registerSpec } from "./register-commands.js";
@@ -34,10 +34,7 @@ export async function runCli(argv: string[]): Promise<void> {
   try {
     await program.parseAsync(argv);
   } catch (error) {
-    const format = argv.includes("--format")
-      ? (argv[argv.indexOf("--format") + 1] === "json" ? "json" : undefined)
-      : undefined;
-    const config = resolveConfig({ format });
+    const config = resolveConfig({ format: extractFormatFlag(argv) });
     if (error instanceof CliError) {
       emitFailure(error, config.format);
     }

@@ -11,6 +11,21 @@ export interface CliConfig {
   quiet: boolean;
 }
 
+export function extractFormatFlag(argv: string[]): OutputFormat | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--format") {
+      const next = argv[i + 1];
+      if (next === "json" || next === "text") return next;
+    }
+    if (arg?.startsWith("--format=")) {
+      const value = arg.slice("--format=".length);
+      if (value === "json" || value === "text") return value;
+    }
+  }
+  return undefined;
+}
+
 export function resolveConfig(options: {
   baseUrl?: string;
   webUrl?: string;
@@ -32,7 +47,9 @@ export function resolveConfig(options: {
     DEFAULT_WEB_URL
   ).replace(/\/+$/, "");
   const token = options.token ?? process.env.AGENT_ARTIFACTS_TOKEN ?? stored?.token;
-  const format = options.format ?? (process.stdout.isTTY ? "text" : "json");
+  const envFormat = process.env.AGENT_ARTIFACTS_FORMAT;
+  const formatFromEnv = envFormat === "json" || envFormat === "text" ? envFormat : undefined;
+  const format = options.format ?? formatFromEnv ?? (process.stdout.isTTY ? "text" : "json");
 
   return {
     baseUrl,

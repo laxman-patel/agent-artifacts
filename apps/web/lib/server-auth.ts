@@ -2,6 +2,8 @@ import { createAuth, type BetterAuthHandle } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, type Database } from "@agent-artifacts/db";
 
+// Intentionally parallel to apps/api/src/deps.ts: each process (Next, API) owns one
+// DB pool and one better-auth instance; no shared runtime package between them.
 let authInstance: BetterAuthHandle | undefined;
 let dbInstance: Database | undefined;
 

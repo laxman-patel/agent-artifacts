@@ -18,6 +18,8 @@ export type AppVariables = {
   requestId: string;
 };
 
+// Intentionally parallel to apps/web/lib/server-auth.ts: each process (API, Next) owns
+// one DB pool and one better-auth instance; no shared runtime package between them.
 let authInstance: BetterAuthHandle | undefined;
 let artifactServiceInstance: ArtifactService | undefined;
 let projectServiceInstance: ProjectService | undefined;

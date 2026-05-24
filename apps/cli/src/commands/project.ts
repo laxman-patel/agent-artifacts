@@ -1,0 +1,60 @@
+import { createProjectInputSchema } from "@agent-artifacts/artifact";
+import type { CommandSpec } from "../command-spec.js";
+import { nextActionsForProject } from "../next-actions.js";
+
+function requiredPos(positionals: string[], index: number): string {
+  const value = positionals[index];
+  if (value === undefined) {
+    throw new Error(`Missing required positional argument at index ${index}`);
+  }
+  return value;
+}
+
+export const projectListCommand: CommandSpec = {
+  name: "project list",
+  description: "List owned projects",
+  http: { method: "GET", pathTemplate: "/api/profile/projects" },
+  mutates: false,
+  example: "artifacts project list",
+  async run({ client }) {
+    const data = await client.get("/api/profile/projects");
+    return { data };
+  }
+};
+
+export const projectCreateCommand: CommandSpec = {
+  name: "project create",
+  description: "Create a project",
+  options: [
+    { flag: "--json <payload>", description: "JSON body", required: true },
+    { flag: "--json-file <path>", description: "Read JSON from file" }
+  ],
+  bodySchema: createProjectInputSchema,
+  http: { method: "POST", pathTemplate: "/api/projects" },
+  mutates: true,
+  example: 'artifacts project create --json \'{"ownerUsername":"alice","slug":"my-app","title":"My App"}\'',
+  async run({ client, body }) {
+    const data = await client.post("/api/projects", createProjectInputSchema.parse(body));
+    return { data, nextActions: nextActionsForProject(data) };
+  }
+};
+
+export const projectSlugAvailabilityCommand: CommandSpec = {
+  name: "project slug-availability",
+  description: "Check project slug availability",
+  positional: [
+    { name: "owner", required: true },
+    { name: "slug", required: true }
+  ],
+  http: { method: "GET", pathTemplate: "/api/projects/slug-availability/{ownerUsername}/{slug}" },
+  mutates: false,
+  example: "artifacts project slug-availability alice my-app",
+  async run({ client, positionals }) {
+    const owner = requiredPos(positionals, 0);
+    const slug = requiredPos(positionals, 1);
+    const data = await client.get(
+      `/api/projects/slug-availability/${encodeURIComponent(owner)}/${encodeURIComponent(slug)}`
+    );
+    return { data };
+  }
+};

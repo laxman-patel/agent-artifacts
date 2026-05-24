@@ -1,0 +1,33 @@
+import type { NextAction } from "./output.js";
+
+export function extractArtifactId(data: unknown): string | undefined {
+  if (typeof data === "object" && data !== null) {
+    const record = data as Record<string, unknown>;
+    if (typeof record.artifactId === "string") return record.artifactId;
+    if (typeof record.id === "string") return record.id;
+  }
+  return undefined;
+}
+
+export function nextActionsForArtifact(artifactId: string | undefined): NextAction[] | undefined {
+  if (!artifactId) return undefined;
+  return [
+    { command: `artifacts artifact get ${artifactId}`, description: "Read artifact metadata" },
+    { command: `artifacts artifact content ${artifactId}`, description: "Read latest content" },
+    { command: `artifacts artifact versions ${artifactId}`, description: "List versions" }
+  ];
+}
+
+export function nextActionsForProject(data: unknown): NextAction[] | undefined {
+  if (typeof data !== "object" || data === null) return undefined;
+  const record = data as Record<string, unknown>;
+  const owner = typeof record.ownerUsername === "string" ? record.ownerUsername : undefined;
+  const slug =
+    typeof record.normalizedSlug === "string"
+      ? record.normalizedSlug
+      : typeof record.slug === "string"
+        ? record.slug
+        : undefined;
+  if (!owner || !slug) return undefined;
+  return [{ command: `artifacts path project ${owner} ${slug}`, description: "List artifacts in project" }];
+}

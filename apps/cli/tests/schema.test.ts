@@ -43,6 +43,8 @@ describe("CLI schema", () => {
     expect(schema.globalFlags.noInput.flag).toBe("--no-input");
     expect(schema.globalFlags.dryRun.flag).toContain("--dry-run");
     expect(schema.input.jsonBody.stdin).toContain("--json-file -");
+    expect(schema.input.resourceIds.artifactId.flag).toBe("--artifact-id");
+    expect(schema.list.defaultLimit).toBe(50);
     expect(schema.output.envelope.success.ok).toBe(true);
   });
 

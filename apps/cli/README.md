@@ -106,8 +106,29 @@ artifacts whoami --format json
 Preview destructive or mutating calls without side effects:
 
 ```bash
-artifacts artifact delete ARTIFACT_ID --dry-run
-echo '{"content":"# v2"}' | artifacts artifact update ARTIFACT_ID --json-file -
+artifacts artifact delete --artifact-id ARTIFACT_ID --dry-run
+echo '{"content":"# v2"}' | artifacts artifact update --artifact-id ART_ID --json-file -
+```
+
+### Named flags (preferred for agents)
+
+Resource IDs and path segments accept **named flags** instead of positional arguments:
+
+```bash
+artifacts artifact get --artifact-id ARTIFACT_ID
+artifacts share revoke --share-link-id SHARE_LINK_ID
+artifacts path artifact --owner alice --project-slug default --slug readme
+```
+
+Positional forms still work for scripts that already use them.
+
+### Bounded list output
+
+List commands default to **50 records** (max 100). Truncation hints go to stderr; pass `--all` for the full set:
+
+```bash
+artifacts artifact list --limit 20
+artifacts audit list --artifact-id ARTIFACT_ID --all
 ```
 
 ## Output contract
@@ -130,14 +151,14 @@ Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https:
 | `artifacts profile get` | `GET /api/profile/me` |
 | `artifacts project list` | `GET /api/profile/projects` |
 | `artifacts project create --json '...'` | `POST /api/projects` |
-| `artifacts artifact list` | `GET /api/profile/artifacts` |
+| `artifacts artifact list` | `GET /api/profile/artifacts` (default `--limit 50`) |
 | `artifacts artifact create --json '...'` | `POST /api/artifacts` |
-| `artifacts artifact get <id>` | `GET /api/artifacts/:id` |
-| `artifacts artifact content <id>` | `GET /api/artifacts/:id/content` |
-| `artifacts artifact update <id> --json '...'` | `POST /api/artifacts/:id/versions` |
-| `artifacts path artifact <owner> <project> <slug>` | `GET /api/by-path/...` |
-| `artifacts share create <id> --json '...'` | `POST /api/artifacts/:id/share-links` |
-| `artifacts audit list` | `GET /api/audit-events` |
+| `artifacts artifact get --artifact-id <id>` | `GET /api/artifacts/:id` |
+| `artifacts artifact content --artifact-id <id>` | `GET /api/artifacts/:id/content` |
+| `artifacts artifact update --artifact-id <id> --json '...'` | `POST /api/artifacts/:id/versions` |
+| `artifacts path artifact --owner ... --project-slug ... --slug ...` | `GET /api/by-path/...` |
+| `artifacts share create --artifact-id <id> --json '...'` | `POST /api/artifacts/:id/share-links` |
+| `artifacts audit list` | `GET /api/audit-events` (default `--limit 50`) |
 | `artifacts health` | `GET /health` |
 
 ## Mutations

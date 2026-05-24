@@ -48,7 +48,22 @@ export function buildAgentSchema() {
       quiet: { flag: "-q, --quiet", description: "Suppress stderr progress messages" }
     },
     input: {
-      jsonBody: { flags: ["--json", "--json-file"], stdin: "Use --json-file - to pipe JSON from stdin" }
+      jsonBody: { flags: ["--json", "--json-file"], stdin: "Use --json-file - to pipe JSON from stdin" },
+      resourceIds: {
+        artifactId: { flag: "--artifact-id", positional: "[artifactId]" },
+        shareLinkId: { flag: "--share-link-id", positional: "[shareLinkId]" }
+      },
+      path: {
+        owner: "--owner",
+        projectSlug: "--project-slug",
+        slug: "--slug"
+      }
+    },
+    list: {
+      defaultLimit: 50,
+      maxLimit: 100,
+      flags: ["--limit <n>", "--all"],
+      truncationHint: "stderr when results are truncated"
     },
     output: {
       default: "json when stdout is not a TTY, text when interactive",

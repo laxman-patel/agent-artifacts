@@ -1,15 +1,24 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { emitSuccess } from "../src/output.js";
-import { exitCodeForKind } from "../src/errors.js";
+import { emitSuccess, emitFailure } from "../src/output.js";
+import { CliError, exitCodeForKind } from "../src/errors.js";
 
 describe("CLI output", () => {
-  const writes: string[] = [];
+  const stdout: string[] = [];
+  const stderr: string[] = [];
 
   beforeEach(() => {
-    writes.length = 0;
+    stdout.length = 0;
+    stderr.length = 0;
     vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
-      writes.push(String(chunk));
+      stdout.push(String(chunk));
       return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    vi.spyOn(process, "exit").mockImplementation((code) => {
+      throw new Error(`exit:${code}`);
     });
   });
 
@@ -19,14 +28,23 @@ describe("CLI output", () => {
 
   it("emits ok JSON envelope by default for agents", () => {
     emitSuccess({ id: "a1" }, "json");
-    const parsed = JSON.parse(writes.join("")) as { ok: boolean; data: { id: string } };
+    const parsed = JSON.parse(stdout.join("")) as { ok: boolean; data: { id: string } };
     expect(parsed.ok).toBe(true);
     expect(parsed.data.id).toBe("a1");
+  });
+
+  it("writes JSON failures to stderr", () => {
+    expect(() => emitFailure(new CliError("not_found", "missing", 3), "json")).toThrow("exit:3");
+    expect(stdout.join("")).toBe("");
+    const parsed = JSON.parse(stderr.join("")) as { ok: boolean; error: { kind: string } };
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error.kind).toBe("not_found");
   });
 
   it("maps error kinds to stable exit codes", () => {
     expect(exitCodeForKind("not_found")).toBe(3);
     expect(exitCodeForKind("conflict")).toBe(5);
     expect(exitCodeForKind("forbidden")).toBe(4);
+    expect(exitCodeForKind("network")).toBe(69);
   });
 });

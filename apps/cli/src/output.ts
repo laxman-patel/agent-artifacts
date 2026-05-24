@@ -50,7 +50,7 @@ export function emitFailure(error: CliError, format: OutputFormat): never {
   };
 
   if (format === "json") {
-    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+    process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
   } else {
     process.stderr.write(`${error.kind}: ${error.message}\n`);
     if (error.details !== undefined) {

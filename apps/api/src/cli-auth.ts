@@ -44,18 +44,3 @@ export function consumeCliAuthCode(code: string, state: string): CliAuthCodeEntr
   store.delete(code);
   return entry;
 }
-
-export function parseSessionTokenFromCookie(cookieHeader: string | undefined): string | undefined {
-  if (!cookieHeader) {
-    return undefined;
-  }
-
-  for (const part of cookieHeader.split(";")) {
-    const trimmed = part.trim();
-    if (trimmed.startsWith("better-auth.session_token=")) {
-      return decodeURIComponent(trimmed.slice("better-auth.session_token=".length));
-    }
-  }
-
-  return undefined;
-}

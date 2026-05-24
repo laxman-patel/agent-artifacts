@@ -8,7 +8,7 @@ export default async function GlobalAuditLogPage() {
   const header = cookieHeader(cookieStore);
 
   const me = await fetchProfileMe(header);
-  if (me.status === 401 || me.status === 403 || !me.body) {
+  if (!me.ok || !me.body) {
     redirect("/login?next=/settings/audit");
   }
 

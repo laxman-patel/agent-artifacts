@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
 import { AccessSettingsForm } from "../../../../components/access-settings-form";
 import { DeleteArtifactButton } from "../../../../components/delete-artifact-button";
+import { RestrictedArtifactView } from "../../../../components/restricted-artifact-view";
 import { ShareLinksManager } from "../../../../components/share-links-manager";
-import { artifactPath, cookieHeader, fetchArtifactAccess, fetchArtifactMeta, fetchShareLinks } from "../../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactAccess, fetchShareLinks, loadArtifactGate } from "../../../../../lib/server-api";
 
 export default async function ArtifactSettingsPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string }>;
@@ -18,34 +18,20 @@ export default async function ArtifactSettingsPage(props: {
     slug: params.slug
   });
 
-  const meta = await fetchArtifactMeta(params.username, params.projectSlug, params.slug, header);
-
-  if (meta.ok === false && meta.status === 404) {
-    notFound();
+  const gate = await loadArtifactGate(params.username, params.projectSlug, params.slug, header, {
+    redirectPath: `${path}/settings`
+  });
+  if (gate.kind === "restricted") {
+    return <RestrictedArtifactView message={gate.message} loginHref={gate.loginHref} />;
   }
-
-  if (meta.ok === false && meta.status === 403) {
-    return (
-      <main className="shell narrow">
-        <h1>Restricted artifact</h1>
-        <p className="muted">{meta.message}</p>
-        <Link className="primary-button" href={`/login?next=${encodeURIComponent(`${path}/settings`)}`}>
-          Sign in with Google
-        </Link>
-      </main>
-    );
-  }
-
-  if (!meta.ok) {
-    throw new Error("Unexpected artifact response");
-  }
+  const meta = gate.meta;
 
   const [access, shareLinksResult] = await Promise.all([
-    fetchArtifactAccess(meta.artifact.id, header),
-    fetchShareLinks(meta.artifact.id, header)
+    fetchArtifactAccess(meta.id, header),
+    fetchShareLinks(meta.id, header)
   ]);
 
-  if (access.ok === false && access.status === 403) {
+  if (!access.ok && access.status === 403) {
     return (
       <main className="shell narrow">
         <h1>Admin access required</h1>
@@ -55,18 +41,18 @@ export default async function ArtifactSettingsPage(props: {
     );
   }
 
-  if (!access.ok || !access.body) {
+  if (!access.ok) {
     throw new Error("Unexpected access response");
   }
 
-  const base = artifactPath(meta.artifact);
+  const base = artifactPath(meta);
 
   return (
     <main className="page-shell">
       <header className="page-header">
         <div>
           <p className="eyebrow">Settings</p>
-          <h1>Access · {meta.artifact.title}</h1>
+          <h1>Access · {meta.title}</h1>
           <p className="subtle">{base}</p>
         </div>
         <Link className="ghost-button" href={base}>
@@ -76,7 +62,7 @@ export default async function ArtifactSettingsPage(props: {
 
       <section className="card flat">
         <AccessSettingsForm
-          artifactId={meta.artifact.id}
+          artifactId={meta.id}
           initialPublicEdit={access.body.publicEdit}
           initialPublicView={access.body.publicView}
           initialViewerEmails={access.body.viewerEmails}
@@ -87,8 +73,8 @@ export default async function ArtifactSettingsPage(props: {
         <h2>Share links</h2>
         <p className="muted small">Create revocable links granting access without requiring sign-in.</p>
         <ShareLinksManager
-          artifactId={meta.artifact.id}
-          initialLinks={shareLinksResult.ok && shareLinksResult.body ? shareLinksResult.body.shareLinks : []}
+          artifactId={meta.id}
+          initialLinks={shareLinksResult.ok ? shareLinksResult.body.shareLinks : []}
         />
       </section>
 
@@ -104,7 +90,7 @@ export default async function ArtifactSettingsPage(props: {
         <p className="muted small">
           Deleting hides this artifact from all reads and revokes all access. Audit history is preserved. Only the artifact owner can do this.
         </p>
-        <DeleteArtifactButton artifactId={meta.artifact.id} artifactTitle={meta.artifact.title} />
+        <DeleteArtifactButton artifactId={meta.id} artifactTitle={meta.title} />
       </section>
     </main>
   );

@@ -10,17 +10,17 @@ export default async function UserProjectsPage(props: { params: Promise<{ userna
 
   const profile = await fetchProfileMe(header);
 
-  if (!profile.body?.profile || profile.body.profile.username.toLowerCase() !== params.username.toLowerCase()) {
+  if (!profile.ok || !profile.body.profile || profile.body.profile.username.toLowerCase() !== params.username.toLowerCase()) {
     notFound();
   }
 
   const result = await fetchOwnedProjects(header);
 
-  if (result.status === 401 || result.status === 403) {
+  if (!result.ok && (result.status === 401 || result.status === 403)) {
     notFound();
   }
 
-  if (!result.body) {
+  if (!result.ok) {
     throw new Error("Projects response was empty.");
   }
 

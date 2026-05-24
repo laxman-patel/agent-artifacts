@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
-import { artifactPath, cookieHeader, fetchArtifactContent, fetchArtifactMeta } from "../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactContent, loadArtifactGate } from "../../../../lib/server-api";
 import { wrapHtmlWithCsp } from "../../../components/html-csp";
 import { MarkdownViewer } from "../../../components/markdown-viewer";
 import { ReactViewer } from "../../../components/react-viewer";
+import { RestrictedArtifactView } from "../../../components/restricted-artifact-view";
 
 export default async function ArtifactPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string }>;
@@ -20,31 +20,17 @@ export default async function ArtifactPage(props: {
     slug: params.slug
   });
 
-  const meta = await fetchArtifactMeta(params.username, params.projectSlug, params.slug, header);
-
-  if (meta.ok === false && meta.status === 404) {
-    notFound();
+  const gate = await loadArtifactGate(params.username, params.projectSlug, params.slug, header, {
+    redirectPath: path
+  });
+  if (gate.kind === "restricted") {
+    return <RestrictedArtifactView message={gate.message} loginHref={gate.loginHref} />;
   }
-
-  if (meta.ok === false && meta.status === 403) {
-    return (
-      <main className="shell narrow">
-        <h1>Restricted artifact</h1>
-        <p className="muted">{meta.message}</p>
-        <Link className="primary-button" href={`/login?next=${encodeURIComponent(path)}`}>
-          Sign in with Google
-        </Link>
-      </main>
-    );
-  }
-
-  if (!meta.ok) {
-    throw new Error("Unexpected artifact response");
-  }
+  const meta = gate.meta;
 
   const versionNumber = searchParams.version ? Number.parseInt(searchParams.version, 10) : undefined;
 
-  const contentResult = await fetchArtifactContent(meta.artifact.id, header, Number.isFinite(versionNumber) ? versionNumber : undefined);
+  const contentResult = await fetchArtifactContent(meta.id, header, Number.isFinite(versionNumber) ? versionNumber : undefined);
 
   if (!contentResult.ok) {
     return (
@@ -55,17 +41,17 @@ export default async function ArtifactPage(props: {
     );
   }
 
-  const { content, contentType } = contentResult;
-  const base = artifactPath(meta.artifact);
+  const { content, contentType } = contentResult.body;
+  const base = artifactPath(meta);
 
   return (
     <main className="page-shell wide">
       <header className="page-header">
         <div>
           <p className="eyebrow">
-            {meta.artifact.type.toUpperCase()} · v{searchParams.version ?? "latest"}
+            {meta.type.toUpperCase()} · v{searchParams.version ?? "latest"}
           </p>
-          <h1>{meta.artifact.title}</h1>
+          <h1>{meta.title}</h1>
           <p className="subtle">{base}</p>
         </div>
         <div className="row-actions wrap">
@@ -79,13 +65,13 @@ export default async function ArtifactPage(props: {
       </header>
 
       <section className="card flat viewer-card">
-        {meta.artifact.type === "html" && (
+        {meta.type === "html" && (
           <iframe className="artifact-frame" referrerPolicy="no-referrer" sandbox="allow-scripts" srcDoc={wrapHtmlWithCsp(content)} title="HTML artifact preview" />
         )}
-        {meta.artifact.type === "markdown" && (
+        {meta.type === "markdown" && (
           <MarkdownViewer content={content} />
         )}
-        {meta.artifact.type === "react" && (
+        {meta.type === "react" && (
           <ReactViewer content={content} />
         )}
         <p className="muted small">Rendered as {contentType}</p>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { artifactPath, cookieHeader, fetchArtifactDiff, fetchArtifactMeta } from "../../../../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactDiff, loadArtifactGate } from "../../../../../../../lib/server-api";
+import { RestrictedArtifactView } from "../../../../../../components/restricted-artifact-view";
 
 export default async function ArtifactDiffPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string; from: string; to: string }>;
@@ -22,32 +23,15 @@ export default async function ArtifactDiffPage(props: {
     slug: params.slug
   });
 
-  const meta = await fetchArtifactMeta(params.username, params.projectSlug, params.slug, header);
-
-  if (meta.ok === false && meta.status === 404) {
-    notFound();
+  const gate = await loadArtifactGate(params.username, params.projectSlug, params.slug, header, {
+    redirectPath: `${path}/diff/${params.from}/${params.to}`
+  });
+  if (gate.kind === "restricted") {
+    return <RestrictedArtifactView message={gate.message} loginHref={gate.loginHref} />;
   }
+  const meta = gate.meta;
 
-  if (meta.ok === false && meta.status === 403) {
-    return (
-      <main className="shell narrow">
-        <h1>Restricted artifact</h1>
-        <p className="muted">{meta.message}</p>
-        <Link
-          className="primary-button"
-          href={`/login?next=${encodeURIComponent(`${path}/diff/${params.from}/${params.to}`)}`}
-        >
-          Sign in with Google
-        </Link>
-      </main>
-    );
-  }
-
-  if (!meta.ok) {
-    throw new Error("Unexpected artifact response");
-  }
-
-  const diff = await fetchArtifactDiff(meta.artifact.id, header, fromVersion, toVersion);
+  const diff = await fetchArtifactDiff(meta.id, header, fromVersion, toVersion);
 
   if (!diff.ok) {
     return (
@@ -58,7 +42,7 @@ export default async function ArtifactDiffPage(props: {
     );
   }
 
-  const base = artifactPath(meta.artifact);
+  const base = artifactPath(meta);
 
   return (
     <main className="page-shell wide">
@@ -66,7 +50,7 @@ export default async function ArtifactDiffPage(props: {
         <div>
           <p className="eyebrow">Diff</p>
           <h1>
-            {meta.artifact.title}{" "}
+            {meta.title}{" "}
             <span className="muted">
               (v{fromVersion} → v{toVersion})
             </span>

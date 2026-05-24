@@ -18,23 +18,22 @@ export default async function DashboardPage() {
     fetchOwnedArtifacts(header)
   ]);
 
-  if (projectsResult.status === 401 || artifactsResult.status === 401) {
+  if (
+    (!projectsResult.ok && (projectsResult.status === 401 || projectsResult.status === 403)) ||
+    (!artifactsResult.ok && (artifactsResult.status === 401 || artifactsResult.status === 403))
+  ) {
     redirect("/login?next=/dashboard");
   }
 
-  if (projectsResult.status === 403 || artifactsResult.status === 403) {
-    redirect("/login?next=/dashboard");
-  }
-
-  const projects = projectsResult.body?.projects ?? [];
-  const artifacts = artifactsResult.body?.artifacts ?? [];
+  const projects = projectsResult.ok ? projectsResult.body.projects : [];
+  const artifacts = artifactsResult.ok ? artifactsResult.body.artifacts : [];
   const loadWarnings: string[] = [];
 
-  if (!projectsResult.body) {
+  if (!projectsResult.ok) {
     loadWarnings.push(projectsResult.message ?? "Projects could not be loaded.");
   }
 
-  if (!artifactsResult.body) {
+  if (!artifactsResult.ok) {
     loadWarnings.push(
       artifactsResult.message ?? "Artifacts could not be loaded. Refresh the page if your database was waking up."
     );

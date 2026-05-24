@@ -10,7 +10,7 @@ export default async function AccountSettingsPage() {
 
   const profile = await fetchProfileMe(header);
 
-  if (profile.status === 401 || profile.status === 403 || !profile.body) {
+  if (!profile.ok || !profile.body) {
     redirect("/login?next=/settings/account");
   }
 

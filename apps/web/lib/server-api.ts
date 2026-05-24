@@ -43,11 +43,11 @@ export interface ArtifactOwnerSummary {
 }
 
 export function artifactPath(artifact: { ownerUsername: string; projectSlug: string; slug: string }): string {
-  return `/${artifact.ownerUsername}/projects/${artifact.projectSlug}/${artifact.slug}`;
+  return `/${artifact.ownerUsername}/${artifact.projectSlug}/${artifact.slug}`;
 }
 
 export function projectPath(project: { ownerUsername: string; slug: string }): string {
-  return `/${project.ownerUsername}/projects/${project.slug}`;
+  return `/${project.ownerUsername}/${project.slug}`;
 }
 
 async function readApiError(response: Response): Promise<string> {
@@ -133,7 +133,7 @@ export async function fetchProjectByPath(
   }
 
   const response = await fetch(
-    `${internalApiOrigin()}/api/by-path/${encodeURIComponent(username)}/projects/${encodeURIComponent(projectSlug)}`,
+    `${internalApiOrigin()}/api/by-path/${encodeURIComponent(username)}/${encodeURIComponent(projectSlug)}`,
     { headers, cache: "no-store" }
   );
 
@@ -159,7 +159,7 @@ export async function fetchArtifactMeta(
   }
 
   const response = await fetch(
-    `${internalApiOrigin()}/api/by-path/${encodeURIComponent(username)}/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`,
+    `${internalApiOrigin()}/api/by-path/${encodeURIComponent(username)}/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`,
     {
       headers,
       cache: "no-store"

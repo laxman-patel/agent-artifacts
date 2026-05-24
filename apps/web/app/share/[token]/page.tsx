@@ -44,5 +44,5 @@ export default async function ShareTokenPage(props: { params: Promise<{ token: s
     maxAge: 60 * 60 * 24 * 7
   });
 
-  redirect(`/${body.artifact.ownerUsername}/projects/${body.artifact.projectSlug}/${body.artifact.slug}`);
+  redirect(`/${body.artifact.ownerUsername}/${body.artifact.projectSlug}/${body.artifact.slug}`);
 }

@@ -183,14 +183,14 @@ export const cliCommandSpecs: CliCommandSpec[] = [
   {
     command: "path project",
     description: "Resolve a project and list its artifacts by URL path.",
-    http: { method: "GET", path: "/api/by-path/{username}/projects/{projectSlug}" },
+    http: { method: "GET", path: "/api/by-path/{username}/{projectSlug}" },
     mutates: false,
     example: "artifacts path project alice default"
   },
   {
     command: "path artifact",
     description: "Get artifact metadata by owner/project/slug path.",
-    http: { method: "GET", path: "/api/by-path/{username}/projects/{projectSlug}/{slug}" },
+    http: { method: "GET", path: "/api/by-path/{username}/{projectSlug}/{slug}" },
     mutates: false,
     example: "artifacts path artifact alice default readme"
   },

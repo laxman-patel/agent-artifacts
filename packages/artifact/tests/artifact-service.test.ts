@@ -61,7 +61,7 @@ describe("ArtifactService", () => {
 
     expect(created.normalizedSlug).toBe("weekly-report");
     expect(created.versionNumber).toBe(1);
-    expect(created.url).toBe("https://www.agents-artifacts/laxman/projects/default/weekly-report");
+    expect(created.url).toBe("https://www.agents-artifacts/laxman/default/weekly-report");
     expect(storage.text(created.contentObjectKey)).toBe("# Hello");
     expect(repository.auditEvents).toHaveLength(1);
     expect(repository.auditEvents[0]?.action).toBe("artifact.created");

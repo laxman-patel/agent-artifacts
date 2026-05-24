@@ -100,12 +100,12 @@ export async function setUsername(client: ApiClient, body: unknown) {
 }
 
 export async function getProjectByPath(client: ApiClient, owner: string, projectSlug: string) {
-  return client.get(`/api/by-path/${encodeURIComponent(owner)}/projects/${encodeURIComponent(projectSlug)}`);
+  return client.get(`/api/by-path/${encodeURIComponent(owner)}/${encodeURIComponent(projectSlug)}`);
 }
 
 export async function getArtifactByPath(client: ApiClient, owner: string, projectSlug: string, slug: string) {
   return client.get(
-    `/api/by-path/${encodeURIComponent(owner)}/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`
+    `/api/by-path/${encodeURIComponent(owner)}/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`
   );
 }
 

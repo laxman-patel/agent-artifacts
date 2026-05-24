@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { artifactPath, cookieHeader, fetchArtifactDiff, fetchArtifactMeta } from "../../../../../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactDiff, fetchArtifactMeta } from "../../../../../../../lib/server-api";
 
 export default async function ArtifactDiffPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string; from: string; to: string }>;

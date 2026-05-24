@@ -109,7 +109,7 @@ export const usernameSchema = z
 
 export function buildProjectUrl(appUrl: string, username: string, projectSlug: string): string {
   const base = appUrl.replace(/\/+$/, "");
-  return `${base}/${username}/projects/${projectSlug}`;
+  return `${base}/${username}/${projectSlug}`;
 }
 
 export function buildProjectArtifactUrl(
@@ -119,7 +119,7 @@ export function buildProjectArtifactUrl(
   artifactSlug: string
 ): string {
   const base = appUrl.replace(/\/+$/, "");
-  return `${base}/${username}/projects/${projectSlug}/${artifactSlug}`;
+  return `${base}/${username}/${projectSlug}/${artifactSlug}`;
 }
 
 export class ArtifactForbiddenError extends Error {

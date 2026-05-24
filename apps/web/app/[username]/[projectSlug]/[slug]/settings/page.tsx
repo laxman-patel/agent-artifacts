@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { AccessSettingsForm } from "../../../../../components/access-settings-form";
-import { DeleteArtifactButton } from "../../../../../components/delete-artifact-button";
-import { ShareLinksManager } from "../../../../../components/share-links-manager";
-import { artifactPath, cookieHeader, fetchArtifactAccess, fetchArtifactMeta, fetchShareLinks } from "../../../../../../lib/server-api";
+import { AccessSettingsForm } from "../../../../components/access-settings-form";
+import { DeleteArtifactButton } from "../../../../components/delete-artifact-button";
+import { ShareLinksManager } from "../../../../components/share-links-manager";
+import { artifactPath, cookieHeader, fetchArtifactAccess, fetchArtifactMeta, fetchShareLinks } from "../../../../../lib/server-api";
 
 export default async function ArtifactSettingsPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string }>;

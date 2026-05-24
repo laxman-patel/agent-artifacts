@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { cookieHeader, fetchOwnedProjects, fetchProfileMe, projectPath } from "../../../lib/server-api";
+import { cookieHeader, fetchOwnedProjects, fetchProfileMe, projectPath } from "../../lib/server-api";
 
 export default async function UserProjectsPage(props: { params: Promise<{ username: string }> }) {
   const params = await props.params;

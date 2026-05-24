@@ -7,7 +7,7 @@ function needsAuthProtection(pathname: string): boolean {
     return true;
   }
 
-  return /\/projects\/[^/]+\/[^/]+\/(settings|audit|history)(\/|$)/.test(pathname);
+  return /\/[^/]+\/[^/]+\/[^/]+\/(settings|audit|history)(\/|$)/.test(pathname);
 }
 
 export async function proxy(request: NextRequest) {
@@ -29,5 +29,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/settings/:path*", "/:username/projects/:path*"]
+  matcher: ["/dashboard/:path*", "/settings/:path*", "/:username/:path*"]
 };

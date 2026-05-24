@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { artifactPath, cookieHeader, fetchArtifactContent, fetchArtifactMeta } from "../../../../../lib/server-api";
-import { wrapHtmlWithCsp } from "../../../../components/html-csp";
-import { MarkdownViewer } from "../../../../components/markdown-viewer";
-import { ReactViewer } from "../../../../components/react-viewer";
+import { artifactPath, cookieHeader, fetchArtifactContent, fetchArtifactMeta } from "../../../../lib/server-api";
+import { wrapHtmlWithCsp } from "../../../components/html-csp";
+import { MarkdownViewer } from "../../../components/markdown-viewer";
+import { ReactViewer } from "../../../components/react-viewer";
 
 export default async function ArtifactPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string }>;

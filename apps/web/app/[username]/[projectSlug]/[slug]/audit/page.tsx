@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { artifactPath, cookieHeader, fetchArtifactMeta, fetchAuditEvents } from "../../../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactMeta, fetchAuditEvents } from "../../../../../lib/server-api";
 
 export default async function ArtifactAuditPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string }>;

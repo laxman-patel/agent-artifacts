@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { artifactPath, cookieHeader, fetchProjectByPath, projectPath } from "../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchProjectByPath, projectPath } from "../../../lib/server-api";
 
 export default async function ProjectPage(props: {
   params: Promise<{ username: string; projectSlug: string }>;
@@ -32,7 +32,7 @@ export default async function ProjectPage(props: {
           <p className="subtle">{base}</p>
           {project.description ? <p className="muted">{project.description}</p> : null}
         </div>
-        <Link className="ghost-button" href={`/${params.username}/projects`}>
+        <Link className="ghost-button" href={`/${params.username}`}>
           All projects
         </Link>
       </header>

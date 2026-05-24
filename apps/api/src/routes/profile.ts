@@ -59,7 +59,7 @@ export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
     }
   });
 
-  app.get("/api/by-path/:username/projects/:projectSlug", async (c) => {
+  app.get("/api/by-path/:username/:projectSlug", async (c) => {
     try {
       const principal = await resolvePrincipal(c);
       const username = c.req.param("username");
@@ -78,7 +78,7 @@ export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
     }
   });
 
-  app.get("/api/by-path/:username/projects/:projectSlug/:slug", async (c) => {
+  app.get("/api/by-path/:username/:projectSlug/:slug", async (c) => {
     try {
       const principal = await resolvePrincipal(c);
       const artifact = await getArtifactService().getArtifactByPath(

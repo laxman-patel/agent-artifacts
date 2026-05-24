@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { createCliAuthCode, consumeCliAuthCode, parseSessionTokenFromCookie } from "../cli-auth.js";
 import { handle } from "../http/handler.js";
-import { requirePrincipal } from "../http/principal.js";
+import { requireHumanPrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
 
 const cliAuthorizeInputSchema = z.object({
@@ -18,10 +18,7 @@ const cliExchangeInputSchema = z.object({
 export function registerCliRoutes(app: Hono<{ Variables: AppVariables }>) {
   app.post("/api/cli/authorize", (c) =>
     handle(c, async () => {
-      const principal = await requirePrincipal(c);
-      if (principal.type !== "user") {
-        return c.json({ error: "forbidden", message: "User session required." }, 403);
-      }
+      const principal = await requireHumanPrincipal(c);
 
       const body = cliAuthorizeInputSchema.parse(await c.req.json());
       const sessionToken = parseSessionTokenFromCookie(c.req.header("cookie"));

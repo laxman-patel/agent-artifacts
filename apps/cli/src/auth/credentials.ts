@@ -45,8 +45,10 @@ export function saveStoredCredentials(credentials: StoredCredentials): void {
   writeFileSync(CREDENTIALS_PATH, `${JSON.stringify(credentials, null, 2)}\n`, { mode: 0o600 });
 }
 
-export function clearStoredCredentials(): void {
+export function clearStoredCredentials(): boolean {
   if (existsSync(CREDENTIALS_PATH)) {
     unlinkSync(CREDENTIALS_PATH);
+    return true;
   }
+  return false;
 }

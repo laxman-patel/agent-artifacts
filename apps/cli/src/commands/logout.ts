@@ -7,7 +7,7 @@ export const logoutCommand: CommandSpec = {
   mutates: true,
   example: "artifacts logout",
   async run() {
-    clearStoredCredentials();
-    return { data: { loggedOut: true, credentialsPath: credentialsPath() } };
+    const wasSignedIn = clearStoredCredentials();
+    return { data: { loggedOut: true, wasSignedIn, credentialsPath: credentialsPath() } };
   }
 };

@@ -166,6 +166,6 @@ Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https:
 Pass full API payloads via `--json` or `--json-file` (use `-` for stdin):
 
 ```bash
-artifacts artifact update ART_ID --json '{"content":"# v2","changelog":"edit"}'
-echo '{"content":"# v2"}' | artifacts artifact update ART_ID --json-file -
+artifacts artifact update --artifact-id ART_ID --json '{"content":"# v2","changelog":"edit"}'
+echo '{"content":"# v2"}' | artifacts artifact update --artifact-id ART_ID --json-file -
 ```

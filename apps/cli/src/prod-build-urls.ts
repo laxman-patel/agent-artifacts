@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadMonorepoEnv } from "../../../packages/config/src/load-monorepo-env.js";
+import { loadMonorepoEnv } from "@agent-artifacts/config";
 
 export interface ProdBuildUrls {
   baseUrl: string;

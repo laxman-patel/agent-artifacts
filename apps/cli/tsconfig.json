@@ -6,7 +6,10 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "references": [{ "path": "../../packages/artifact" }],
+  "references": [
+    { "path": "../../packages/artifact" },
+    { "path": "../../packages/config" }
+  ],
   "include": ["src/**/*.ts"],
   "exclude": ["tests/**"]
 }

@@ -5,6 +5,7 @@ import type { NextConfig } from "next";
 loadMonorepoEnv();
 
 const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001";
+const isDev = process.env.NODE_ENV === "development";
 
 const securityHeaders = [
   { key: "x-content-type-options", value: "nosniff" },
@@ -15,7 +16,8 @@ const securityHeaders = [
     key: "content-security-policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      // React dev tooling needs eval(); production builds do not.
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self'",

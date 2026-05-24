@@ -29,5 +29,10 @@ export function nextActionsForProject(data: unknown): NextAction[] | undefined {
         ? record.slug
         : undefined;
   if (!owner || !slug) return undefined;
-  return [{ command: `artifacts path project ${owner} ${slug}`, description: "List artifacts in project" }];
+  return [
+    {
+      command: `artifacts path project --owner ${owner} --project-slug ${slug}`,
+      description: "List artifacts in project"
+    }
+  ];
 }

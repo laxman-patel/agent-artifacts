@@ -15,6 +15,7 @@
     "lint": "tsc -b --pretty false"
   },
   "dependencies": {
+    "dotenv": "^16.6.1",
     "zod": "^4.4.3"
   }
 }

@@ -2,6 +2,7 @@ import { createProjectInputSchema } from "@agent-artifacts/artifact";
 import { requireFlag } from "../args.js";
 import { LIST_LIMIT_OPTIONS, OWNER_OPTION, SLUG_OPTION } from "../command-options.js";
 import type { CommandSpec } from "../command-spec.js";
+import { CliError } from "../errors.js";
 import { resolveListLimit, sliceListResult } from "../list-limit.js";
 import { nextActionsForProject } from "../next-actions.js";
 
@@ -28,15 +29,30 @@ export const projectCreateCommand: CommandSpec = {
   description: "Create a project",
   options: [
     { flag: "--json <payload>", description: "JSON body", required: true },
-    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
+    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" },
+    { flag: "--ensure", description: "On slug conflict, return the existing project with created: false" }
   ],
   bodySchema: createProjectInputSchema,
   http: { method: "POST", pathTemplate: "/api/projects" },
   mutates: true,
   example: 'artifacts project create --json \'{"ownerUsername":"alice","slug":"my-app","title":"My App"}\'',
-  async run({ client, body }) {
-    const data = await client.post("/api/projects", createProjectInputSchema.parse(body));
-    return { data, nextActions: nextActionsForProject(data) };
+  async run({ client, body, options }) {
+    const parsed = createProjectInputSchema.parse(body);
+    try {
+      const data = await client.post<Record<string, unknown>>("/api/projects", parsed);
+      return { data: { ...data, created: true }, nextActions: nextActionsForProject(data) };
+    } catch (error) {
+      if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+        const existing = await client.get<{ project: Record<string, unknown> }>(
+          `/api/by-path/${encodeURIComponent(parsed.ownerUsername)}/${encodeURIComponent(parsed.slug)}`
+        );
+        return {
+          data: { ...existing.project, created: false },
+          nextActions: nextActionsForProject(existing.project)
+        };
+      }
+      throw error;
+    }
   }
 };
 

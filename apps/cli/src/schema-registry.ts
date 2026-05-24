@@ -32,12 +32,23 @@ export function buildAgentSchema() {
     auth: {
       env: ["AGENT_ARTIFACTS_TOKEN"],
       flag: "--token",
-      header: "Authorization: Bearer <token>"
+      header: "Authorization: Bearer <token>",
+      nonInteractive: "Set AGENT_ARTIFACTS_TOKEN or use --token; browser login requires a TTY unless --no-input is omitted"
     },
     baseUrl: {
       env: ["AGENT_ARTIFACTS_BASE_URL"],
       flag: "--base-url",
       default: "http://127.0.0.1:3001"
+    },
+    globalFlags: {
+      noInput: { flag: "--no-input", env: ["AGENT_ARTIFACTS_NO_INPUT"], description: "Fail instead of prompting or waiting" },
+      dryRun: { flag: "-n, --dry-run", description: "Preview mutating commands without calling the API" },
+      debug: { flag: "--debug", env: ["AGENT_ARTIFACTS_DEBUG"], description: "Print stack traces on failure" },
+      format: { flag: "--format json|text", env: ["AGENT_ARTIFACTS_FORMAT"] },
+      quiet: { flag: "-q, --quiet", description: "Suppress stderr progress messages" }
+    },
+    input: {
+      jsonBody: { flags: ["--json", "--json-file"], stdin: "Use --json-file - to pipe JSON from stdin" }
     },
     output: {
       default: "json when stdout is not a TTY, text when interactive",
@@ -55,6 +66,7 @@ export function buildAgentSchema() {
       }
     },
     discovery: "Run `artifacts schema` — do not parse --help.",
+    help: "Every subcommand --help ends with copy-pasteable Examples; bare `artifacts` prints the command index.",
     commands: listCliCommandSpecs()
   };
 }

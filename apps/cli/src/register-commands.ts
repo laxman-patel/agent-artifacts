@@ -76,6 +76,9 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
       if (error instanceof z.ZodError) {
         emitFailure(new CliError("invalid_request", error.message, 2, error.issues), config.format);
       }
+      if (config.debug && error instanceof Error && error.stack) {
+        process.stderr.write(`${error.stack}\n`);
+      }
       throw error;
     }
   });

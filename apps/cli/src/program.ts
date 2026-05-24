@@ -77,12 +77,19 @@ Examples:
   try {
     await program.parseAsync(argv);
   } catch (error) {
-    const config = resolveConfig({ format: extractFormatFlag(argv) });
+    const config = resolveConfig({
+      format: extractFormatFlag(argv),
+      noInput: argv.includes("--no-input"),
+      debug: argv.includes("--debug")
+    });
     if (error instanceof CliError) {
       emitFailure(error, config.format);
     }
     if (error instanceof z.ZodError) {
       emitFailure(new CliError("invalid_request", error.message, 2, error.issues), config.format);
+    }
+    if (config.debug && error instanceof Error && error.stack) {
+      process.stderr.write(`${error.stack}\n`);
     }
     throw error;
   }

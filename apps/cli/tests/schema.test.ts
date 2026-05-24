@@ -40,6 +40,9 @@ describe("CLI schema", () => {
     expect(schema.name).toBe("artifacts");
     expect(schema.commands.length).toBeGreaterThanOrEqual(20);
     expect(schema.discovery).toContain("artifacts schema");
+    expect(schema.globalFlags.noInput.flag).toBe("--no-input");
+    expect(schema.globalFlags.dryRun.flag).toContain("--dry-run");
+    expect(schema.input.jsonBody.stdin).toContain("--json-file -");
     expect(schema.output.envelope.success.ok).toBe(true);
   });
 

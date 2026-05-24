@@ -91,7 +91,24 @@ Agents should **not** parse `--help`. Use the schema command:
 artifacts schema
 ```
 
-Returns JSON with every command, HTTP method/path, request body JSON Schema, examples, and the stable output envelope contract.
+Returns JSON with every command, HTTP method/path, request body JSON Schema, examples, global flags (`--no-input`, `--dry-run`), and the stable output envelope contract.
+
+For humans, bare `artifacts` prints the command index and each subcommand `--help` ends with copy-pasteable **Examples**.
+
+### Non-interactive use
+
+```bash
+export AGENT_ARTIFACTS_NO_INPUT=1          # or pass --no-input on each invocation
+export AGENT_ARTIFACTS_TOKEN="..."         # required when --no-input is set (no browser login)
+artifacts whoami --format json
+```
+
+Preview destructive or mutating calls without side effects:
+
+```bash
+artifacts artifact delete ARTIFACT_ID --dry-run
+echo '{"content":"# v2"}' | artifacts artifact update ARTIFACT_ID --json-file -
+```
 
 ## Output contract
 
@@ -125,8 +142,9 @@ Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https:
 
 ## Mutations
 
-Pass full API payloads via `--json` or `--json-file`:
+Pass full API payloads via `--json` or `--json-file` (use `-` for stdin):
 
 ```bash
 artifacts artifact update ART_ID --json '{"content":"# v2","changelog":"edit"}'
+echo '{"content":"# v2"}' | artifacts artifact update ART_ID --json-file -
 ```

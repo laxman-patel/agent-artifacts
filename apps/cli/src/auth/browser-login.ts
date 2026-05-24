@@ -7,7 +7,6 @@ import { saveStoredCredentials } from "./credentials.js";
 export interface BrowserLoginOptions {
   baseUrl: string;
   webUrl: string;
-  noLocalhost?: boolean;
   quiet?: boolean;
 }
 
@@ -72,15 +71,6 @@ export async function browserLogin(options: BrowserLoginOptions): Promise<Browse
   const loginUrl = new URL("/cli/login", webUrl);
   loginUrl.searchParams.set("port", String(port));
   loginUrl.searchParams.set("state", state);
-
-  if (options.noLocalhost) {
-    log(`Open this URL in your browser to sign in:\n${loginUrl.toString()}`, options.quiet);
-    log(
-      "After signing in, copy the session token from your browser cookies (better-auth.session_token) and run:\n  export AGENT_ARTIFACTS_TOKEN=\"<token>\"",
-      options.quiet
-    );
-    throw new Error("Browser login requires localhost callback. Omit --no-localhost when running locally.");
-  }
 
   return new Promise<BrowserLoginResult>((resolve, reject) => {
     let server: Server | undefined;

@@ -6,10 +6,9 @@ import { CliError } from "../errors.js";
 export const loginCommand: CommandSpec = {
   name: "login",
   description: "Sign in via browser (stores credentials locally)",
-  options: [{ flag: "--no-localhost", description: "Print URL instead of using a localhost callback (limited support)" }],
   mutates: true,
   example: "artifacts login",
-  async run({ config, options }) {
+  async run({ config }) {
     if (config.noInput) {
       throw new CliError(
         "invalid_request",
@@ -20,7 +19,6 @@ export const loginCommand: CommandSpec = {
     const result = await browserLogin({
       baseUrl: config.baseUrl,
       webUrl: config.webUrl,
-      noLocalhost: options.localhost === false ? true : (options.noLocalhost as boolean | undefined),
       quiet: config.quiet
     });
     return {

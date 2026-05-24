@@ -109,7 +109,7 @@ function getGlobalOpts(cmd: Command): GlobalOpts {
     token: opts.token,
     format: opts.format,
     quiet: opts.quiet,
-    noInput: opts.noInput,
+    noInput: opts.input === false ? true : opts.noInput,
     debug: opts.debug,
     dryRun: opts.dryRun
   };

@@ -20,7 +20,7 @@ export const loginCommand: CommandSpec = {
     const result = await browserLogin({
       baseUrl: config.baseUrl,
       webUrl: config.webUrl,
-      noLocalhost: options.noLocalhost as boolean | undefined,
+      noLocalhost: options.localhost === false ? true : (options.noLocalhost as boolean | undefined),
       quiet: config.quiet
     });
     return {

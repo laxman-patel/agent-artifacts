@@ -47,6 +47,7 @@ describe("CLI schema", () => {
     expect(schema.input.jsonBody.stdin).toContain("--json-file -");
     expect(schema.input.resourceIds.artifactId.flag).toBe("--artifact-id");
     expect(schema.input.positionalArgs).toBe(false);
+    expect(schema.webUrl.flag).toBe("--web-url");
     expect(schema.list.defaultLimit).toBe(50);
     expect(schema.output.envelope.success.ok).toBe(true);
   });

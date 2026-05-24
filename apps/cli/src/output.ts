@@ -21,6 +21,19 @@ export interface NextAction {
   description: string;
 }
 
+export function shouldUseColor(): boolean {
+  if (process.env.NO_COLOR !== undefined && process.env.NO_COLOR !== "") {
+    return false;
+  }
+  return Boolean(process.stdout.isTTY);
+}
+
+export function emitNdjsonRecords(records: unknown[]): void {
+  for (const record of records) {
+    process.stdout.write(`${JSON.stringify(record)}\n`);
+  }
+}
+
 export function emitSuccess<T>(data: T, format: OutputFormat, nextActions?: NextAction[]): void {
   if (format === "json") {
     const payload: CliResult<T> = { ok: true, data };

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { emitSuccess, emitFailure } from "../src/output.js";
+import { emitSuccess, emitFailure, shouldUseColor } from "../src/output.js";
 import { CliError, exitCodeForKind } from "../src/errors.js";
 
 describe("CLI output", () => {
@@ -46,5 +46,19 @@ describe("CLI output", () => {
     expect(exitCodeForKind("conflict")).toBe(5);
     expect(exitCodeForKind("forbidden")).toBe(4);
     expect(exitCodeForKind("network")).toBe(69);
+  });
+
+  it("respects NO_COLOR for future ANSI emitters", () => {
+    const previous = process.env.NO_COLOR;
+    process.env.NO_COLOR = "1";
+    try {
+      expect(shouldUseColor()).toBe(false);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.NO_COLOR;
+      } else {
+        process.env.NO_COLOR = previous;
+      }
+    }
   });
 });

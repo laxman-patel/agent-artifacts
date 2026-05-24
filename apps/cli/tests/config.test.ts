@@ -29,4 +29,22 @@ describe("resolveConfig format", () => {
       }
     }
   });
+
+  it("honors AGENT_ARTIFACTS_NO_INPUT", () => {
+    const previous = process.env.AGENT_ARTIFACTS_NO_INPUT;
+    process.env.AGENT_ARTIFACTS_NO_INPUT = "1";
+    try {
+      expect(resolveConfig({}).noInput).toBe(true);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.AGENT_ARTIFACTS_NO_INPUT;
+      } else {
+        process.env.AGENT_ARTIFACTS_NO_INPUT = previous;
+      }
+    }
+  });
+
+  it("prefers explicit --no-input over env", () => {
+    expect(resolveConfig({ noInput: false }).noInput).toBe(false);
+  });
 });

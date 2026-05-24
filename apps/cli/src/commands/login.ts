@@ -1,6 +1,7 @@
 import { browserLogin } from "../auth/browser-login.js";
 import { credentialsPath } from "../auth/credentials.js";
 import type { CommandSpec } from "../command-spec.js";
+import { CliError } from "../errors.js";
 
 export const loginCommand: CommandSpec = {
   name: "login",
@@ -9,6 +10,13 @@ export const loginCommand: CommandSpec = {
   mutates: true,
   example: "artifacts login",
   async run({ config, options }) {
+    if (config.noInput) {
+      throw new CliError(
+        "invalid_request",
+        "Browser login requires interaction. Set AGENT_ARTIFACTS_TOKEN for non-interactive auth.\n  export AGENT_ARTIFACTS_TOKEN=\"<token>\"\n  artifacts whoami",
+        2
+      );
+    }
     const result = await browserLogin({
       baseUrl: config.baseUrl,
       webUrl: config.webUrl,

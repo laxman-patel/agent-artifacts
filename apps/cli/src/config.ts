@@ -9,6 +9,14 @@ export interface CliConfig {
   token?: string;
   format: OutputFormat;
   quiet: boolean;
+  noInput: boolean;
+  debug: boolean;
+  dryRun: boolean;
+}
+
+function envFlag(name: string): boolean {
+  const value = process.env[name];
+  return value === "1" || value === "true" || value === "yes";
 }
 
 export function extractFormatFlag(argv: string[]): OutputFormat | undefined {
@@ -32,6 +40,9 @@ export function resolveConfig(options: {
   token?: string;
   format?: OutputFormat;
   quiet?: boolean;
+  noInput?: boolean;
+  debug?: boolean;
+  dryRun?: boolean;
 }): CliConfig {
   const stored = loadStoredCredentials();
   const baseUrl = (
@@ -56,6 +67,9 @@ export function resolveConfig(options: {
     webUrl,
     token,
     format,
-    quiet: options.quiet ?? false
+    quiet: options.quiet ?? false,
+    noInput: options.noInput ?? envFlag("AGENT_ARTIFACTS_NO_INPUT"),
+    debug: options.debug ?? envFlag("AGENT_ARTIFACTS_DEBUG"),
+    dryRun: options.dryRun ?? false
   };
 }

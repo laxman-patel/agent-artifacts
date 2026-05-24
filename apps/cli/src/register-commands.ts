@@ -13,6 +13,9 @@ interface GlobalOpts {
   token?: string;
   format?: OutputFormat;
   quiet?: boolean;
+  noInput?: boolean;
+  debug?: boolean;
+  dryRun?: boolean;
 }
 
 const GROUP_DESCRIPTIONS: Record<string, string> = {
@@ -91,6 +94,9 @@ function getGlobalOpts(cmd: Command): GlobalOpts {
     webUrl: opts.webUrl,
     token: opts.token,
     format: opts.format,
-    quiet: opts.quiet
+    quiet: opts.quiet,
+    noInput: opts.noInput,
+    debug: opts.debug,
+    dryRun: opts.dryRun
   };
 }

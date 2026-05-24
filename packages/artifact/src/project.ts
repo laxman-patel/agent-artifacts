@@ -4,9 +4,8 @@ import type { Database } from "@agent-artifacts/db";
 import { projects, userProfiles } from "@agent-artifacts/db";
 import type { Principal } from "@agent-artifacts/shared";
 import { ArtifactForbiddenError, buildProjectUrl, normalizeSlug, slugSchema } from "@agent-artifacts/shared";
-import { actsForOwner } from "@agent-artifacts/access";
-import { z } from "zod";
 import type { ArtifactAccess } from "@agent-artifacts/access";
+import { z } from "zod";
 
 export class ProjectNotFoundError extends Error {
   constructor() {
@@ -136,25 +135,18 @@ export class ProjectService {
       throw new ProjectNotFoundError();
     }
 
-    if (!actsForOwner(principal, project.ownerUserId)) {
-      throw new ArtifactForbiddenError("Project access denied.");
-    }
+    await this.access.assertAuthorized({
+      principal,
+      action: "project.view",
+      context: { kind: "namespace", ownerUserId: project.ownerUserId }
+    });
 
     return project;
   }
 
-  async getProjectByPathForListing(
-    username: string,
-    projectSlug: string,
-    principal: Principal,
-    visibleArtifactCount: number
-  ): Promise<ProjectRecord> {
+  async getProjectByPathRaw(username: string, projectSlug: string): Promise<ProjectRecord> {
     const project = await this.repository.getProjectByOwnerSlug(username, validateProjectSlug(projectSlug));
     if (!project) {
-      throw new ProjectNotFoundError();
-    }
-
-    if (!actsForOwner(principal, project.ownerUserId) && visibleArtifactCount === 0) {
       throw new ProjectNotFoundError();
     }
 

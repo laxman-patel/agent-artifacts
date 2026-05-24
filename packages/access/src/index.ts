@@ -4,7 +4,7 @@ import { ArtifactForbiddenError, artifactRoleSchema } from "@agent-artifacts/sha
 
 export { ArtifactForbiddenError } from "@agent-artifacts/shared";
 
-const NAMESPACE_ACTIONS = new Set<ArtifactAction>(["artifact.create"]);
+const NAMESPACE_ACTIONS = new Set<ArtifactAction>(["artifact.create", "project.view"]);
 
 export function baseArtifactRoleCandidates(
   principal: Principal,

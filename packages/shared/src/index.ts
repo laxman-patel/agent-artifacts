@@ -28,6 +28,7 @@ export type PermissionSubjectType = z.infer<typeof permissionSubjectTypeSchema>;
 export const artifactActionSchema = z.enum([
   "artifact.view",
   "artifact.create",
+  "project.view",
   "artifact.update",
   "artifact.restore",
   "artifact.fork",

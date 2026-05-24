@@ -1,18 +1,17 @@
 import type { Hono } from "hono";
 import { z } from "zod";
+import { actsForOwner } from "@agent-artifacts/access";
+import { ProjectNotFoundError } from "@agent-artifacts/artifact";
 import { usernameSchema } from "@agent-artifacts/shared";
 import { getArtifactService, getProfileService, getProjectService } from "../deps.js";
 import { handle } from "../http/handler.js";
-import { requirePrincipal, resolvePrincipal } from "../http/principal.js";
+import { requireHumanPrincipal, requirePrincipal, resolvePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
 
 export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
   app.get("/api/profile/me", (c) =>
     handle(c, async () => {
-      const principal = await requirePrincipal(c);
-      if (principal.type !== "user") {
-        return c.json({ error: "forbidden", message: "User session required." }, 403);
-      }
+      const principal = await requireHumanPrincipal(c);
 
       const profile = await getProfileService().getProfile(principal.id);
       return profile;
@@ -21,10 +20,7 @@ export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
 
   app.post("/api/profile/username", (c) =>
     handle(c, async () => {
-      const principal = await requirePrincipal(c);
-      if (principal.type !== "user") {
-        return c.json({ error: "forbidden", message: "User session required." }, 403);
-      }
+      const principal = await requireHumanPrincipal(c);
 
       const body = z.object({ username: usernameSchema }).parse(await c.req.json());
       const result = await getProfileService().claimUsername(principal.id, body.username);
@@ -56,13 +52,12 @@ export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
       const principal = await resolvePrincipal(c);
       const username = c.req.param("username");
       const projectSlug = c.req.param("projectSlug");
+      const project = await getProjectService().getProjectByPathRaw(username, projectSlug);
       const projectArtifacts = await getArtifactService().listArtifactsInProject(username, projectSlug, principal);
-      const project = await getProjectService().getProjectByPathForListing(
-        username,
-        projectSlug,
-        principal,
-        projectArtifacts.length
-      );
+      const isOwner = actsForOwner(principal, project.ownerUserId);
+      if (!isOwner && projectArtifacts.length === 0) {
+        throw new ProjectNotFoundError();
+      }
 
       return { project, artifacts: projectArtifacts };
     })

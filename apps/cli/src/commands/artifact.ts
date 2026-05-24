@@ -13,8 +13,10 @@ import {
   SLUG_OPTION
 } from "../command-options.js";
 import type { CommandSpec } from "../command-spec.js";
+import { CliError } from "../errors.js";
 import { resolveListLimit, sliceListResult } from "../list-limit.js";
 import { extractArtifactId, nextActionsForArtifact } from "../next-actions.js";
+import { parseIntFlag } from "../parse-int-flag.js";
 
 const SLUG_EXAMPLE = "artifacts artifact slug-availability --owner alice --project-slug default --slug readme";
 
@@ -57,16 +59,31 @@ export const artifactCreateCommand: CommandSpec = {
   description: "Create artifact with first version",
   options: [
     { flag: "--json <payload>", description: "JSON body", required: true },
-    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
+    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" },
+    { flag: "--ensure", description: "On slug conflict, return the existing artifact with created: false" }
   ],
   bodySchema: createArtifactInputSchema,
   http: { method: "POST", pathTemplate: "/api/artifacts" },
   mutates: true,
   example:
     'artifacts artifact create --json \'{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"markdown","title":"Readme","content":"# Hi"}\'',
-  async run({ client, body }) {
-    const data = await client.post("/api/artifacts", createArtifactInputSchema.parse(body));
-    return { data, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
+  async run({ client, body, options }) {
+    const parsed = createArtifactInputSchema.parse(body);
+    try {
+      const data = await client.post<Record<string, unknown>>("/api/artifacts", parsed);
+      return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
+    } catch (error) {
+      if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+        const existing = await client.get<Record<string, unknown>>(
+          `/api/by-path/${encodeURIComponent(parsed.ownerUsername)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+        );
+        return {
+          data: { ...existing, created: false },
+          nextActions: nextActionsForArtifact(extractArtifactId(existing))
+        };
+      }
+      throw error;
+    }
   }
 };
 
@@ -95,14 +112,21 @@ export const artifactUpdateCommand: CommandSpec = {
 export const artifactDeleteCommand: CommandSpec = {
   name: "artifact delete",
   description: "Soft-delete an artifact",
-  options: [ARTIFACT_ID_OPTION],
+  options: [ARTIFACT_ID_OPTION, { flag: "--yes", description: "Confirm delete (soft-delete; no prompt required)" }],
   http: { method: "DELETE", pathTemplate: "/api/artifacts/{artifactId}" },
   mutates: true,
   example: "artifacts artifact delete --artifact-id ARTIFACT_ID",
   async run({ client, options }) {
     const id = readArtifactId(options);
-    const data = await client.delete(`/api/artifacts/${encodeURIComponent(id)}`);
-    return { data };
+    try {
+      const data = await client.delete(`/api/artifacts/${encodeURIComponent(id)}`);
+      return { data };
+    } catch (error) {
+      if (error instanceof CliError && error.kind === "not_found") {
+        return { data: { artifactId: id, alreadyDeleted: true } };
+      }
+      throw error;
+    }
   }
 };
 
@@ -111,7 +135,7 @@ export const artifactContentCommand: CommandSpec = {
   description: "Get artifact source content",
   options: [
     ARTIFACT_ID_OPTION,
-    { flag: "--version <n>", description: "Version number", parse: (v) => Number.parseInt(v, 10) }
+    { flag: "--version <n>", description: "Version number", parse: parseIntFlag("--version", "artifacts artifact content --artifact-id ARTIFACT_ID --version 1") }
   ],
   http: { method: "GET", pathTemplate: "/api/artifacts/{artifactId}/content" },
   mutates: false,
@@ -152,8 +176,8 @@ export const artifactDiffCommand: CommandSpec = {
   description: "Diff two artifact versions",
   options: [
     ARTIFACT_ID_OPTION,
-    { flag: "--from <n>", description: "From version", required: true, parse: (v) => Number.parseInt(v, 10) },
-    { flag: "--to <n>", description: "To version", required: true, parse: (v) => Number.parseInt(v, 10) }
+    { flag: "--from <n>", description: "From version", required: true, parse: parseIntFlag("--from", "artifacts artifact diff --artifact-id ARTIFACT_ID --from 1 --to 2") },
+    { flag: "--to <n>", description: "To version", required: true, parse: parseIntFlag("--to", "artifacts artifact diff --artifact-id ARTIFACT_ID --from 1 --to 2") }
   ],
   http: { method: "GET", pathTemplate: "/api/artifacts/{artifactId}/diff" },
   mutates: false,

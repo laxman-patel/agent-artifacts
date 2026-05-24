@@ -1,10 +1,11 @@
 import type { CommandSpec } from "./command-spec.js";
+import { parseIntFlag } from "./parse-int-flag.js";
 
 export const LIST_LIMIT_OPTIONS: NonNullable<CommandSpec["options"]> = [
   {
     flag: "--limit <n>",
     description: "Max records to return (default: 50; max: 100; use --all for every record)",
-    parse: (v) => Number.parseInt(v, 10)
+    parse: parseIntFlag("--limit", "artifacts artifact list --limit 50")
   },
   { flag: "--all", description: "Return every record — may be large" }
 ];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractFormatFlag, resolveConfig } from "../src/config.js";
+import { extractFormatFlag, preParseGlobals, resolveConfig } from "../src/config.js";
 
 describe("extractFormatFlag", () => {
   it("parses --format json", () => {
@@ -46,5 +46,18 @@ describe("resolveConfig format", () => {
 
   it("prefers explicit --no-input over env", () => {
     expect(resolveConfig({ noInput: false }).noInput).toBe(false);
+  });
+});
+
+describe("preParseGlobals", () => {
+  it("detects --no-input, --verbose, and --ndjson from argv", () => {
+    expect(
+      preParseGlobals(["node", "artifacts", "whoami", "--no-input", "--verbose", "--ndjson"])
+    ).toEqual({
+      format: undefined,
+      noInput: true,
+      debug: true,
+      ndjson: true
+    });
   });
 });

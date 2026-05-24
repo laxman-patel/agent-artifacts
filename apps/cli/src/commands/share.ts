@@ -6,6 +6,7 @@ import {
   SHARE_LINK_ID_FLAG,
   SHARE_LINK_ID_OPTION
 } from "../command-options.js";
+import { nextActionsForShareCreate } from "../next-actions.js";
 import type { CommandSpec } from "../command-spec.js";
 
 export const shareLinkBodySchema = z.object({
@@ -31,7 +32,7 @@ export const shareCreateCommand: CommandSpec = {
       `/api/artifacts/${encodeURIComponent(artifactId)}/share-links`,
       shareLinkBodySchema.parse(body)
     );
-    return { data };
+    return { data, nextActions: nextActionsForShareCreate(artifactId, data) };
   }
 };
 

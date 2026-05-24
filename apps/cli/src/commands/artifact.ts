@@ -15,7 +15,7 @@ import {
 import type { CommandSpec } from "../command-spec.js";
 import { CliError } from "../errors.js";
 import { resolveListLimit, sliceListResult } from "../list-limit.js";
-import { extractArtifactId, nextActionsForArtifact } from "../next-actions.js";
+import { extractArtifactId, nextActionsForArtifact, nextActionsForArtifactList } from "../next-actions.js";
 import { parseIntFlag } from "../parse-int-flag.js";
 
 const SLUG_EXAMPLE = "artifacts artifact slug-availability --owner alice --project-slug default --slug readme";
@@ -36,7 +36,7 @@ export const artifactListCommand: CommandSpec = {
     const data = await client.get<{ artifacts: unknown[] }>("/api/profile/artifacts");
     const artifacts = Array.isArray(data.artifacts) ? data.artifacts : [];
     const { items } = sliceListResult(artifacts, limitResult, config, "artifacts");
-    return { data: { ...data, artifacts: items } };
+    return { data: { ...data, artifacts: items }, nextActions: nextActionsForArtifactList(items) };
   }
 };
 
@@ -257,7 +257,7 @@ export const artifactUrlPreviewCommand: CommandSpec = {
     const data = await client.get<{ url: string }>(
       `/api/slug-preview/${encodeURIComponent(owner)}/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`
     );
-    return { data };
+    return { data, nextActions: [{ command: `artifacts path artifact --owner ${owner} --project-slug ${projectSlug} --slug ${slug}`, description: "Resolve artifact by path" }] };
   }
 };
 
@@ -294,6 +294,6 @@ export const artifactAccessSetCommand: CommandSpec = {
       `/api/artifacts/${encodeURIComponent(id)}/access`,
       setArtifactAccessInputSchema.parse(body)
     );
-    return { data };
+    return { data, nextActions: [{ command: `artifacts artifact access get --artifact-id ${id}`, description: "Verify access settings" }] };
   }
 };

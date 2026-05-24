@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
 import { shareLinks } from "@agent-artifacts/db";
-import type { ShareLinkRole, PrincipalType } from "@agent-artifacts/shared";
+import { readCookie, type ShareLinkRole, type PrincipalType } from "@agent-artifacts/shared";
 
 export class ShareLinkNotFoundError extends Error {
   constructor(message = "Share link not found.") {
@@ -118,6 +118,37 @@ export class ShareLinkService {
     await this.db.update(shareLinks).set({ lastUsedAt: new Date() }).where(eq(shareLinks.id, link.id));
 
     return link;
+  }
+
+  async resolveCookieGrant(
+    cookieHeader: string | null | undefined,
+    artifactId: string
+  ): Promise<{ shareLinkId: string; role: ShareLinkRole } | null> {
+    const token = readCookie(cookieHeader, `aa_share_${artifactId}`);
+    if (!token) {
+      return null;
+    }
+
+    const tokenHash = hashShareToken(token);
+
+    const [link] = await this.db
+      .select()
+      .from(shareLinks)
+      .where(and(eq(shareLinks.tokenHash, tokenHash), isNull(shareLinks.revokedAt)))
+      .limit(1);
+
+    if (!link || link.artifactId !== artifactId) {
+      return null;
+    }
+
+    if (link.expiresAt && link.expiresAt < new Date()) {
+      return null;
+    }
+
+    return {
+      shareLinkId: link.id,
+      role: link.role
+    };
   }
 }
 

@@ -1,8 +1,7 @@
 import type { Context } from "hono";
 import { createUserPrincipal } from "@agent-artifacts/auth";
 import { ArtifactForbiddenError, type Principal } from "@agent-artifacts/shared";
-import { getAuth, getDb } from "../deps.js";
-import { resolveShareGrant } from "../share-session.js";
+import { getAuth, getShareLinkService } from "../deps.js";
 
 function isTransientDbError(error: unknown): boolean {
   const codes = new Set(["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ENOTFOUND"]);
@@ -58,7 +57,7 @@ async function resolveShareGrantPrincipal(c: Context, principal: Principal): Pro
     return principal;
   }
 
-  const grant = await resolveShareGrant(getDb(), c.req.raw, artifactId);
+  const grant = await getShareLinkService().resolveCookieGrant(c.req.header("cookie"), artifactId);
   if (!grant) {
     return principal;
   }

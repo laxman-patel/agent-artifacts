@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildAgentSchema, listCliCommandSpecs } from "../src/schema-registry.js";
+import { readCliVersion } from "../src/version.js";
 
 describe("CLI schema", () => {
   it("documents every REST API command", () => {
@@ -38,6 +39,7 @@ describe("CLI schema", () => {
   it("exposes machine-readable agent schema", () => {
     const schema = buildAgentSchema();
     expect(schema.name).toBe("artifacts");
+    expect(schema.version).toBe(readCliVersion());
     expect(schema.commands.length).toBeGreaterThanOrEqual(20);
     expect(schema.discovery).toContain("artifacts schema");
     expect(schema.globalFlags.noInput.flag).toBe("--no-input");

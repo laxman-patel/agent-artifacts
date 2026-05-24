@@ -1,6 +1,4 @@
 import { Command } from "commander";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { allCommands } from "./commands/index.js";
 import { buildAgentSchema } from "./schema-registry.js";
@@ -8,16 +6,7 @@ import { resolveConfig, extractFormatFlag, type OutputFormat } from "./config.js
 import { CliError } from "./errors.js";
 import { emitFailure, emitSuccess } from "./output.js";
 import { registerSpec } from "./register-commands.js";
-
-function readCliVersion(): string {
-  try {
-    const packageJsonPath = fileURLToPath(new URL("../package.json", import.meta.url));
-    const pkg = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: string };
-    return pkg.version ?? "0.0.0";
-  } catch {
-    return "0.0.0";
-  }
-}
+import { readCliVersion } from "./version.js";
 
 export async function runCli(argv: string[]): Promise<void> {
   const program = new Command();

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { HttpMethod } from "./command-spec.js";
 import { allCommands } from "./commands/index.js";
+import { readCliVersion } from "./version.js";
 
 export type { HttpMethod };
 
@@ -37,7 +38,7 @@ export function listCliCommandSpecs(): CliCommandSpec[] {
 export function buildAgentSchema() {
   return {
     name: "artifacts",
-    version: "0.1.0",
+    version: readCliVersion(),
     description: "CLI for agent-artifacts — thin wrapper over the REST API.",
     auth: {
       env: ["AGENT_ARTIFACTS_TOKEN"],

@@ -11,6 +11,7 @@ import {
   type PersistCreateVersionInput,
   type ReplaceArtifactEmailAccessInput
 } from "./artifact-types.js";
+import { getOwnerByUsername, getProjectIdByOwnerSlug } from "./drizzle-owner-lookup.js";
 import { validateProjectSlug } from "./project.js";
 import { validateSlug } from "./slug.js";
 
@@ -18,32 +19,14 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
   constructor(private readonly db: Database) {}
 
   async getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined> {
-    const normalizedUsername = username.trim().toLowerCase();
-    const [owner] = await this.db
-      .select({
-        userId: userProfiles.userId,
-        username: userProfiles.username
-      })
-      .from(userProfiles)
-      .where(sql`lower(${userProfiles.username}) = ${normalizedUsername}`)
-      .limit(1);
-
-    return owner;
+    return getOwnerByUsername(this.db, username);
   }
 
   async getProjectByOwnerSlug(
     username: string,
     projectSlug: string
   ): Promise<{ id: string; slug: string } | undefined> {
-    const normalizedUsername = username.trim().toLowerCase();
-    const [project] = await this.db
-      .select({ id: projects.id, slug: projects.slug })
-      .from(projects)
-      .innerJoin(userProfiles, eq(userProfiles.userId, projects.ownerUserId))
-      .where(and(sql`lower(${userProfiles.username}) = ${normalizedUsername}`, sql`lower(${projects.slug}) = ${projectSlug}`))
-      .limit(1);
-
-    return project;
+    return getProjectIdByOwnerSlug(this.db, username, projectSlug);
   }
 
   async slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean> {

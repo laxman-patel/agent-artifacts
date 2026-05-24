@@ -6,6 +6,7 @@ import type { Principal } from "@agent-artifacts/shared";
 import { ArtifactForbiddenError, buildProjectUrl, normalizeSlug, slugSchema } from "@agent-artifacts/shared";
 import type { ArtifactAccess } from "@agent-artifacts/access";
 import { z } from "zod";
+import { getOwnerByUsername, getProjectIdByOwnerSlug } from "./drizzle-owner-lookup.js";
 
 export class ProjectNotFoundError extends Error {
   constructor() {
@@ -175,17 +176,7 @@ export class DrizzleProjectRepository implements ProjectRepository {
   constructor(private readonly db: Database) {}
 
   async getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined> {
-    const normalizedUsername = username.trim().toLowerCase();
-    const [owner] = await this.db
-      .select({
-        userId: userProfiles.userId,
-        username: userProfiles.username
-      })
-      .from(userProfiles)
-      .where(sql`lower(${userProfiles.username}) = ${normalizedUsername}`)
-      .limit(1);
-
-    return owner;
+    return getOwnerByUsername(this.db, username);
   }
 
   async projectSlugExists(ownerUserId: string, normalizedSlug: string): Promise<boolean> {
@@ -199,11 +190,12 @@ export class DrizzleProjectRepository implements ProjectRepository {
   }
 
   async getProjectByOwnerSlug(username: string, projectSlug: string): Promise<ProjectRecord | undefined> {
-    const normalizedUsername = username.trim().toLowerCase();
-    const [project] = await this.projectQuery()
-      .where(and(sql`lower(${userProfiles.username}) = ${normalizedUsername}`, sql`lower(${projects.slug}) = ${projectSlug}`))
-      .limit(1);
+    const match = await getProjectIdByOwnerSlug(this.db, username, projectSlug);
+    if (!match) {
+      return undefined;
+    }
 
+    const [project] = await this.projectQuery().where(eq(projects.id, match.id)).limit(1);
     return project;
   }
 

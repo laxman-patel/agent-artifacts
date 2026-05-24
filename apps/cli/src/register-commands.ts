@@ -6,6 +6,7 @@ import { resolveConfig, type OutputFormat } from "./config.js";
 import { CliError } from "./errors.js";
 import { emitFailure, emitSuccess } from "./output.js";
 import { parseJsonInput } from "./json-input.js";
+import { buildDryRunPreview } from "./dry-run.js";
 
 interface GlobalOpts {
   baseUrl?: string;
@@ -56,6 +57,11 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
         )
       : undefined;
     try {
+      if (config.dryRun && spec.mutates) {
+        emitSuccess(buildDryRunPreview(spec, positionals, body), config.format);
+        return;
+      }
+
       const result = await spec.run({ config, client, positionals, options: opts, body });
       if (result.emitRawText) {
         const text = String(result.data);

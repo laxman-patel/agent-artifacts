@@ -35,6 +35,10 @@ function isMcpToolName(name: string): name is McpToolName {
   return name in mcpToolInputSchemas;
 }
 
+function isPublicMethod(method: string): boolean {
+  return method === "initialize" || method === "tools/list";
+}
+
 async function handleMcpJsonRpc(message: McpJsonRpcRequest, principal: Principal | null): Promise<unknown> {
   switch (message.method) {
     case "initialize":
@@ -121,44 +125,38 @@ export function mcpErrorResponse(c: Context, error: unknown) {
 }
 
 export async function handleMcpRequest(c: Context) {
-  const clonedBody = await c.req.raw.clone().text();
-  let peekedMethod: string | undefined;
-  try {
-    const parsed = JSON.parse(clonedBody) as { method?: string };
-    peekedMethod = parsed.method;
-  } catch {
-    // fall through to authenticated path
-  }
+  const raw = await c.req.raw.clone().text();
+  const message = mcpJsonRpcRequestSchema.parse(JSON.parse(raw));
 
-  if (peekedMethod === "initialize" || peekedMethod === "tools/list") {
-    const message = mcpJsonRpcRequestSchema.parse(JSON.parse(clonedBody));
+  if (isPublicMethod(message.method)) {
     const result = await handleMcpJsonRpc(message, null);
     return c.json({ jsonrpc: "2.0", id: message.id, result });
   }
 
-  const handler = withMcpAuth(getAuth() as never, async (req: Request, session: { userId: string }) => {
-    try {
-      const message = mcpJsonRpcRequestSchema.parse(await req.json());
-      const [userRow] = await getDb()
-        .select({ id: users.id, email: users.email })
-        .from(users)
-        .where(eq(users.id, session.userId))
-        .limit(1);
-
-      if (!userRow) {
-        return Response.json(
-          { jsonrpc: "2.0", id: message.id ?? null, error: { code: -32001, message: "Authenticated user not found." } },
-          { status: 200 }
-        );
-      }
-
-      const principal = createUserPrincipal({ userId: userRow.id, email: userRow.email });
-      const result = await handleMcpJsonRpc(message, principal);
-      return Response.json({ jsonrpc: "2.0", id: message.id, result });
-    } catch (error) {
-      return mcpErrorAsResponse(error);
-    }
+  const authRequest = new Request(c.req.raw.url, {
+    method: c.req.raw.method,
+    headers: c.req.raw.headers,
+    body: raw
   });
 
-  return handler(c.req.raw);
+  const handler = withMcpAuth(getAuth() as never, async (_req: Request, session: { userId: string }) => {
+    const [userRow] = await getDb()
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(eq(users.id, session.userId))
+      .limit(1);
+
+    if (!userRow) {
+      return Response.json(
+        { jsonrpc: "2.0", id: message.id ?? null, error: { code: -32001, message: "Authenticated user not found." } },
+        { status: 200 }
+      );
+    }
+
+    const principal = createUserPrincipal({ userId: userRow.id, email: userRow.email });
+    const result = await handleMcpJsonRpc(message, principal);
+    return Response.json({ jsonrpc: "2.0", id: message.id, result });
+  });
+
+  return handler(authRequest);
 }

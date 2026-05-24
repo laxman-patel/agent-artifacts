@@ -1,14 +1,7 @@
 import { createProjectInputSchema } from "@agent-artifacts/artifact";
+import { requirePositional } from "../args.js";
 import type { CommandSpec } from "../command-spec.js";
 import { nextActionsForProject } from "../next-actions.js";
-
-function requiredPos(positionals: string[], index: number): string {
-  const value = positionals[index];
-  if (value === undefined) {
-    throw new Error(`Missing required positional argument at index ${index}`);
-  }
-  return value;
-}
 
 export const projectListCommand: CommandSpec = {
   name: "project list",
@@ -50,8 +43,8 @@ export const projectSlugAvailabilityCommand: CommandSpec = {
   mutates: false,
   example: "artifacts project slug-availability alice my-app",
   async run({ client, positionals }) {
-    const owner = requiredPos(positionals, 0);
-    const slug = requiredPos(positionals, 1);
+    const owner = requirePositional(positionals, 0, "owner", "artifacts project slug-availability alice my-app");
+    const slug = requirePositional(positionals, 1, "slug", "artifacts project slug-availability alice my-app");
     const data = await client.get(
       `/api/projects/slug-availability/${encodeURIComponent(owner)}/${encodeURIComponent(slug)}`
     );

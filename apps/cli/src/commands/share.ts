@@ -1,18 +1,11 @@
 import { z } from "zod";
+import { requirePositional } from "../args.js";
 import type { CommandSpec } from "../command-spec.js";
 
 export const shareLinkBodySchema = z.object({
   role: z.enum(["viewer", "editor"]).default("viewer"),
   expiresAt: z.iso.datetime().optional()
 });
-
-function requiredPos(positionals: string[], index: number): string {
-  const value = positionals[index];
-  if (value === undefined) {
-    throw new Error(`Missing required positional argument at index ${index}`);
-  }
-  return value;
-}
 
 export const shareCreateCommand: CommandSpec = {
   name: "share create",
@@ -27,7 +20,12 @@ export const shareCreateCommand: CommandSpec = {
   mutates: true,
   example: 'artifacts share create ARTIFACT_ID --json \'{"role":"viewer"}\'',
   async run({ client, positionals, body }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(
+      positionals,
+      0,
+      "artifactId",
+      'artifacts share create ARTIFACT_ID --json \'{"role":"viewer"}\''
+    );
     const data = await client.post(
       `/api/artifacts/${encodeURIComponent(artifactId)}/share-links`,
       shareLinkBodySchema.parse(body)
@@ -44,7 +42,7 @@ export const shareListCommand: CommandSpec = {
   mutates: false,
   example: "artifacts share list ARTIFACT_ID",
   async run({ client, positionals }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts share list ARTIFACT_ID");
     const data = await client.get(`/api/artifacts/${encodeURIComponent(artifactId)}/share-links`);
     return { data };
   }
@@ -58,7 +56,12 @@ export const shareRevokeCommand: CommandSpec = {
   mutates: true,
   example: "artifacts share revoke SHARE_LINK_ID",
   async run({ client, positionals }) {
-    const shareLinkId = requiredPos(positionals, 0);
+    const shareLinkId = requirePositional(
+      positionals,
+      0,
+      "shareLinkId",
+      "artifacts share revoke SHARE_LINK_ID"
+    );
     const data = await client.post(`/api/share-links/${encodeURIComponent(shareLinkId)}/revoke`, {});
     return { data };
   }

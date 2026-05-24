@@ -3,16 +3,9 @@ import {
   setArtifactAccessInputSchema,
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
+import { requirePositional } from "../args.js";
 import type { CommandSpec } from "../command-spec.js";
 import { extractArtifactId, nextActionsForArtifact } from "../next-actions.js";
-
-function requiredPos(positionals: string[], index: number): string {
-  const value = positionals[index];
-  if (value === undefined) {
-    throw new Error(`Missing required positional argument at index ${index}`);
-  }
-  return value;
-}
 
 export const artifactListCommand: CommandSpec = {
   name: "artifact list",
@@ -34,7 +27,7 @@ export const artifactGetCommand: CommandSpec = {
   mutates: false,
   example: "artifacts artifact get ARTIFACT_ID",
   async run({ client, positionals }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts artifact get ARTIFACT_ID");
     const data = await client.get(`/api/artifacts/${encodeURIComponent(artifactId)}`);
     return { data, nextActions: nextActionsForArtifact(artifactId) };
   }
@@ -71,7 +64,7 @@ export const artifactUpdateCommand: CommandSpec = {
   mutates: true,
   example: 'artifacts artifact update ARTIFACT_ID --json \'{"content":"# Updated"}\'',
   async run({ client, positionals, body }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts artifact get ARTIFACT_ID");
     const data = await client.post(
       `/api/artifacts/${encodeURIComponent(artifactId)}/versions`,
       updateArtifactInputSchema.parse(body)
@@ -88,7 +81,7 @@ export const artifactDeleteCommand: CommandSpec = {
   mutates: true,
   example: "artifacts artifact delete ARTIFACT_ID",
   async run({ client, positionals }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts artifact get ARTIFACT_ID");
     const data = await client.delete(`/api/artifacts/${encodeURIComponent(artifactId)}`);
     return { data };
   }
@@ -103,7 +96,7 @@ export const artifactContentCommand: CommandSpec = {
   mutates: false,
   example: "artifacts artifact content ARTIFACT_ID --version 1",
   async run({ client, positionals, options, config }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts artifact get ARTIFACT_ID");
     const version = options.version as number | undefined;
     const content = await client.request<string>("GET", `/api/artifacts/${encodeURIComponent(artifactId)}/content`, {
       query: version !== undefined ? { version } : undefined,
@@ -125,7 +118,7 @@ export const artifactVersionsCommand: CommandSpec = {
   mutates: false,
   example: "artifacts artifact versions ARTIFACT_ID --limit 20",
   async run({ client, positionals, options }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts artifact get ARTIFACT_ID");
     const data = await client.get(`/api/artifacts/${encodeURIComponent(artifactId)}/versions`, {
       limit: options.limit as number | undefined
     });
@@ -145,7 +138,7 @@ export const artifactDiffCommand: CommandSpec = {
   mutates: false,
   example: "artifacts artifact diff ARTIFACT_ID --from 1 --to 2",
   async run({ client, positionals, options }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts artifact get ARTIFACT_ID");
     const data = await client.get(`/api/artifacts/${encodeURIComponent(artifactId)}/diff`, {
       from: options.from as number,
       to: options.to as number
@@ -169,9 +162,9 @@ export const artifactSlugAvailabilityCommand: CommandSpec = {
   mutates: false,
   example: "artifacts artifact slug-availability alice default readme",
   async run({ client, positionals }) {
-    const owner = requiredPos(positionals, 0);
-    const projectSlug = requiredPos(positionals, 1);
-    const slug = requiredPos(positionals, 2);
+    const owner = requirePositional(positionals, 0, "owner", "artifacts artifact slug-availability alice default readme");
+    const projectSlug = requirePositional(positionals, 1, "project", "artifacts artifact slug-availability alice default readme");
+    const slug = requirePositional(positionals, 2, "slug", "artifacts artifact slug-availability alice default readme");
     const data = await client.get(
       `/api/artifacts/slug-availability/${encodeURIComponent(owner)}/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`
     );
@@ -191,9 +184,9 @@ export const artifactUrlPreviewCommand: CommandSpec = {
   mutates: false,
   example: "artifacts artifact url-preview alice default readme",
   async run({ client, positionals }) {
-    const owner = requiredPos(positionals, 0);
-    const projectSlug = requiredPos(positionals, 1);
-    const slug = requiredPos(positionals, 2);
+    const owner = requirePositional(positionals, 0, "owner", "artifacts artifact slug-availability alice default readme");
+    const projectSlug = requirePositional(positionals, 1, "project", "artifacts artifact slug-availability alice default readme");
+    const slug = requirePositional(positionals, 2, "slug", "artifacts artifact slug-availability alice default readme");
     const data = await client.get<{ url: string }>(
       `/api/slug-preview/${encodeURIComponent(owner)}/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`
     );
@@ -209,7 +202,7 @@ export const artifactAccessGetCommand: CommandSpec = {
   mutates: false,
   example: "artifacts artifact access get ARTIFACT_ID",
   async run({ client, positionals }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts artifact get ARTIFACT_ID");
     const data = await client.get(`/api/artifacts/${encodeURIComponent(artifactId)}/access`);
     return { data };
   }
@@ -229,7 +222,7 @@ export const artifactAccessSetCommand: CommandSpec = {
   example:
     'artifacts artifact access set ARTIFACT_ID --json \'{"publicView":true,"publicEdit":false,"viewerEmails":[]}\'',
   async run({ client, positionals, body }) {
-    const artifactId = requiredPos(positionals, 0);
+    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts artifact get ARTIFACT_ID");
     const data = await client.patch(
       `/api/artifacts/${encodeURIComponent(artifactId)}/access`,
       setArtifactAccessInputSchema.parse(body)

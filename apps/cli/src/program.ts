@@ -57,11 +57,6 @@ Examples:
 `
   );
 
-  if (argv.length <= 2) {
-    program.outputHelp();
-    return;
-  }
-
   program
     .command("schema")
     .description("Print machine-readable CLI capabilities for agents (JSON)")

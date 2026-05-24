@@ -45,7 +45,7 @@ export const artifactCreateCommand: CommandSpec = {
   description: "Create artifact with first version",
   options: [
     { flag: "--json <payload>", description: "JSON body", required: true },
-    { flag: "--json-file <path>", description: "Read JSON from file" }
+    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: createArtifactInputSchema,
   http: { method: "POST", pathTemplate: "/api/artifacts" },
@@ -64,7 +64,7 @@ export const artifactUpdateCommand: CommandSpec = {
   positional: [{ name: "artifactId", required: true }],
   options: [
     { flag: "--json <payload>", description: "JSON body (content, optional changelog)", required: true },
-    { flag: "--json-file <path>", description: "Read JSON from file" }
+    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: updateArtifactInputSchema,
   http: { method: "POST", pathTemplate: "/api/artifacts/{artifactId}/versions" },
@@ -221,7 +221,7 @@ export const artifactAccessSetCommand: CommandSpec = {
   positional: [{ name: "artifactId", required: true }],
   options: [
     { flag: "--json <payload>", description: "JSON access body", required: true },
-    { flag: "--json-file <path>", description: "Read JSON from file" }
+    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: setArtifactAccessInputSchema,
   http: { method: "PATCH", pathTemplate: "/api/artifacts/{artifactId}/access" },

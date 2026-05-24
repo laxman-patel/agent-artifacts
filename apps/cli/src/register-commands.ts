@@ -49,7 +49,11 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
     const config = resolveConfig(getGlobalOpts(cmdObj));
     const client = new ApiClient(config);
     const body = spec.bodySchema
-      ? spec.bodySchema.parse(parseJsonInput(opts.json as string | undefined, opts.jsonFile as string | undefined))
+      ? spec.bodySchema.parse(
+          parseJsonInput(opts.json as string | undefined, opts.jsonFile as string | undefined, {
+            example: spec.example
+          })
+        )
       : undefined;
     try {
       const result = await spec.run({ config, client, positionals, options: opts, body });

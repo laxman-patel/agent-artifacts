@@ -20,7 +20,7 @@ export const shareCreateCommand: CommandSpec = {
   positional: [{ name: "artifactId", required: true }],
   options: [
     { flag: "--json <payload>", description: 'JSON e.g. {"role":"viewer"}', required: true },
-    { flag: "--json-file <path>", description: "Read JSON from file" }
+    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: shareLinkBodySchema,
   http: { method: "POST", pathTemplate: "/api/artifacts/{artifactId}/share-links" },

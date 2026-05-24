@@ -8,7 +8,7 @@ export const profileSetUsernameCommand: CommandSpec = {
   description: "Set username once for a new account",
   options: [
     { flag: "--json <payload>", description: 'JSON e.g. {"username":"alice"}', required: true },
-    { flag: "--json-file <path>", description: "Read JSON from file" }
+    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: usernameBodySchema,
   http: { method: "POST", pathTemplate: "/api/profile/username" },

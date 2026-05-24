@@ -27,7 +27,7 @@ export const projectCreateCommand: CommandSpec = {
   description: "Create a project",
   options: [
     { flag: "--json <payload>", description: "JSON body", required: true },
-    { flag: "--json-file <path>", description: "Read JSON from file" }
+    { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: createProjectInputSchema,
   http: { method: "POST", pathTemplate: "/api/projects" },

@@ -39,6 +39,9 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
     }
   });
   cmd.description(spec.description);
+  if (spec.example) {
+    cmd.addHelpText("after", `\nExamples:\n  ${spec.example}\n`);
+  }
   cmd.action(async (...args: unknown[]) => {
     const opts = args.at(-2) as Record<string, unknown>;
     const cmdObj = args.at(-1) as Command;

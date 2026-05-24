@@ -36,6 +36,27 @@ export async function runCli(argv: string[]): Promise<void> {
     .option("-n, --dry-run", "Preview mutating commands without calling the API")
     .showHelpAfterError("(add --help for command list; use `artifacts schema` for machine-readable capabilities)");
 
+  program.addHelpText(
+    "afterAll",
+    `
+Global flags (apply to any subcommand):
+  --base-url <url>     API base URL (env: AGENT_ARTIFACTS_BASE_URL)
+  --token <token>      Bearer token (env: AGENT_ARTIFACTS_TOKEN)
+  --format json|text   Output format (env: AGENT_ARTIFACTS_FORMAT)
+  --no-input           Fail instead of prompting (env: AGENT_ARTIFACTS_NO_INPUT=1)
+  -n, --dry-run        Preview mutating commands without calling the API
+
+Discovery:
+  artifacts schema     Machine-readable command catalog (preferred over --help)
+
+Examples:
+  artifacts login
+  artifacts whoami --format json
+  artifacts artifact list
+  artifacts artifact create --json '{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"markdown","title":"Readme","content":"# Hi"}'
+`
+  );
+
   if (argv.length <= 2) {
     program.outputHelp();
     return;
@@ -44,6 +65,7 @@ export async function runCli(argv: string[]): Promise<void> {
   program
     .command("schema")
     .description("Print machine-readable CLI capabilities for agents (JSON)")
+    .addHelpText("after", "\nExamples:\n  artifacts schema\n  artifacts schema | jq '.commands[].command'\n")
     .action(() => {
       emitSuccess(buildAgentSchema(), "json");
     });

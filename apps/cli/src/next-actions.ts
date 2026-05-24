@@ -12,9 +12,9 @@ export function extractArtifactId(data: unknown): string | undefined {
 export function nextActionsForArtifact(artifactId: string | undefined): NextAction[] | undefined {
   if (!artifactId) return undefined;
   return [
-    { command: `artifacts artifact get ${artifactId}`, description: "Read artifact metadata" },
-    { command: `artifacts artifact content ${artifactId}`, description: "Read latest content" },
-    { command: `artifacts artifact versions ${artifactId}`, description: "List versions" }
+    { command: `artifacts artifact get --artifact-id ${artifactId}`, description: "Read artifact metadata" },
+    { command: `artifacts artifact content --artifact-id ${artifactId}`, description: "Read latest content" },
+    { command: `artifacts artifact versions --artifact-id ${artifactId}`, description: "List versions" }
   ];
 }
 

@@ -1,17 +1,25 @@
 import { createProjectInputSchema } from "@agent-artifacts/artifact";
-import { requirePositional } from "../args.js";
+import { resolveResourceArg } from "../args.js";
+import { LIST_LIMIT_OPTIONS, OWNER_OPTION, SLUG_OPTION } from "../command-options.js";
 import type { CommandSpec } from "../command-spec.js";
+import { resolveListLimit, sliceListResult } from "../list-limit.js";
 import { nextActionsForProject } from "../next-actions.js";
+
+const SLUG_EXAMPLE = "artifacts project slug-availability --owner alice --slug my-app";
 
 export const projectListCommand: CommandSpec = {
   name: "project list",
   description: "List owned projects",
+  options: LIST_LIMIT_OPTIONS,
   http: { method: "GET", pathTemplate: "/api/profile/projects" },
   mutates: false,
-  example: "artifacts project list",
-  async run({ client }) {
-    const data = await client.get("/api/profile/projects");
-    return { data };
+  example: "artifacts project list --limit 50",
+  async run({ client, options, config }) {
+    const limitResult = resolveListLimit(options);
+    const data = await client.get<{ projects: unknown[] }>("/api/profile/projects");
+    const projects = Array.isArray(data.projects) ? data.projects : [];
+    const { items } = sliceListResult(projects, limitResult, config, "projects");
+    return { data: { ...data, projects: items } };
   }
 };
 
@@ -36,15 +44,28 @@ export const projectSlugAvailabilityCommand: CommandSpec = {
   name: "project slug-availability",
   description: "Check project slug availability",
   positional: [
-    { name: "owner", required: true },
-    { name: "slug", required: true }
+    { name: "owner", required: false },
+    { name: "slug", required: false }
   ],
+  options: [OWNER_OPTION, SLUG_OPTION],
   http: { method: "GET", pathTemplate: "/api/projects/slug-availability/{ownerUsername}/{slug}" },
   mutates: false,
-  example: "artifacts project slug-availability alice my-app",
-  async run({ client, positionals }) {
-    const owner = requirePositional(positionals, 0, "owner", "artifacts project slug-availability alice my-app");
-    const slug = requirePositional(positionals, 1, "slug", "artifacts project slug-availability alice my-app");
+  example: SLUG_EXAMPLE,
+  async run({ client, positionals, options }) {
+    const owner = resolveResourceArg(positionals, options, {
+      positionalIndex: 0,
+      optionKey: "owner",
+      label: "owner",
+      flag: "--owner",
+      example: SLUG_EXAMPLE
+    });
+    const slug = resolveResourceArg(positionals, options, {
+      positionalIndex: 1,
+      optionKey: "slug",
+      label: "slug",
+      flag: "--slug",
+      example: SLUG_EXAMPLE
+    });
     const data = await client.get(
       `/api/projects/slug-availability/${encodeURIComponent(owner)}/${encodeURIComponent(slug)}`
     );

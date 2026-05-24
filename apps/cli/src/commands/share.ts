@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { requirePositional } from "../args.js";
+import { resolveResourceArg } from "../args.js";
+import {
+  ARTIFACT_ID_ARG,
+  ARTIFACT_ID_OPTION,
+  SHARE_LINK_ID_ARG,
+  SHARE_LINK_ID_OPTION
+} from "../command-options.js";
 import type { CommandSpec } from "../command-spec.js";
 
 export const shareLinkBodySchema = z.object({
@@ -10,22 +16,18 @@ export const shareLinkBodySchema = z.object({
 export const shareCreateCommand: CommandSpec = {
   name: "share create",
   description: "Create a share link",
-  positional: [{ name: "artifactId", required: true }],
+  positional: [{ name: "artifactId", required: false }],
   options: [
+    ARTIFACT_ID_OPTION,
     { flag: "--json <payload>", description: 'JSON e.g. {"role":"viewer"}', required: true },
     { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: shareLinkBodySchema,
   http: { method: "POST", pathTemplate: "/api/artifacts/{artifactId}/share-links" },
   mutates: true,
-  example: 'artifacts share create ARTIFACT_ID --json \'{"role":"viewer"}\'',
-  async run({ client, positionals, body }) {
-    const artifactId = requirePositional(
-      positionals,
-      0,
-      "artifactId",
-      'artifacts share create ARTIFACT_ID --json \'{"role":"viewer"}\''
-    );
+  example: 'artifacts share create --artifact-id ARTIFACT_ID --json \'{"role":"viewer"}\'',
+  async run({ client, positionals, options, body }) {
+    const artifactId = resolveResourceArg(positionals, options, ARTIFACT_ID_ARG);
     const data = await client.post(
       `/api/artifacts/${encodeURIComponent(artifactId)}/share-links`,
       shareLinkBodySchema.parse(body)
@@ -37,12 +39,13 @@ export const shareCreateCommand: CommandSpec = {
 export const shareListCommand: CommandSpec = {
   name: "share list",
   description: "List share links",
-  positional: [{ name: "artifactId", required: true }],
+  positional: [{ name: "artifactId", required: false }],
+  options: [ARTIFACT_ID_OPTION],
   http: { method: "GET", pathTemplate: "/api/artifacts/{artifactId}/share-links" },
   mutates: false,
-  example: "artifacts share list ARTIFACT_ID",
-  async run({ client, positionals }) {
-    const artifactId = requirePositional(positionals, 0, "artifactId", "artifacts share list ARTIFACT_ID");
+  example: "artifacts share list --artifact-id ARTIFACT_ID",
+  async run({ client, positionals, options }) {
+    const artifactId = resolveResourceArg(positionals, options, ARTIFACT_ID_ARG);
     const data = await client.get(`/api/artifacts/${encodeURIComponent(artifactId)}/share-links`);
     return { data };
   }
@@ -51,17 +54,13 @@ export const shareListCommand: CommandSpec = {
 export const shareRevokeCommand: CommandSpec = {
   name: "share revoke",
   description: "Revoke a share link",
-  positional: [{ name: "shareLinkId", required: true }],
+  positional: [{ name: "shareLinkId", required: false }],
+  options: [SHARE_LINK_ID_OPTION],
   http: { method: "POST", pathTemplate: "/api/share-links/{shareLinkId}/revoke" },
   mutates: true,
-  example: "artifacts share revoke SHARE_LINK_ID",
-  async run({ client, positionals }) {
-    const shareLinkId = requirePositional(
-      positionals,
-      0,
-      "shareLinkId",
-      "artifacts share revoke SHARE_LINK_ID"
-    );
+  example: "artifacts share revoke --share-link-id SHARE_LINK_ID",
+  async run({ client, positionals, options }) {
+    const shareLinkId = resolveResourceArg(positionals, options, SHARE_LINK_ID_ARG);
     const data = await client.post(`/api/share-links/${encodeURIComponent(shareLinkId)}/revoke`, {});
     return { data };
   }

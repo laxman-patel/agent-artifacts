@@ -34,7 +34,7 @@ export interface ArtifactOwnerSummary {
 
 export interface ArtifactMeta {
   id: string; ownerUserId: string; ownerUsername: string; projectId: string; projectSlug: string; slug: string;
-  title: string; description: string | null; type: "html" | "markdown" | "react"; publicView: boolean; publicEdit: boolean;
+  title: string; description: string | null; type: "html" | "md" | "jsx"; publicView: boolean; publicEdit: boolean;
   latestVersionId: string | null; updatedAt: string;
 }
 

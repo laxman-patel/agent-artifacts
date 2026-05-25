@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { artifactPath, cookieHeader, fetchArtifactContent, loadArtifactGate } from "../../../../lib/server-api";
 import { wrapHtmlWithCsp } from "../../../components/html-csp";
 import { MarkdownViewer } from "../../../components/markdown-viewer";
-import { ReactViewer } from "../../../components/react-viewer";
+import { JsxViewer } from "../../../components/jsx-viewer";
 import { RestrictedArtifactView } from "../../../components/restricted-artifact-view";
 
 export default async function ArtifactPage(props: {
@@ -68,11 +68,11 @@ export default async function ArtifactPage(props: {
         {meta.type === "html" && (
           <iframe className="artifact-frame" referrerPolicy="no-referrer" sandbox="allow-scripts" srcDoc={wrapHtmlWithCsp(content)} title="HTML artifact preview" />
         )}
-        {meta.type === "markdown" && (
+        {meta.type === "md" && (
           <MarkdownViewer content={content} />
         )}
-        {meta.type === "react" && (
-          <ReactViewer content={content} />
+        {meta.type === "jsx" && (
+          <JsxViewer content={content} />
         )}
         <p className="muted small">Rendered as {contentType}</p>
       </section>

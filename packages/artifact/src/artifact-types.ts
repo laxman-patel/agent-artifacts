@@ -214,9 +214,9 @@ export function contentTypeForArtifact(type: ArtifactType): string {
   switch (type) {
     case "html":
       return "text/html; charset=utf-8";
-    case "markdown":
+    case "md":
       return "text/markdown; charset=utf-8";
-    case "react":
-      return "text/typescript-jsx; charset=utf-8";
+    case "jsx":
+      return "text/jsx; charset=utf-8";
   }
 }

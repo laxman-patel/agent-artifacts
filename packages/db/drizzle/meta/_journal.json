@@ -50,6 +50,13 @@
       "when": 1779300000000,
       "tag": "0006_share_link_role_enum",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779400000000,
+      "tag": "0007_artifact_type_rename",
+      "breakpoints": true
     }
   ]
 }

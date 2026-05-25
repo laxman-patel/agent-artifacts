@@ -89,7 +89,7 @@ export const verifications = pgTable(
   })
 );
 
-export const artifactType = pgEnum("artifact_type", ["html", "markdown", "react"]);
+export const artifactType = pgEnum("artifact_type", ["html", "md", "jsx"]);
 export const artifactState = pgEnum("artifact_state", ["active", "archived", "deleted"]);
 export const artifactRole = pgEnum("artifact_role", ["owner", "admin", "editor", "viewer"]);
 export const shareLinkRole = pgEnum("share_link_role", ["viewer", "editor"]);

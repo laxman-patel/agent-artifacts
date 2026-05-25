@@ -37,7 +37,7 @@ describe("MCP tool handlers", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "demo",
-        type: "markdown",
+        type: "md",
         title: "Demo",
         content: "# Demo"
       },

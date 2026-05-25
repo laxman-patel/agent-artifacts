@@ -9,7 +9,7 @@ function optionsHint(options?: JsonInputOptions): string {
   if (options?.example) {
     return `\n  Example: ${options.example}`;
   }
-  return "\n  Example: artifacts artifact create --json '{\"ownerUsername\":\"alice\",\"projectSlug\":\"default\",\"slug\":\"readme\",\"type\":\"markdown\",\"title\":\"Readme\",\"content\":\"# Hi\"}'";
+  return "\n  Example: artifacts artifact create --json '{\"ownerUsername\":\"alice\",\"projectSlug\":\"default\",\"slug\":\"readme\",\"type\":\"md\",\"title\":\"Readme\",\"content\":\"# Hi\"}'";
 }
 
 function readJsonSource(jsonFlag?: string, jsonFile?: string, options?: JsonInputOptions): string {

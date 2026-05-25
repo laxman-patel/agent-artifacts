@@ -39,7 +39,7 @@ Examples:
   artifacts login
   artifacts whoami --format json
   artifacts artifact list
-  artifacts artifact create --json '{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"markdown","title":"Readme","content":"# Hi"}'
+  artifacts artifact create --json '{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"md","title":"Readme","content":"# Hi"}'
 `
   );
 

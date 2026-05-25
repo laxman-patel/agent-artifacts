@@ -66,7 +66,7 @@ export const artifactCreateCommand: CommandSpec = {
   http: { method: "POST", pathTemplate: "/api/artifacts" },
   mutates: true,
   example:
-    'artifacts artifact create --json \'{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"markdown","title":"Readme","content":"# Hi"}\'',
+    'artifacts artifact create --json \'{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"md","title":"Readme","content":"# Hi"}\'',
   async run({ client, body, options }) {
     const parsed = createArtifactInputSchema.parse(body);
     try {

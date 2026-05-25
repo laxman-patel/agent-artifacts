@@ -51,7 +51,7 @@ describe("ArtifactService", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "Weekly Report!",
-        type: "markdown",
+        type: "md",
         title: "Weekly Report",
         content: "# Hello",
         changelog: "Initial draft"
@@ -76,7 +76,7 @@ describe("ArtifactService", () => {
           ownerUsername: "laxman",
         projectSlug: "default",
           slug: "hijack",
-          type: "markdown",
+          type: "md",
           title: "Hijack",
           content: "nope"
         },
@@ -139,7 +139,7 @@ describe("ArtifactService", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "restricted",
-        type: "markdown",
+        type: "md",
         title: "Restricted",
         content: "secret",
         access: {
@@ -195,7 +195,7 @@ describe("ArtifactService", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "a-one",
-        type: "markdown",
+        type: "md",
         title: "One",
         content: "# One"
       },
@@ -207,7 +207,7 @@ describe("ArtifactService", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "b-two",
-        type: "markdown",
+        type: "md",
         title: "Two",
         content: "# Two"
       },
@@ -227,7 +227,7 @@ describe("ArtifactService", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "policy-demo",
-        type: "markdown",
+        type: "md",
         title: "Policy",
         content: "hello",
         access: { publicView: true, publicEdit: false }
@@ -278,7 +278,7 @@ describe("ArtifactService", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "diff-me",
-        type: "markdown",
+        type: "md",
         title: "Diff",
         content: "alpha\n"
       },
@@ -307,7 +307,7 @@ describe("ArtifactService", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "throwaway",
-        type: "markdown",
+        type: "md",
         title: "Throwaway",
         content: "# bye"
       },
@@ -328,7 +328,7 @@ describe("ArtifactService", () => {
         ownerUsername: "laxman",
         projectSlug: "default",
         slug: "protected",
-        type: "markdown",
+        type: "md",
         title: "Protected",
         content: "# keep"
       },

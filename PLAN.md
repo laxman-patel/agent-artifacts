@@ -2,7 +2,7 @@
 
 ## Premise
 
-Agents are increasingly producing rich artifacts instead of plain chat output: HTML reports, Markdown specs, React prototypes, interactive explainers, mockups, dashboards, PR summaries, review surfaces, and throwaway tools. Today those artifacts are usually left as local files, chat attachments, or unversioned blobs. They are difficult to share, hard to revisit, and unsafe to edit collaboratively.
+Agents are increasingly producing rich artifacts instead of plain chat output: HTML reports, Markdown specs, JSX prototypes (Preact runtime), interactive explainers, mockups, dashboards, PR summaries, review surfaces, and throwaway tools. Today those artifacts are usually left as local files, chat attachments, or unversioned blobs. They are difficult to share, hard to revisit, and unsafe to edit collaboratively.
 
 `agent-artifact` is a hosted artifact service for human and agent workflows. It exposes an MCP interface that any agent can plug into, plus a web interface for humans. Agents can create, update, version, share, and permission artifacts. Humans can view, compare, manage, and collaborate on them.
 
@@ -17,14 +17,14 @@ The product should feel like a focused blend of:
 ## Goals
 
 - Host agent-produced artifacts as durable, shareable URLs.
-- Support three first-class artifact types: HTML, Markdown, and React components.
+- Support three first-class artifact types: HTML, Markdown (md), and JSX (Preact runtime).
 - Track every artifact change as an immutable version.
 - Allow humans and agents to create, edit, fork, diff, restore, and archive artifacts.
 - Provide strict access control for viewing and editing.
 - Expose all core operations through MCP tools and the web interface.
 - Use `better-auth` for Google sign-in, sessions, MCP authentication, API keys, and role-aware authorization.
 - Store artifact content in object storage, with structured metadata in NeonDB Postgres.
-- Keep rendering isolated and safe, especially for HTML and React artifacts.
+- Keep rendering isolated and safe, especially for HTML and JSX artifacts.
 - Make the system extensible for future artifact types, multi-file projects, comments, reviews, and embedded usage inside agent products.
 
 ## Non-Goals
@@ -136,8 +136,8 @@ A version has:
 Supported artifact types:
 
 - `html`: self-contained HTML document or fragment.
-- `markdown`: Markdown document rendered to sanitized HTML.
-- `react`: React component source rendered through a sandboxed build pipeline.
+- `md`: Markdown document rendered to sanitized HTML.
+- `jsx`: JSX component source (React-style, TS-friendly) rendered through Preact in a sandboxed iframe with `react`/`react-dom` aliased to `preact/compat`.
 
 ### Access Policy
 
@@ -557,14 +557,14 @@ Requirements:
 - Optional Mermaid or diagram support through a controlled renderer.
 - Stable source view.
 
-### React Artifacts
+### JSX Artifacts
 
-React artifacts are single-component or small project artifacts rendered in a controlled build environment.
+JSX artifacts are single-component or small project artifacts rendered in a controlled build environment.
 
 Requirements:
 
 - TypeScript and JSX support.
-- React 19+ support.
+- Preact 10 runtime with `react`/`react-dom` aliased to `preact/compat` (agent-emitted React imports work unchanged). RSC, concurrent-rendering APIs, and `useSyncExternalStore` edge cases are not supported.
 - Curated dependency allowlist only.
 - Build timeout.
 - Runtime timeout where possible.
@@ -573,7 +573,7 @@ Requirements:
 - Clear build errors displayed in the UI.
 - Versioned build output.
 
-React artifact modes:
+JSX artifact modes:
 
 - `component`: a single exported component with allowed imports.
 - `project`: a future multi-file artifact with manifest, assets, and dependency lockfile.
@@ -619,7 +619,7 @@ HTML diffs:
 - DOM-aware diff where possible.
 - Rendered screenshot diff as a future enhancement.
 
-React diffs:
+JSX diffs:
 
 - Source diff.
 - Build output metadata diff.
@@ -885,7 +885,7 @@ Security must be designed into the product from the start.
 
 ### Artifact Content Security
 
-HTML and React artifacts are untrusted content.
+HTML and JSX artifacts are untrusted content.
 
 Controls:
 
@@ -1000,7 +1000,7 @@ packages/
 `apps/worker`:
 
 - Render jobs.
-- React builds.
+- JSX builds.
 - Screenshot/diff jobs.
 - Cleanup tasks.
 
@@ -1033,7 +1033,7 @@ packages/
 
 - Markdown rendering.
 - HTML wrapping.
-- React build/render pipeline.
+- JSX build/render pipeline (Preact).
 
 `packages/mcp`:
 
@@ -1152,7 +1152,7 @@ Cover:
 
 - HTML sandbox escape attempts.
 - Markdown XSS payloads.
-- React preview isolation.
+- JSX preview isolation.
 - Private storage URL leakage.
 - API key revocation.
 - Unauthorized MCP access.
@@ -1217,7 +1217,7 @@ Planned extensions:
 
 - Comments and review threads.
 - Visual screenshot diffs.
-- Multi-file React projects.
+- Multi-file JSX projects.
 - Artifact templates.
 - Agent-generated changelog summaries.
 - Embeddable artifact viewer.
@@ -1302,7 +1302,7 @@ Status: Complete.
 
 - Markdown renderer.
 - HTML iframe renderer.
-- React component build pipeline.
+- JSX component build pipeline (Preact).
 - Render worker.
 - Render status UI.
 - Email allowlists.
@@ -1320,9 +1320,9 @@ Status: Complete.
 
 ## Resolved Product Decisions
 
-- All rendering is live in the user's browser, not server-side. The viewer fetches raw source from S3 and renders it client-side (HTML iframe srcDoc, react-markdown with sanitization, in-browser Babel for React). The server-side render worker, render queue, `render_jobs`, `render_outputs`, `renderStatus`, `validationStatus`, and `packages/renderer` were removed in favor of this simpler model. Real server-side React compilation with esbuild may be revisited as a future capability if browser Babel proves insufficient.
+- All rendering is live in the user's browser, not server-side. The viewer fetches raw source from S3 and renders it client-side (HTML iframe srcDoc, react-markdown with sanitization, in-browser Babel + Preact for JSX). The server-side render worker, render queue, `render_jobs`, `render_outputs`, `renderStatus`, `validationStatus`, and `packages/renderer` were removed in favor of this simpler model. Real server-side JSX compilation with esbuild may be revisited as a future capability if browser Babel proves insufficient.
 - Artifact URLs are served only through the app domain.
-- React dependencies use a curated allowlist.
+- JSX dependencies use a curated allowlist. The sandbox importmap currently exposes only `preact`, `preact/hooks`, `preact/compat` (and `react`/`react-dom` aliased to compat).
 - Team ownership is out of scope for now.
 - Restricted email allowlist links require Google sign-in and verified email authorization before rendering.
 - Editable public links are allowed, but public artifacts default to view-only.

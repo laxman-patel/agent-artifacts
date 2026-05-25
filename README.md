@@ -1,6 +1,6 @@
 # Agent Artifacts
 
-Versioned, access-controlled artifact hosting for HTML, Markdown, and React outputs created by humans or agents.
+Versioned, access-controlled artifact hosting for HTML, Markdown, and JSX (Preact) outputs created by humans or agents.
 
 ## Implementation Parts
 
@@ -9,7 +9,7 @@ Versioned, access-controlled artifact hosting for HTML, Markdown, and React outp
 3. Web experience: dashboard, artifact viewer, history, diffs, access settings, Google sign-in flows.
 4. MCP experience: MCP server, tool schemas, agent/API-key auth, shared authorization checks.
 5. CLI: `artifacts` command for agents — REST API wrapper, JSON output, `artifacts schema` introspection.
-6. Renderers and hardening: Markdown, HTML, React rendering, collaboration controls, security tests, observability.
+6. Renderers and hardening: Markdown, HTML, JSX (Preact) rendering, collaboration controls, security tests, observability.
 
 ## CLI (for agents)
 

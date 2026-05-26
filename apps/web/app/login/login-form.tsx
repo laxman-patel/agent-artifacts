@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useLogger } from "@logtail/next/hooks";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signInWithGoogle } from "../../lib/auth-client";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard";
+  const oauthError = searchParams.get("error");
+  const log = useLogger();
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!oauthError) return;
+    log.warn("oauth_login_error", { error: oauthError });
+  }, [log, oauthError]);
 
   async function signInGoogle() {
     setError(null);

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { hasAuthenticatedSession } from "./lib/server-auth";
 
 // Coarse login redirect for /dashboard and /settings only; artifact pages gate themselves (share links, partial visibility).
+// `/_betterstack/*` is outside this matcher today. If the matcher is ever widened, exclude `/_betterstack/(.*)`
+// so Better Stack browser log/web-vitals proxy routes stay reachable (see @logtail/next docs).
 function needsAuthProtection(pathname: string): boolean {
   return pathname.startsWith("/dashboard") || pathname.startsWith("/settings");
 }

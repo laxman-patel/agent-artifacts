@@ -1,11 +1,29 @@
+import { withBetterStack } from "@logtail/next";
 import { loadMonorepoEnv } from "../../packages/config/src/load-monorepo-env";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
 loadMonorepoEnv();
 
+if (process.env.BETTER_STACK_WEB_SOURCE_TOKEN && !process.env.BETTER_STACK_SOURCE_TOKEN) {
+  process.env.BETTER_STACK_SOURCE_TOKEN = process.env.BETTER_STACK_WEB_SOURCE_TOKEN;
+}
+
 const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001";
 const isDev = process.env.NODE_ENV === "development";
+
+function betterStackConnectSrc(): string {
+  const ingestUrl = process.env.NEXT_PUBLIC_BETTER_STACK_INGESTING_URL;
+  if (ingestUrl) {
+    try {
+      return `https://${new URL(ingestUrl).hostname}`;
+    } catch {
+      // fall through
+    }
+  }
+
+  return "https://*.betterstackdata.com";
+}
 
 const securityHeaders = [
   { key: "x-content-type-options", value: "nosniff" },
@@ -21,7 +39,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
-      "connect-src 'self'",
+      `connect-src 'self' ${betterStackConnectSrc()}`,
       "frame-src 'self'",
       "object-src 'none'",
       "base-uri 'self'"
@@ -31,6 +49,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  productionBrowserSourceMaps: process.env.CI === "true",
   async headers() {
     return [
       {
@@ -58,4 +77,4 @@ const nextConfig: NextConfig = {
   }
 };
 
-export default nextConfig;
+export default withBetterStack(nextConfig);

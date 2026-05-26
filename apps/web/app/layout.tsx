@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BetterStackWebVitals } from "@logtail/next/webVitals";
 import { SessionNav } from "./components/session-nav";
 import "./styles.css";
 
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="site-body">
+        <BetterStackWebVitals />
         <div className="site-shell">
           <header className="site-header">
             <Link className="brand" href="/">

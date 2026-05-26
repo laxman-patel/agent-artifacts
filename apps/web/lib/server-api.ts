@@ -1,4 +1,7 @@
+import { Logger } from "@logtail/next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { randomUUID } from "node:crypto";
 
 export type ApiResult<T> =
   | { ok: true; status: number; body: T }
@@ -47,22 +50,48 @@ export function cookieHeader(cookieStore: { getAll(): { name: string; value: str
 }
 
 async function apiCall<T>(path: string, opts: ApiCallOptions = {}): Promise<ApiResult<T>> {
+  const incoming = await headers();
+  const requestId = incoming.get("x-request-id") ?? randomUUID();
   const url = new URL(`${internalApiOrigin()}${path}`);
   if (opts.query) for (const [key, value] of Object.entries(opts.query)) if (value !== undefined) url.searchParams.set(key, String(value));
-  const headers: Record<string, string> = {};
-  if (opts.cookie) headers.cookie = opts.cookie;
-  if (opts.body !== undefined) headers["content-type"] = "application/json";
-  const response = await fetch(url, {
-    method: opts.method ?? "GET", headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-    cache: "no-store"
-  });
-  if (!response.ok) {
-    const errBody = await response.json().catch(() => ({}));
-    return { ok: false, status: response.status, message: (errBody as { message?: string }).message ?? response.statusText };
+  const headersOut: Record<string, string> = { "x-request-id": requestId };
+  if (opts.cookie) headersOut.cookie = opts.cookie;
+  if (opts.body !== undefined) headersOut["content-type"] = "application/json";
+
+  try {
+    const response = await fetch(url, {
+      method: opts.method ?? "GET",
+      headers: headersOut,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      const log = new Logger();
+      const errBody = await response.json().catch(() => ({}));
+      const message = (errBody as { message?: string }).message ?? response.statusText;
+      log.warn("internal_api_error", {
+        path,
+        requestId,
+        status: response.status,
+        message
+      });
+      await log.flush();
+      return { ok: false, status: response.status, message };
+    }
+
+    const body = opts.parseOk ? await opts.parseOk(response) : opts.accept === "text" ? await response.text() : await response.json();
+    return { ok: true, status: response.status, body: body as T };
+  } catch (error) {
+    const log = new Logger();
+    log.error("internal_api_fetch_failed", {
+      path,
+      requestId,
+      message: error instanceof Error ? error.message : String(error)
+    });
+    await log.flush();
+    throw error;
   }
-  const body = opts.parseOk ? await opts.parseOk(response) : opts.accept === "text" ? await response.text() : await response.json();
-  return { ok: true, status: response.status, body: body as T };
 }
 
 export function artifactPath(artifact: ArtifactRoute): string {

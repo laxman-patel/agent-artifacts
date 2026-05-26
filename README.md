@@ -47,3 +47,46 @@ Copy `.env.example` to `.env` and align:
 - `INTERNAL_API_URL` should point at the Hono API (`http://127.0.0.1:3001` locally). Next.js rewrites `/api/*` there so cookies stay scoped to the web origin.
 
 During development you typically run both apps via Turbo (`bun run dev`). Optional Playwright smoke specs live in `apps/web/e2e`; start the dev servers first, install browsers once via `bunx playwright install`, then run `bun run --filter @agent-artifacts/web test:e2e`.
+
+## Observability
+
+Operational logs ship to [Better Stack](https://betterstack.com/) when source tokens are configured. Without them, both apps still boot and log to stdout (API) or the console (`@logtail/next` fallback).
+
+### Environment variables
+
+| Variable | Used by | Purpose |
+| --- | --- | --- |
+| `BETTER_STACK_SOURCE_TOKEN` | API | Server-side API logs (`@logtail/node`) |
+| `BETTER_STACK_INGESTING_URL` | API | API log ingest host (https URL) |
+| `BETTER_STACK_WEB_SOURCE_TOKEN` | Web (server) | Next.js server-side logs; mapped to `BETTER_STACK_SOURCE_TOKEN` at build/runtime |
+| `NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN` | Web (browser) | Browser logs via `/_betterstack` proxy |
+| `NEXT_PUBLIC_BETTER_STACK_INGESTING_URL` | Web (browser) | Browser ingest host; also drives CSP `connect-src` |
+| `LOG_IP_SALT` | API | Salt for hashing client IPs when `TRUST_PROXY=true` |
+| `BETTER_STACK_HEARTBEAT_URL_*` | (future) | Stub for cron/heartbeat monitors — no jobs wired yet |
+
+In production, the API emits a single boot warning if `BETTER_STACK_SOURCE_TOKEN` / `BETTER_STACK_INGESTING_URL` are missing. Tests force-disable Better Stack transport.
+
+### What gets logged
+
+- **API** — structured request logs (level by status), rate-limit and CSRF rejections, unhandled errors, and a mirror `audit_event` line for every DB audit insert (metadata excluded).
+- **Web** — Web Vitals (automatic), client error boundary, OAuth login errors (`?error=`), and failed internal API fetches from server components.
+- **Correlation** — the web app forwards `x-request-id` to the API on server-side fetches.
+
+CI builds set `productionBrowserSourceMaps=true` when `CI=true` so production stack traces can be symbolicated in Better Stack.
+
+### Uptime monitors (create manually in Better Stack)
+
+| Monitor | URL | Type | Interval | Why |
+| --- | --- | --- | --- | --- |
+| API health | `<api-host>/health` | HTTP keyword `"ok":true` | 60s | Container alive |
+| Web root | `<public-app-url>/` | HTTP 200 | 60s | Frontend reachable |
+| OAuth callback | `<public-app-url>/api/auth/callback/google` | HTTP keyword (must not 500) | 5m | OAuth misconfig alert |
+| SSL cert | apex domain | SSL expiry | daily | Cert rotation |
+
+### Heartbeats (future)
+
+No cron jobs exist yet. When you add scheduled work, point a heartbeat monitor at a `BETTER_STACK_HEARTBEAT_URL_<job>` env var (see `.env.example`).
+
+### Better Stack MCP server
+
+Install the remote Better Stack MCP server in your MCP client for querying logs and incidents from an agent. See [Better Stack MCP integration docs](https://betterstack.com/docs/getting-started/integrations/mcp/).

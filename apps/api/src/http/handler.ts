@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { artifactErrorResponse } from "./errors.js";
 import { mcpErrorResponse } from "./mcp.js";
+import { logger, serializeError } from "../logger.js";
 
 type JsonEnvelope = {
   body: unknown;
@@ -57,7 +58,17 @@ export async function handle(c: Context, work: () => Promise<unknown>) {
     }
     return c.json(result as never);
   } catch (error) {
-    return artifactErrorResponse(c, error);
+    try {
+      return artifactErrorResponse(c, error);
+    } catch (rethrown) {
+      logger.error("unhandled_request_error", {
+        requestId: c.get("requestId"),
+        method: c.req.method,
+        path: c.req.path,
+        err: serializeError(rethrown)
+      });
+      throw rethrown;
+    }
   }
 }
 
@@ -69,6 +80,16 @@ export async function handleMcp(c: Context, work: () => Promise<unknown>) {
     }
     return c.json(result);
   } catch (error) {
-    return mcpErrorResponse(c, error);
+    try {
+      return mcpErrorResponse(c, error);
+    } catch (rethrown) {
+      logger.error("unhandled_mcp_error", {
+        requestId: c.get("requestId"),
+        method: c.req.method,
+        path: c.req.path,
+        err: serializeError(rethrown)
+      });
+      throw rethrown;
+    }
   }
 }

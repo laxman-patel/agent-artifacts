@@ -13,9 +13,12 @@ import { createAuth, type BetterAuthHandle } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, type Database } from "@agent-artifacts/db";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
+import type { Principal } from "@agent-artifacts/shared";
+import { logger } from "./logger.js";
 
 export type AppVariables = {
   requestId: string;
+  principal?: Principal;
 };
 
 // Intentionally parallel to apps/web/lib/server-auth.ts: each process (API, Next) owns
@@ -69,7 +72,7 @@ export function getArtifactService() {
 
     const roleResolver = new DrizzleArtifactRoleResolver(db);
     return new ArtifactService(
-      new DrizzleArtifactRepository(db),
+      new DrizzleArtifactRepository(db, logger),
       storage,
       env.PUBLIC_APP_URL,
       createArtifactAccess(roleResolver)

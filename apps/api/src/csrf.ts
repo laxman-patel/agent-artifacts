@@ -1,4 +1,5 @@
 import type { Context, MiddlewareHandler } from "hono";
+import { logger } from "./logger.js";
 
 /**
  * CSRF defense for cookie-authenticated mutations.
@@ -32,6 +33,8 @@ export function csrfOriginGuard(
     if (origin && trusted.has(normalizeOrigin(origin))) {
       return next();
     }
+
+    logger.warn("csrf_rejected", { origin: c.req.header("origin"), path: c.req.path });
 
     return c.json(
       {

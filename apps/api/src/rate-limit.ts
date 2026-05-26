@@ -1,4 +1,5 @@
 import type { Context, MiddlewareHandler } from "hono";
+import { logger } from "./logger.js";
 
 interface RateLimitOptions {
   windowMs: number;
@@ -43,6 +44,12 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
     c.header("x-ratelimit-reset", String(Math.ceil(existing.resetAt / 1000)));
 
     if (existing.count > max) {
+      logger.warn("rate_limited", {
+        key,
+        path: c.req.path,
+        count: existing.count,
+        limit: max
+      });
       return c.json({ error: "too_many_requests", message: "Rate limit exceeded." }, 429);
     }
 

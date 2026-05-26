@@ -16,7 +16,10 @@ import { validateProjectSlug } from "./project.js";
 import { validateSlug } from "./slug.js";
 
 export class DrizzleArtifactRepository implements ArtifactRepository {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly logger?: { info: (msg: string, fields?: Record<string, unknown>) => void }
+  ) {}
 
   async getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined> {
     return getOwnerByUsername(this.db, username);
@@ -112,6 +115,15 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
 
   async createAuditEvent(input: PersistAuditEventInput): Promise<void> {
     await this.db.insert(auditEvents).values(input);
+    this.logger?.info("audit_event", {
+      ownerUserId: input.ownerUserId,
+      artifactId: input.artifactId,
+      action: input.action,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      principalType: input.actorPrincipalType,
+      principalId: input.actorPrincipalId
+    });
   }
 
   async listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]> {

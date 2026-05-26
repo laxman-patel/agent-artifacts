@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { randomUUID } from "node:crypto";
 import { logger } from "./logger.js";
 import type { AppVariables } from "./deps.js";
+import { resolvePrincipal } from "./http/principal.js";
 import { registerMiddleware } from "./http/middleware.js";
 import { registerRoutes } from "./routes/index.js";
 
@@ -45,7 +46,17 @@ app.use("*", async (c, next) => {
 
   const status = c.res.status;
   const level = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
-  const principal = c.get("principal");
+
+  let principal = c.get("principal");
+  if (!principal) {
+    try {
+      principal = await resolvePrincipal(c);
+      c.set("principal", principal);
+    } catch {
+      // Best-effort attribution for request logs only.
+    }
+  }
+
   const ip = clientIp(c);
   const userAgent = c.req.header("user-agent");
 

@@ -1,6 +1,8 @@
 "use client";
 
+import { LogLevel } from "@logtail/next";
 import { useLogger } from "@logtail/next/hooks";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Error({
@@ -10,15 +12,27 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const log = useLogger();
+  const pathname = usePathname();
+  const log = useLogger({ source: "error.tsx" });
 
   useEffect(() => {
-    log.error("client_error_boundary", {
-      message: error.message,
-      digest: error.digest,
-      stack: error.stack
-    });
-  }, [error, log]);
+    log.logHttpRequest(
+      LogLevel.error,
+      "client_error_boundary",
+      {
+        host: window.location.href,
+        path: pathname,
+        statusCode: 500
+      },
+      {
+        message: error.message,
+        error: error.name,
+        cause: error.cause,
+        stack: error.stack,
+        digest: error.digest
+      }
+    );
+  }, [error, log, pathname]);
 
   return (
     <div className="site-main">

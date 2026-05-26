@@ -14,7 +14,11 @@ export const serverEnvSchema = z.object({
   S3_BUCKET: z.string().min(1),
   S3_REGION: z.string().min(1),
   S3_ACCESS_KEY_ID: z.string().min(1),
-  S3_SECRET_ACCESS_KEY: z.string().min(1)
+  S3_SECRET_ACCESS_KEY: z.string().min(1),
+  BETTER_STACK_SOURCE_TOKEN: z.string().min(1).optional(),
+  BETTER_STACK_INGESTING_URL: urlSchema.optional(),
+  BETTER_STACK_WEB_SOURCE_TOKEN: z.string().min(1).optional(),
+  LOG_IP_SALT: z.string().min(1).optional()
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

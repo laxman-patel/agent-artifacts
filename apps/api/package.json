@@ -21,6 +21,7 @@
     "@agent-artifacts/shared": "workspace:*",
     "@agent-artifacts/storage": "workspace:*",
     "@hono/node-server": "^2.0.2",
+    "@logtail/node": "^0.5.8",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.18",
     "zod": "^4.4.3"

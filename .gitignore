@@ -15,6 +15,9 @@ build/
 coverage/
 .firecrawl/
 
+# Agent skills (local only)
+.agents/
+
 # Logs
 *.log
 npm-debug.log*

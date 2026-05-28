@@ -19,11 +19,6 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
         .parse(await c.req.json());
 
       const artifact = await getArtifactService().getArtifact(artifactId, principal);
-      const entitlements = await getBillingService().getAccountEntitlements(artifact.ownerUserId);
-      if (!entitlements.plan.entitlements.shareLinks) {
-        throw new EntitlementLimitError("Share links require Builder or Studio.");
-      }
-
       const canCreateLink = await getArtifactService().checkArtifactPermission(
         artifactId,
         "artifact.create_share_link",
@@ -31,6 +26,11 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
       );
       if (!canCreateLink) {
         return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
+      }
+
+      const entitlements = await getBillingService().getAccountEntitlements(artifact.ownerUserId);
+      if (!entitlements.plan.entitlements.shareLinks) {
+        throw new EntitlementLimitError("Share links require Builder or Studio.");
       }
 
       const created = await getShareLinkService().createShareLink({

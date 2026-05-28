@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { createWorkspaceProjectInputSchema } from "@agent-artifacts/artifact";
+import { createWorkspaceArtifactInputSchema, createWorkspaceProjectInputSchema } from "@agent-artifacts/artifact";
 import { createTeamWorkspaceInputSchema, changeMemberRoleInputSchema } from "@agent-artifacts/workspace";
 import {
   getArtifactService,
@@ -100,6 +100,37 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
       const artifacts = await getArtifactService().listWorkspaceArtifacts(c.req.param("workspaceId"), principal);
 
       return { body: { artifacts } };
+    })
+  );
+
+  app.post("/api/workspaces/:workspaceId/artifacts", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const workspaceId = c.req.param("workspaceId");
+      const workspace = await getWorkspaceService().getWorkspace(workspaceId, principal);
+      const body = createWorkspaceArtifactInputSchema.parse(await c.req.json());
+      const artifact = await getArtifactService().createWorkspaceArtifact(
+        workspaceId,
+        workspace.slug,
+        body,
+        principal
+      );
+
+      return { body: artifact, status: 201 };
+    })
+  );
+
+  app.get("/api/workspaces/:workspaceId/by-path/:projectSlug/:slug", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const artifact = await getArtifactService().getArtifactByWorkspacePath(
+        c.req.param("workspaceId"),
+        c.req.param("projectSlug"),
+        c.req.param("slug"),
+        principal
+      );
+
+      return artifact;
     })
   );
 

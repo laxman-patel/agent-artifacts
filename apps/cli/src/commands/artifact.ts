@@ -1,5 +1,6 @@
 import {
   createArtifactInputSchema,
+  createWorkspaceArtifactInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
@@ -77,11 +78,30 @@ export const artifactCreateCommand: CommandSpec = {
   example:
     'artifacts artifact create --json \'{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"md","title":"Readme","content":"# Hi"}\'',
   async run({ client, body, options, config }) {
-    const parsed = createArtifactInputSchema.parse(body);
-    const payload =
-      config.workspace !== undefined
-        ? { ...parsed, ownerUsername: parsed.ownerUsername || config.workspace }
-        : parsed;
+    if (config.workspace !== undefined) {
+      const workspaceId = await resolveWorkspaceId(client, config.workspace);
+      const parsed = createWorkspaceArtifactInputSchema.parse(body);
+      try {
+        const data = await client.post<Record<string, unknown>>(workspaceApiPath(workspaceId, "/artifacts"), parsed);
+        return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
+      } catch (error) {
+        if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+          const existing = await client.get<Record<string, unknown>>(
+            workspaceApiPath(
+              workspaceId,
+              `/by-path/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+            )
+          );
+          return {
+            data: { ...existing, created: false },
+            nextActions: nextActionsForArtifact(extractArtifactId(existing))
+          };
+        }
+        throw error;
+      }
+    }
+
+    const payload = createArtifactInputSchema.parse(body);
     try {
       const data = await client.post<Record<string, unknown>>("/api/artifacts", payload);
       return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
@@ -89,7 +109,7 @@ export const artifactCreateCommand: CommandSpec = {
       if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
         const ownerUsername = payload.ownerUsername;
         const existing = await client.get<Record<string, unknown>>(
-          `/api/by-path/${encodeURIComponent(ownerUsername)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+          `/api/by-path/${encodeURIComponent(ownerUsername)}/${encodeURIComponent(payload.projectSlug)}/${encodeURIComponent(payload.slug)}`
         );
         return {
           data: { ...existing, created: false },

@@ -1,6 +1,7 @@
 export {
   MAX_ARTIFACT_CONTENT_BYTES,
   createArtifactInputSchema,
+  createWorkspaceArtifactInputSchema,
   updateArtifactInputSchema,
   setArtifactAccessInputSchema,
   SlugUnavailableError,
@@ -9,6 +10,7 @@ export {
   ArtifactForbiddenError,
   contentTypeForArtifact,
   type CreateArtifactInput,
+  type CreateWorkspaceArtifactInput,
   type UpdateArtifactInput,
   type SetArtifactAccessInput,
   type ArtifactAccessSnapshot,

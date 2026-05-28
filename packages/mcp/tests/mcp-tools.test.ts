@@ -59,12 +59,17 @@ describe("MCP tool handlers", () => {
     });
   });
 
-  it("uses workspaceSlug as ownerUsername when creating artifacts in a workspace", async () => {
+  it("resolves workspaceSlug before creating artifacts in a workspace", async () => {
     const service = {
-      async createArtifact(input: { ownerUsername: string }, principal: Principal) {
-        return { ownerUsername: input.ownerUsername, principalType: principal.type };
+      async createWorkspaceArtifact(workspaceId: string, workspaceSlug: string, input: unknown, principal: Principal) {
+        return { workspaceId, workspaceSlug, input, principalType: principal.type };
       }
     } as unknown as ArtifactService;
+    const workspaceService = {
+      async getWorkspaceBySlug(workspaceSlug: string, principal: Principal) {
+        return { id: `ws_${workspaceSlug}`, slug: workspaceSlug, principalType: principal.type };
+      }
+    } as unknown as WorkspaceService;
 
     const result = await callMcpTool(
       "create_artifact",
@@ -79,12 +84,19 @@ describe("MCP tool handlers", () => {
       {
         artifactService: service,
         projectService: {} as never,
-        workspaceService: emptyWorkspaceService,
+        workspaceService,
         principal: apiKeyPrincipal
       }
     );
 
-    expect(result).toMatchObject({ ownerUsername: "acme" });
+    expect(result).toMatchObject({
+      workspaceId: "ws_acme",
+      workspaceSlug: "acme",
+      input: {
+        projectSlug: "default",
+        slug: "demo"
+      }
+    });
   });
 
   it("delegates list_workspaces to the workspace service", async () => {

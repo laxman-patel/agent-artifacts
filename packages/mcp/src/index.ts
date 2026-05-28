@@ -1,6 +1,7 @@
 import {
   createArtifactInputSchema,
   createProjectInputSchema,
+  createWorkspaceArtifactInputSchema,
   createWorkspaceProjectInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema,
@@ -144,6 +145,17 @@ export const mcpTools = {
         path: ["ownerUsername"]
       }),
     handler: async (input, ctx) => {
+      if (input.workspaceSlug) {
+        const workspace = await resolveWorkspace(ctx.workspaceService, input.workspaceSlug, ctx.principal);
+        const payload = createWorkspaceArtifactInputSchema.parse(input);
+        return ctx.artifactService.createWorkspaceArtifact(
+          workspace.id,
+          workspace.slug,
+          payload,
+          ctx.principal
+        );
+      }
+
       const payload = createArtifactInputSchema.parse(requireNamespaceOwner(input, "ownerUsername"));
       return ctx.artifactService.createArtifact(payload, ctx.principal);
     }

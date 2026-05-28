@@ -65,7 +65,8 @@ export function buildAgentSchema() {
       verbose: { flag: "-v, --verbose", description: "Alias for --debug" },
       format: { flag: "--format json|text", env: ["AGENT_ARTIFACTS_FORMAT"] },
       ndjson: { flag: "--ndjson", description: "Stream list results as one JSON object per line" },
-      quiet: { flag: "-q, --quiet", description: "Suppress stderr progress messages" }
+      quiet: { flag: "-q, --quiet", description: "Suppress stderr progress messages" },
+      workspace: { flag: "--workspace <slug>", env: ["AGENT_ARTIFACTS_WORKSPACE"], description: "Target a team workspace namespace" }
     },
     input: {
       positionalArgs: false,

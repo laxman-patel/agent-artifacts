@@ -35,7 +35,8 @@ const PATH_PARAM_OPTION_KEYS: Record<string, string[]> = {
   projectSlug: ["projectSlug", "project"],
   slug: ["slug"],
   artifactId: ["artifactId"],
-  shareLinkId: ["shareLinkId"]
+  shareLinkId: ["shareLinkId"],
+  workspaceId: ["workspace"]
 };
 
 function interpolatePathTemplate(template: string, options?: Record<string, unknown>): string {

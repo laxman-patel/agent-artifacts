@@ -27,6 +27,7 @@ export async function runCli(argv: string[]): Promise<void> {
     .option("-v, --verbose", "Alias for --debug (extra stderr diagnostics)")
     .option("--debug", "Print stack traces on failure (env: AGENT_ARTIFACTS_DEBUG=1)")
     .option("-n, --dry-run", "Preview mutating commands without calling the API")
+    .option("--workspace <slug>", "Target a team workspace namespace (env: AGENT_ARTIFACTS_WORKSPACE)")
     .showHelpAfterError("(add --help for command list; use `artifacts schema` for machine-readable capabilities)");
 
   program.addHelpText(

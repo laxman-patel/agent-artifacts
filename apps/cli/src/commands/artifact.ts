@@ -17,6 +17,7 @@ import { CliError } from "../errors.js";
 import { resolveListLimit, sliceListResult } from "../list-limit.js";
 import { extractArtifactId, nextActionsForArtifact, nextActionsForArtifactList } from "../next-actions.js";
 import { parseIntFlag } from "../parse-int-flag.js";
+import { resolveWorkspaceId, workspaceApiPath } from "../workspace-context.js";
 
 const SLUG_EXAMPLE = "artifacts artifact slug-availability --owner alice --project-slug default --slug readme";
 
@@ -33,6 +34,14 @@ export const artifactListCommand: CommandSpec = {
   example: "artifacts artifact list --limit 50",
   async run({ client, options, config }) {
     const limitResult = resolveListLimit(options);
+    if (config.workspace) {
+      const workspaceId = await resolveWorkspaceId(client, config.workspace);
+      const data = await client.get<{ artifacts: unknown[] }>(workspaceApiPath(workspaceId, "/artifacts"));
+      const artifacts = Array.isArray(data.artifacts) ? data.artifacts : [];
+      const { items } = sliceListResult(artifacts, limitResult, config, "artifacts");
+      return { data: { ...data, artifacts: items }, nextActions: nextActionsForArtifactList(items) };
+    }
+
     const data = await client.get<{ artifacts: unknown[] }>("/api/profile/artifacts");
     const artifacts = Array.isArray(data.artifacts) ? data.artifacts : [];
     const { items } = sliceListResult(artifacts, limitResult, config, "artifacts");
@@ -67,15 +76,20 @@ export const artifactCreateCommand: CommandSpec = {
   mutates: true,
   example:
     'artifacts artifact create --json \'{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"md","title":"Readme","content":"# Hi"}\'',
-  async run({ client, body, options }) {
+  async run({ client, body, options, config }) {
     const parsed = createArtifactInputSchema.parse(body);
+    const payload =
+      config.workspace !== undefined
+        ? { ...parsed, ownerUsername: parsed.ownerUsername || config.workspace }
+        : parsed;
     try {
-      const data = await client.post<Record<string, unknown>>("/api/artifacts", parsed);
+      const data = await client.post<Record<string, unknown>>("/api/artifacts", payload);
       return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
     } catch (error) {
       if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+        const ownerUsername = payload.ownerUsername;
         const existing = await client.get<Record<string, unknown>>(
-          `/api/by-path/${encodeURIComponent(parsed.ownerUsername)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+          `/api/by-path/${encodeURIComponent(ownerUsername)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
         );
         return {
           data: { ...existing, created: false },

@@ -10,7 +10,7 @@ import { createUserPrincipal, withMcpAuth } from "@agent-artifacts/auth";
 import { users } from "@agent-artifacts/db";
 import { callMcpTool, listMcpTools, mcpToolInputSchemas, type McpToolName } from "@agent-artifacts/mcp";
 import { ArtifactForbiddenError, type Principal } from "@agent-artifacts/shared";
-import { getArtifactService, getAuth, getDb, getProjectService } from "../deps.js";
+import { getArtifactService, getAuth, getDb, getProjectService, getWorkspaceService } from "../deps.js";
 
 const mcpJsonRpcRequestSchema = z.object({
   jsonrpc: z.literal("2.0"),
@@ -75,6 +75,7 @@ async function handleMcpJsonRpc(message: McpJsonRpcRequest, principal: Principal
       const result = await callMcpTool(params.name, params.arguments ?? {}, {
         artifactService: getArtifactService(),
         projectService: getProjectService(),
+        workspaceService: getWorkspaceService(),
         principal
       });
 

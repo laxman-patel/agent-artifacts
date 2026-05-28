@@ -18,6 +18,7 @@
   "dependencies": {
     "@agent-artifacts/artifact": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",
+    "@agent-artifacts/workspace": "workspace:*",
     "zod": "^4.4.3"
   }
 }

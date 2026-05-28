@@ -11,6 +11,7 @@ interface GlobalOpts {
   webUrl?: string;
   token?: string;
   tokenStdin?: boolean;
+  workspace?: string;
   format?: OutputFormat;
   quiet?: boolean;
   noInput?: boolean;
@@ -22,6 +23,7 @@ interface GlobalOpts {
 
 const GROUP_DESCRIPTIONS: Record<string, string> = {
   profile: "User profile",
+  workspace: "Team workspaces",
   project: "Projects",
   artifact: "Artifacts",
   "artifact access": "Artifact access settings",
@@ -30,7 +32,7 @@ const GROUP_DESCRIPTIONS: Record<string, string> = {
   audit: "Audit log"
 };
 
-const LIST_RECORD_KEYS = ["artifacts", "projects", "events", "shareLinks", "versions"] as const;
+const LIST_RECORD_KEYS = ["artifacts", "projects", "events", "shareLinks", "versions", "workspaces"] as const;
 
 export function registerSpec(program: Command, spec: CommandSpec): void {
   const cmd = registerCommandPath(program, spec.name);
@@ -60,7 +62,7 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
         )
       : undefined;
     if (config.dryRun && spec.mutates) {
-      emitSuccess(buildDryRunPreview(spec, body, opts), config.format);
+      emitSuccess(buildDryRunPreview(spec, body, { ...opts, workspace: config.workspace }), config.format);
       return;
     }
 
@@ -120,6 +122,7 @@ function getGlobalOpts(cmd: Command): GlobalOpts {
     webUrl: opts.webUrl,
     token: opts.token,
     tokenStdin: opts.tokenStdin,
+    workspace: opts.workspace,
     format: opts.format,
     quiet: opts.quiet,
     noInput: opts.input === false ? true : opts.noInput,

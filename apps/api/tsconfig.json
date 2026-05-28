@@ -10,7 +10,6 @@
     { "path": "../../packages/access" },
     { "path": "../../packages/artifact" },
     { "path": "../../packages/auth" },
-    { "path": "../../packages/billing" },
     { "path": "../../packages/config" },
     { "path": "../../packages/db" },
     { "path": "../../packages/mcp" },

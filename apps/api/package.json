@@ -15,7 +15,6 @@
     "@agent-artifacts/access": "workspace:*",
     "@agent-artifacts/artifact": "workspace:*",
     "@agent-artifacts/auth": "workspace:*",
-    "@agent-artifacts/billing": "workspace:*",
     "@agent-artifacts/config": "workspace:*",
     "@agent-artifacts/db": "workspace:*",
     "@agent-artifacts/mcp": "workspace:*",

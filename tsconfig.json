@@ -7,7 +7,6 @@
     { "path": "./packages/policy" },
     { "path": "./packages/storage" },
     { "path": "./packages/access" },
-    { "path": "./packages/billing" },
     { "path": "./packages/workspace" },
     { "path": "./packages/artifact" },
     { "path": "./packages/auth" },

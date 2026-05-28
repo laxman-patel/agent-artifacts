@@ -1,11 +1,3 @@
-import {
-  createCheckoutService,
-  createCheckoutServiceConfig,
-  createDrizzleBillableSubjectService,
-  createDrizzleSeatAccountingService,
-  type CheckoutService,
-  type SeatAccountingService
-} from "@agent-artifacts/billing";
 import { createArtifactAccess } from "@agent-artifacts/access";
 import {
   ArtifactService,
@@ -51,8 +43,6 @@ let auditServiceInstance: AuditService | undefined;
 let workspaceServiceInstance: WorkspaceService | undefined;
 let invitationServiceInstance: InvitationService | undefined;
 let membershipServiceInstance: MembershipService | undefined;
-let seatAccountingServiceInstance: SeatAccountingService | undefined;
-let checkoutServiceInstance: CheckoutService | undefined;
 let workspaceAccessInstance: ReturnType<typeof createWorkspaceAccess> | undefined;
 let dbInstance: Database | undefined;
 
@@ -153,40 +143,6 @@ export function getInvitationService() {
 export function getMembershipService() {
   membershipServiceInstance ??= createDrizzleMembershipService(getDb());
   return membershipServiceInstance;
-}
-
-function getWorkspaceBillingDeps() {
-  const db = getDb();
-  const workspaceRepository = new DrizzleWorkspaceRepository(db);
-  const access = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(workspaceRepository));
-  const billableSubjectService = createDrizzleBillableSubjectService(db);
-
-  return { db, workspaceRepository, access, billableSubjectService };
-}
-
-export function getSeatAccountingService() {
-  seatAccountingServiceInstance ??= (() => {
-    const { db, workspaceRepository, access, billableSubjectService } = getWorkspaceBillingDeps();
-    return createDrizzleSeatAccountingService(db, billableSubjectService, workspaceRepository, access);
-  })();
-
-  return seatAccountingServiceInstance;
-}
-
-export function getCheckoutService() {
-  checkoutServiceInstance ??= (() => {
-    const env = loadServerEnv();
-    const { db, workspaceRepository, access, billableSubjectService } = getWorkspaceBillingDeps();
-    return createCheckoutService(
-      db,
-      billableSubjectService,
-      workspaceRepository,
-      access,
-      createCheckoutServiceConfig(env)
-    );
-  })();
-
-  return checkoutServiceInstance;
 }
 
 export function getWorkspaceAccess() {

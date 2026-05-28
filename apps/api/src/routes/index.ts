@@ -4,7 +4,6 @@ import { buildProjectArtifactUrl } from "@agent-artifacts/shared";
 import { getAuth } from "../deps.js";
 import { handleMcp } from "../http/handler.js";
 import { handleMcpRequest } from "../http/mcp.js";
-import { registerBillingRoutes } from "./billing.js";
 import { registerArtifactRoutes } from "./artifacts.js";
 import { registerCliRoutes } from "./cli.js";
 import { registerProfileRoutes } from "./profile.js";
@@ -40,7 +39,6 @@ export function registerRoutes(app: Hono<{ Variables: AppVariables }>) {
   registerProjectRoutes(app);
   registerWorkspaceRoutes(app);
   registerWorkspaceInvitationRoutes(app);
-  registerBillingRoutes(app);
   registerProfileRoutes(app);
   registerArtifactRoutes(app);
   registerShareLinkRoutes(app);

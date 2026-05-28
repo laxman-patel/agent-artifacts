@@ -126,6 +126,7 @@ const intruder: Principal = {
 
 function createHarness() {
   const workspaceRepository = new MemoryWorkspaceRepository();
+  const auditEvents: Array<Record<string, unknown>> = [];
   workspaceRepository.addWorkspace({
     id: workspaceId,
     slug: "acme",
@@ -144,21 +145,39 @@ function createHarness() {
     invitationRepository,
     workspaceRepository,
     createWorkspaceAccess(roleResolver),
-    appUrl
+    appUrl,
+    {
+      async record(event: Record<string, unknown>) {
+        auditEvents.push(event);
+      }
+    }
   );
 
-  return { service, invitationRepository, workspaceRepository };
+  return { service, invitationRepository, workspaceRepository, auditEvents };
 }
 
 describe("InvitationService", () => {
   it("creates an invitation when the inviter can manage members", async () => {
-    const { service } = createHarness();
+    const { service, auditEvents } = createHarness();
 
     const created = await service.createInvitation(workspaceId, "invitee@example.com", "member", owner);
 
     expect(created.email).toBe("invitee@example.com");
     expect(created.role).toBe("member");
     expect(created.acceptUrl).toMatch(/^https:\/\/app\.example\.com\/workspace-invite\//);
+    expect(auditEvents).toMatchObject([
+      {
+        workspaceId,
+        actorPrincipalId: owner.id,
+        action: "workspace.invitation_created",
+        targetType: "workspace_invitation",
+        targetId: created.id,
+        metadata: {
+          email: "invitee@example.com",
+          role: "member"
+        }
+      }
+    ]);
   });
 
   it("denies invitation creation without manage_members permission", async () => {
@@ -180,7 +199,7 @@ describe("InvitationService", () => {
   });
 
   it("accepts an invitation and creates membership", async () => {
-    const { service, invitationRepository, workspaceRepository } = createHarness();
+    const { service, invitationRepository, workspaceRepository, auditEvents } = createHarness();
     const token = "invite-token-123";
 
     await invitationRepository.create({
@@ -198,6 +217,20 @@ describe("InvitationService", () => {
     expect(result).toEqual({ workspaceId, role: "admin" });
     const membership = await workspaceRepository.getMembership(workspaceId, invitee.id);
     expect(membership?.role).toBe("admin");
+    expect(auditEvents).toMatchObject([
+      {
+        workspaceId,
+        actorPrincipalId: invitee.id,
+        action: "workspace.invitation_accepted",
+        targetType: "workspace_invitation",
+        targetId: "inv_1",
+        metadata: {
+          email: "invitee@example.com",
+          role: "admin",
+          memberUserId: invitee.id
+        }
+      }
+    ]);
   });
 
   it("rejects acceptance when the signed-in email does not match", async () => {

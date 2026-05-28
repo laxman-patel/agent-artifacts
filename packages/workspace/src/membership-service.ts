@@ -8,6 +8,7 @@ import {
 import { z } from "zod";
 import type { WorkspaceAccess } from "./access.js";
 import { createWorkspaceAccess } from "./access.js";
+import { auditOwnerUserId, DrizzleWorkspaceAuditSink, type WorkspaceAuditSink } from "./audit.js";
 import type { WorkspaceMemberRecord, WorkspaceRepository } from "./workspace-service.js";
 import {
   DrizzleWorkspaceRepository,
@@ -61,7 +62,8 @@ function assertAtLeastOneOwnerRemains(
 export class MembershipService {
   constructor(
     private readonly workspaceRepository: WorkspaceRepository,
-    private readonly access: WorkspaceAccess
+    private readonly access: WorkspaceAccess,
+    private readonly audit?: WorkspaceAuditSink
   ) {}
 
   async changeMemberRole(
@@ -107,6 +109,10 @@ export class MembershipService {
     assertAtLeastOneOwnerRemains(members, memberUserId, parsed.role);
 
     await this.workspaceRepository.updateMemberRole(workspaceId, memberUserId, parsed.role);
+    await this.recordAudit(workspaceId, principal, "workspace.member_role_changed", "workspace_member", memberUserId, {
+      previousRole: membership.role,
+      role: parsed.role
+    });
 
     const updated = await this.workspaceRepository.getMembership(workspaceId, memberUserId);
     if (!updated) {
@@ -141,11 +147,34 @@ export class MembershipService {
     assertAtLeastOneOwnerRemains(members, memberUserId);
 
     await this.workspaceRepository.removeMember(workspaceId, memberUserId);
+    await this.recordAudit(workspaceId, principal, "workspace.member_removed", "workspace_member", memberUserId, {
+      previousRole: membership.role
+    });
+  }
+
+  private async recordAudit(
+    workspaceId: string,
+    principal: Principal,
+    action: string,
+    targetType: string,
+    targetId: string,
+    metadata: Record<string, unknown>
+  ): Promise<void> {
+    await this.audit?.record({
+      ownerUserId: auditOwnerUserId(principal),
+      workspaceId,
+      actorPrincipalType: principal.type,
+      actorPrincipalId: principal.id,
+      action,
+      targetType,
+      targetId,
+      metadata
+    });
   }
 }
 
 export function createDrizzleMembershipService(db: Database): MembershipService {
   const workspaceRepository = new DrizzleWorkspaceRepository(db);
   const access = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(workspaceRepository));
-  return new MembershipService(workspaceRepository, access);
+  return new MembershipService(workspaceRepository, access, new DrizzleWorkspaceAuditSink(db));
 }

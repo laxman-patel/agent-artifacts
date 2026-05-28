@@ -130,6 +130,7 @@ const intruder: Principal = {
 
 function createHarness(options?: { withCoOwner?: boolean }) {
   const workspaceRepository = new MemoryWorkspaceRepository();
+  const auditEvents: Array<Record<string, unknown>> = [];
   workspaceRepository.addWorkspace({
     id: workspaceId,
     slug: "acme",
@@ -186,9 +187,13 @@ function createHarness(options?: { withCoOwner?: boolean }) {
     roleResolver.setMembership(workspaceId, "user_co_owner", "owner");
   }
 
-  const service = new MembershipService(workspaceRepository, createWorkspaceAccess(roleResolver));
+  const service = new MembershipService(workspaceRepository, createWorkspaceAccess(roleResolver), {
+    async record(event: Record<string, unknown>) {
+      auditEvents.push(event);
+    }
+  });
 
-  return { service, workspaceRepository };
+  return { service, workspaceRepository, auditEvents };
 }
 
 describe("MembershipService", () => {
@@ -198,6 +203,37 @@ describe("MembershipService", () => {
     const updated = await service.changeMemberRole(workspaceId, member.id, "viewer", admin);
 
     expect(updated.role).toBe("viewer");
+  });
+
+  it("records audit events for role changes and member removal", async () => {
+    const { service, auditEvents } = createHarness();
+
+    await service.changeMemberRole(workspaceId, member.id, "viewer", admin);
+    await service.removeMember(workspaceId, member.id, admin);
+
+    expect(auditEvents).toMatchObject([
+      {
+        workspaceId,
+        actorPrincipalId: admin.id,
+        action: "workspace.member_role_changed",
+        targetType: "workspace_member",
+        targetId: member.id,
+        metadata: {
+          previousRole: "member",
+          role: "viewer"
+        }
+      },
+      {
+        workspaceId,
+        actorPrincipalId: admin.id,
+        action: "workspace.member_removed",
+        targetType: "workspace_member",
+        targetId: member.id,
+        metadata: {
+          previousRole: "viewer"
+        }
+      }
+    ]);
   });
 
   it("requires owner permission to promote someone to owner", async () => {

@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import type { WorkspaceAccess } from "./access.js";
 import { createWorkspaceAccess } from "./access.js";
+import { auditOwnerUserId, DrizzleWorkspaceAuditSink, type WorkspaceAuditSink } from "./audit.js";
 import type { WorkspaceRepository } from "./workspace-service.js";
 import { DrizzleWorkspaceRepository, DrizzleWorkspaceRoleResolver } from "./workspace-service.js";
 
@@ -150,7 +151,8 @@ export class InvitationService {
     private readonly invitationRepository: InvitationRepository,
     private readonly workspaceRepository: WorkspaceRepository,
     private readonly access: WorkspaceAccess,
-    private readonly appUrl: string
+    private readonly appUrl: string,
+    private readonly audit?: WorkspaceAuditSink
   ) {}
 
   async createInvitation(
@@ -208,6 +210,11 @@ export class InvitationService {
       expiresAt
     });
 
+    await this.recordAudit(workspaceId, principal, "workspace.invitation_created", "workspace_invitation", invitationId, {
+      email: normalizedEmail,
+      role: parsed.role
+    });
+
     return {
       id: invitationId,
       workspaceId,
@@ -259,6 +266,18 @@ export class InvitationService {
     });
 
     await this.invitationRepository.markAccepted(invitation.id, new Date());
+    await this.recordAudit(
+      invitation.workspaceId,
+      principal,
+      "workspace.invitation_accepted",
+      "workspace_invitation",
+      invitation.id,
+      {
+        email: invitation.email,
+        role: invitation.role,
+        memberUserId: principal.id
+      }
+    );
 
     return { workspaceId: invitation.workspaceId, role: invitation.role };
   }
@@ -271,6 +290,17 @@ export class InvitationService {
     }
 
     await this.invitationRepository.markRevoked(invitationId, new Date());
+    await this.recordAudit(
+      invitation.workspaceId,
+      principal,
+      "workspace.invitation_revoked",
+      "workspace_invitation",
+      invitation.id,
+      {
+        email: invitation.email,
+        role: invitation.role
+      }
+    );
   }
 
   async resendInvitation(invitationId: string, principal: Principal): Promise<ResentWorkspaceInvitation> {
@@ -285,6 +315,18 @@ export class InvitationService {
     const expiresAt = defaultInvitationExpiry();
 
     await this.invitationRepository.updateTokenAndExpiry(invitationId, tokenHash, expiresAt);
+    await this.recordAudit(
+      invitation.workspaceId,
+      principal,
+      "workspace.invitation_resent",
+      "workspace_invitation",
+      invitation.id,
+      {
+        email: invitation.email,
+        role: invitation.role,
+        expiresAt: expiresAt.toISOString()
+      }
+    );
 
     return {
       id: invitationId,
@@ -332,6 +374,26 @@ export class InvitationService {
     });
 
     return invitation;
+  }
+
+  private async recordAudit(
+    workspaceId: string,
+    principal: Principal,
+    action: string,
+    targetType: string,
+    targetId: string,
+    metadata: Record<string, unknown>
+  ): Promise<void> {
+    await this.audit?.record({
+      ownerUserId: auditOwnerUserId(principal),
+      workspaceId,
+      actorPrincipalType: principal.type,
+      actorPrincipalId: principal.id,
+      action,
+      targetType,
+      targetId,
+      metadata
+    });
   }
 }
 
@@ -549,5 +611,11 @@ export class MemoryInvitationRepository implements InvitationRepository {
 export function createDrizzleInvitationService(db: Database, appUrl: string): InvitationService {
   const workspaceRepository = new DrizzleWorkspaceRepository(db);
   const access = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(workspaceRepository));
-  return new InvitationService(new DrizzleInvitationRepository(db), workspaceRepository, access, appUrl);
+  return new InvitationService(
+    new DrizzleInvitationRepository(db),
+    workspaceRepository,
+    access,
+    appUrl,
+    new DrizzleWorkspaceAuditSink(db)
+  );
 }

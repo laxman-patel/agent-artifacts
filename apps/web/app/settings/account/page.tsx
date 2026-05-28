@@ -27,6 +27,9 @@ export default async function AccountSettingsPage() {
         <Link className="ghost-button" href="/dashboard">
           Dashboard
         </Link>
+        <Link className="ghost-button" href="/settings/billing">
+          Billing
+        </Link>
       </header>
 
       <section className="card flat stack">

@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { getArtifactService, getAuditService, getShareLinkService } from "../deps.js";
+import { EntitlementLimitError } from "@agent-artifacts/billing";
+import { getArtifactService, getAuditService, getBillingService, getShareLinkService } from "../deps.js";
 import { handle } from "../http/handler.js";
 import { requireHumanPrincipal, requirePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
@@ -17,7 +18,11 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
         })
         .parse(await c.req.json());
 
-      await getArtifactService().getArtifact(artifactId, principal);
+      const artifact = await getArtifactService().getArtifact(artifactId, principal);
+      const entitlements = await getBillingService().getAccountEntitlements(artifact.ownerUserId);
+      if (!entitlements.plan.entitlements.shareLinks) {
+        throw new EntitlementLimitError("Share links require Builder or Studio.");
+      }
 
       const canCreateLink = await getArtifactService().checkArtifactPermission(
         artifactId,

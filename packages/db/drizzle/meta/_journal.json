@@ -57,6 +57,13 @@
       "when": 1779400000000,
       "tag": "0007_artifact_type_rename",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779999999000,
+      "tag": "0008_billing_foundation",
+      "breakpoints": true
     }
   ]
 }

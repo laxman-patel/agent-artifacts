@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, sql } from "drizzle-orm";
+import type { BillingService } from "@agent-artifacts/billing";
 import type { Database } from "@agent-artifacts/db";
 import { projects, userProfiles } from "@agent-artifacts/db";
 import type { Principal } from "@agent-artifacts/shared";
@@ -76,7 +77,8 @@ export class ProjectService {
   constructor(
     private readonly repository: ProjectRepository,
     private readonly appUrl: string,
-    private readonly access: ArtifactAccess
+    private readonly access: ArtifactAccess,
+    private readonly billing?: Pick<BillingService, "assertCanCreateProject">
   ) {}
 
   async checkProjectSlugAvailability(
@@ -110,6 +112,7 @@ export class ProjectService {
     if (!available) {
       throw new ProjectSlugUnavailableError(normalizedSlug);
     }
+    await this.billing?.assertCanCreateProject(owner.userId);
 
     const projectId = randomUUID();
     await this.repository.createProject({

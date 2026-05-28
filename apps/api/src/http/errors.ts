@@ -11,6 +11,7 @@ import {
   UsernameAlreadySetError,
   UsernameTakenError
 } from "@agent-artifacts/artifact";
+import { EntitlementLimitError } from "@agent-artifacts/billing";
 import { ArtifactForbiddenError } from "@agent-artifacts/shared";
 import { z } from "zod";
 
@@ -29,6 +30,10 @@ export function artifactErrorResponse(c: Context, error: unknown) {
 
   if (error instanceof ArtifactForbiddenError) {
     return c.json({ error: "forbidden", message: error.message }, 403);
+  }
+
+  if (error instanceof EntitlementLimitError) {
+    return c.json({ error: "plan_limit_exceeded", message: error.message }, 402);
   }
 
   if (

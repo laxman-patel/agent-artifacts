@@ -1,5 +1,5 @@
 {
-  "name": "@agent-artifacts/artifact",
+  "name": "@agent-artifacts/billing",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,13 +16,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@agent-artifacts/access": "workspace:*",
-    "@agent-artifacts/billing": "workspace:*",
     "@agent-artifacts/db": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",
-    "@agent-artifacts/storage": "workspace:*",
-    "diff": "^8.0.2",
     "drizzle-orm": "^0.45.2",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.6"
   }
 }

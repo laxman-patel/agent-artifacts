@@ -24,6 +24,9 @@ export default function HomePage() {
           <Link className="ghost-button" href="/login">
             Sign in with Google
           </Link>
+          <Link className="ghost-button" href="/pricing">
+            See pricing
+          </Link>
         </div>
       </section>
 

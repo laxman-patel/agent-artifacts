@@ -17,6 +17,11 @@ export const artifactBodyLimit = bodyLimit({
   onError: (c) => c.json({ error: "payload_too_large", message: `Body exceeds ${HTTP_BODY_LIMIT_BYTES} byte limit.` }, 413)
 });
 
+export const webhookBodyLimit = bodyLimit({
+  maxSize: 256 * 1024,
+  onError: (c) => c.json({ error: "payload_too_large", message: "Webhook body exceeds 262144 byte limit." }, 413)
+});
+
 let csrfGuardImpl: MiddlewareHandler | undefined;
 
 export const csrfGuard: MiddlewareHandler = async (c, next) => {
@@ -43,6 +48,9 @@ const CSRF_PROTECTED_ROUTES = [
   { path: "/api/artifacts/:artifactId/share-links", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/share-links/:shareLinkId/revoke", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/projects", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/billing/checkout", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/billing/portal", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/billing/storage-snapshot", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/profile/username", middleware: [csrfGuard] as const },
   { path: "/api/cli/authorize", middleware: [csrfGuard] as const }
 ] as const;
@@ -54,4 +62,6 @@ export function registerMiddleware(app: Hono<{ Variables: AppVariables }>) {
 
   app.use("/api/artifacts/*", readLimiter);
   app.use("/mcp", writeLimiter, artifactBodyLimit);
+  app.use("/api/webhooks/dodo", writeLimiter, webhookBodyLimit);
+  app.use("/api/internal/billing/storage-snapshots", writeLimiter);
 }

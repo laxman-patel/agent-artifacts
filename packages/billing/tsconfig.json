@@ -7,11 +7,8 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "references": [
-    { "path": "../access" },
-    { "path": "../billing" },
     { "path": "../db" },
-    { "path": "../shared" },
-    { "path": "../storage" }
+    { "path": "../shared" }
   ],
   "include": ["src/**/*.ts"]
 }

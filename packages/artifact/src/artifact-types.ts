@@ -1,5 +1,6 @@
 import type { ArtifactType, Principal } from "@agent-artifacts/shared";
 import { artifactTypeSchema } from "@agent-artifacts/shared";
+import { BILLING_PLANS } from "@agent-artifacts/billing";
 import { z } from "zod";
 
 const artifactAccessInputSchema = z
@@ -9,8 +10,8 @@ const artifactAccessInputSchema = z
   })
   .default({ publicView: true, publicEdit: false });
 
-/** Max artifact source size in bytes (free tier). Tied to body limit + DB/S3 storage budget. */
-export const MAX_ARTIFACT_CONTENT_BYTES = 1_048_576;
+/** Max artifact source size in bytes across all plans. Plan-specific limits are enforced by billing guards. */
+export const MAX_ARTIFACT_CONTENT_BYTES = BILLING_PLANS.studio.entitlements.maxContentBytes;
 
 const artifactContentSchema = z
   .string()

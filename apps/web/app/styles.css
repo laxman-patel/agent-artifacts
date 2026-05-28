@@ -300,6 +300,51 @@ li span {
   text-decoration: none;
 }
 
+.pricing-grid,
+.usage-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+.pricing-card {
+  height: 100%;
+}
+
+.pricing-card.featured {
+  border-color: rgb(167 139 250 / 0.55);
+  box-shadow: 0 0 0 1px rgb(167 139 250 / 0.25);
+}
+
+.feature-list {
+  display: grid;
+  gap: 0.65rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.feature-list li {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.feature-list li::before {
+  color: #a78bfa;
+  content: "•";
+}
+
+.usage-tile {
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 18px;
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+}
+
 .version-list {
   display: grid;
   gap: 1.25rem;

@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { ArtifactAccess } from "@agent-artifacts/access";
+import type { BillingService } from "@agent-artifacts/billing";
 import type { ArtifactAction, ArtifactType, Principal } from "@agent-artifacts/shared";
 import { buildProjectArtifactUrl } from "@agent-artifacts/shared";
 import type { ArtifactStorage } from "@agent-artifacts/storage";
@@ -27,13 +28,23 @@ import { validateProjectSlug } from "./project.js";
 import { validateSlug } from "./slug.js";
 
 const textDecoder = new TextDecoder();
+const textEncoder = new TextEncoder();
+
+type ArtifactBillingGuard = Pick<
+  BillingService,
+  "assertCanCreateArtifact" | "assertCanWriteVersion" | "assertCanSetArtifactAccess"
+> & {
+  recordVersionWrite?(input: { ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }): Promise<void>;
+  recordDelivery?(input: { ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }): Promise<void>;
+};
 
 export class ArtifactService {
   constructor(
     private readonly repository: ArtifactRepository,
     private readonly storage: ArtifactStorage,
     private readonly appUrl: string,
-    private readonly access: ArtifactAccess
+    private readonly access: ArtifactAccess,
+    private readonly billing?: ArtifactBillingGuard
   ) {}
 
   async checkSlugAvailability(
@@ -70,6 +81,13 @@ export class ArtifactService {
     if (!available) {
       throw new SlugUnavailableError(normalizedSlug);
     }
+
+    const contentBytes = byteLength(parsed.content);
+    await this.billing?.assertCanCreateArtifact(owner.userId, {
+      publicView: parsed.access.publicView,
+      publicEdit: parsed.access.publicEdit,
+      contentBytes
+    });
 
     const artifactId = randomUUID();
     const versionId = randomUUID();
@@ -113,6 +131,12 @@ export class ArtifactService {
       slug: normalizedSlug,
       versionNumber: 1
     });
+    await this.billing?.recordVersionWrite?.({
+      ownerUserId: owner.userId,
+      artifactId,
+      versionNumber: 1,
+      contentBytes: content.contentBytes
+    });
 
     return {
       artifactId,
@@ -145,6 +169,9 @@ export class ArtifactService {
     }
 
     const nextVersionNumber = latestVersion.versionNumber + 1;
+    const projectedContentBytes = byteLength(parsed.content);
+    await this.billing?.assertCanWriteVersion(artifact.ownerUserId, { contentBytes: projectedContentBytes });
+
     const versionId = randomUUID();
     const content = await this.writeContent({
       ownerUserId: artifact.ownerUserId,
@@ -172,6 +199,12 @@ export class ArtifactService {
     await this.audit(artifact.ownerUserId, artifact.id, principal, "artifact.updated", "artifact_version", versionId, {
       previousVersionNumber: latestVersion.versionNumber,
       versionNumber: nextVersionNumber
+    });
+    await this.billing?.recordVersionWrite?.({
+      ownerUserId: artifact.ownerUserId,
+      artifactId: artifact.id,
+      versionNumber: nextVersionNumber,
+      contentBytes: content.contentBytes
     });
 
     return {
@@ -253,6 +286,12 @@ export class ArtifactService {
     await this.assertArtifactAction(artifact, principal, "artifact.view");
     const version = await this.requireVersion(artifact.id, versionNumber);
     const object = await this.storage.getObject(version.contentObjectKey);
+    await this.billing?.recordDelivery?.({
+      ownerUserId: artifact.ownerUserId,
+      artifactId: artifact.id,
+      versionNumber: version.versionNumber,
+      contentBytes: version.contentBytes
+    });
 
     return {
       artifact,
@@ -320,6 +359,11 @@ export class ArtifactService {
     const parsed = setArtifactAccessInputSchema.parse(input);
     const artifact = await this.requireArtifactById(artifactId);
     await this.assertArtifactAction(artifact, principal, "artifact.manage_access");
+    await this.billing?.assertCanSetArtifactAccess(artifact.ownerUserId, {
+      publicView: parsed.publicView,
+      publicEdit: parsed.publicEdit,
+      viewerEmails: parsed.viewerEmails
+    });
 
     const normalizedEmails = parsed.viewerEmails.map((email) => email.trim().toLowerCase());
 
@@ -430,7 +474,7 @@ export class ArtifactService {
     type: ArtifactType;
     content: string;
   }): Promise<{ contentObjectKey: string; contentSha256: string; contentBytes: number }> {
-    const encodedContent = new TextEncoder().encode(input.content);
+    const encodedContent = textEncoder.encode(input.content);
     const contentSha256 = createHash("sha256").update(encodedContent).digest("hex");
     const contentObjectKey = createVersionSourceKey(input);
 
@@ -468,4 +512,8 @@ export class ArtifactService {
       metadata
     });
   }
+}
+
+function byteLength(content: string): number {
+  return textEncoder.encode(content).byteLength;
 }

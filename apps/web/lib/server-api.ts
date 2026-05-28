@@ -21,6 +21,14 @@ type OwnerRoute = { ownerUsername: string; slug: string };
 type ArtifactVersion = { id: string; versionNumber: number; changelog: string | null; createdAt: string };
 type ShareLinkSummary = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
 type AuditEvent = { id: string; artifactId: string | null; actorPrincipalType: string; actorPrincipalId: string; action: string; targetType: string; targetId: string; metadata: Record<string, unknown>; createdAt: string };
+type BillingEntitlements = {
+  maxProjects: number | null; maxActiveArtifacts: number | null; maxContentBytes: number; includedStorageBytes: number;
+  includedDeliveryBytes: number; includedVersionWrites: number; includedSeats: number; privateArtifacts: boolean;
+  emailAllowlist: boolean; shareLinks: boolean; publicEditLinks: boolean; overageBilling: boolean;
+  auditRetentionDays: number; versionHistoryDays: number;
+};
+type BillingPlan = { id: "free" | "builder" | "studio"; name: string; monthlyPriceUsd: number; description: string; entitlements: BillingEntitlements };
+type BillingUsage = { projects: number; activeArtifacts: number; storageBytes: number; versionWritesThisMonth: number; deliveryBytesThisMonth: number };
 
 export interface ProfileMeResponse {
   user: { id: string; email: string; name: string; image: string | null; emailVerified: boolean };
@@ -132,6 +140,8 @@ export const fetchAuditEvents = (cookie: string, opts?: { artifactId?: string; l
   apiCall<{ events: AuditEvent[] }>("/api/audit-events", { cookie, query: { artifactId: opts?.artifactId, limit: opts?.limit } });
 export const fetchArtifactAccess = (artifactId: string, cookie: string) =>
   apiCall<{ publicView: boolean; publicEdit: boolean; viewerEmails: string[] }>(artifactApi(artifactId, "access"), { cookie });
+export const fetchBillingMe = (cookie: string) =>
+  apiCall<{ plan: BillingPlan; account: { planId: string; status: string; currentPeriodEnd?: string | null } | null; usage: BillingUsage }>("/api/billing/me", { cookie });
 
 export async function loadArtifactGate(
   username: string, projectSlug: string, slug: string, cookie: string | undefined, opts: { redirectPath: string }

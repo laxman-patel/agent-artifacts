@@ -15,6 +15,27 @@ export {
   type WorkspaceRoleResolver
 } from "./access.js";
 export {
+  createDrizzleInvitationService,
+  createWorkspaceInvitationInputSchema,
+  DrizzleInvitationRepository,
+  hashInvitationToken,
+  InvitationService,
+  invitableWorkspaceRoleSchema,
+  MemoryInvitationRepository,
+  WorkspaceInvitationConflictError,
+  WorkspaceInvitationExpiredError,
+  WorkspaceInvitationNotFoundError,
+  type CreatedWorkspaceInvitation,
+  type CreateWorkspaceInvitationInput,
+  type InvitationRepository,
+  type InvitableWorkspaceRole,
+  type PersistCreateInvitationInput,
+  type ResentWorkspaceInvitation,
+  type WorkspaceInvitationRecord,
+  type WorkspaceInvitationState,
+  type WorkspaceInvitationSummary
+} from "./invitation-service.js";
+export {
   createDrizzleWorkspaceService,
   createTeamWorkspaceInputSchema,
   DrizzleWorkspaceRepository,

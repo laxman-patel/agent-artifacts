@@ -11,6 +11,11 @@ import {
   UsernameAlreadySetError,
   UsernameTakenError
 } from "@agent-artifacts/artifact";
+import {
+  WorkspaceInvitationConflictError,
+  WorkspaceInvitationExpiredError,
+  WorkspaceInvitationNotFoundError
+} from "@agent-artifacts/workspace";
 import { ArtifactForbiddenError, WorkspaceForbiddenError, WorkspaceNotFoundError, WorkspaceSlugUnavailableError } from "@agent-artifacts/shared";
 import { z } from "zod";
 
@@ -23,12 +28,13 @@ export function artifactErrorResponse(c: Context, error: unknown) {
     error instanceof ArtifactNotFoundError ||
     error instanceof ProfileNotFoundError ||
     error instanceof ShareLinkNotFoundError ||
+    error instanceof WorkspaceInvitationNotFoundError ||
     error instanceof WorkspaceNotFoundError
   ) {
     return c.json({ error: "not_found", message: error.message }, 404);
   }
 
-  if (error instanceof ShareLinkExpiredError) {
+  if (error instanceof ShareLinkExpiredError || error instanceof WorkspaceInvitationExpiredError) {
     return c.json({ error: "gone", message: error.message }, 410);
   }
 
@@ -42,7 +48,8 @@ export function artifactErrorResponse(c: Context, error: unknown) {
     error instanceof ArtifactConflictError ||
     error instanceof UsernameAlreadySetError ||
     error instanceof UsernameTakenError ||
-    error instanceof WorkspaceSlugUnavailableError
+    error instanceof WorkspaceSlugUnavailableError ||
+    error instanceof WorkspaceInvitationConflictError
   ) {
     return c.json({ error: "conflict", message: error.message }, 409);
   }

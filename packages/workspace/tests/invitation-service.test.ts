@@ -1,0 +1,297 @@
+import { describe, expect, it } from "vitest";
+import type { Principal } from "@agent-artifacts/shared";
+import { WorkspaceForbiddenError } from "@agent-artifacts/shared";
+import { MemoryWorkspaceRoleResolver, createWorkspaceAccess } from "../src/access.js";
+import {
+  InvitationService,
+  MemoryInvitationRepository,
+  WorkspaceInvitationConflictError,
+  WorkspaceInvitationExpiredError,
+  WorkspaceInvitationNotFoundError,
+  hashInvitationToken
+} from "../src/invitation-service.js";
+import type {
+  PersistAddMemberInput,
+  WorkspaceMemberRecord,
+  WorkspaceRecord,
+  WorkspaceRepository
+} from "../src/workspace-service.js";
+
+class MemoryWorkspaceRepository implements WorkspaceRepository {
+  private readonly workspaces = new Map<string, WorkspaceRecord>();
+  private readonly members = new Map<string, WorkspaceMemberRecord>();
+
+  memberKey(workspaceId: string, userId: string): string {
+    return `${workspaceId}:${userId}`;
+  }
+
+  addWorkspace(workspace: WorkspaceRecord): void {
+    this.workspaces.set(workspace.id, workspace);
+  }
+
+  addMemberRecord(member: WorkspaceMemberRecord): void {
+    this.members.set(this.memberKey(member.workspaceId, member.userId), member);
+  }
+
+  async slugExists(): Promise<boolean> {
+    return false;
+  }
+
+  async usernameExists(): Promise<boolean> {
+    return false;
+  }
+
+  async getById(workspaceId: string): Promise<WorkspaceRecord | undefined> {
+    return this.workspaces.get(workspaceId);
+  }
+
+  async getBySlug(): Promise<WorkspaceRecord | undefined> {
+    return undefined;
+  }
+
+  async getPersonalWorkspaceForUser(): Promise<WorkspaceRecord | undefined> {
+    return undefined;
+  }
+
+  async createWorkspace(): Promise<void> {}
+
+  async addMember(input: PersistAddMemberInput): Promise<void> {
+    const now = new Date();
+    this.members.set(this.memberKey(input.workspaceId, input.userId), {
+      id: input.id,
+      workspaceId: input.workspaceId,
+      userId: input.userId,
+      role: input.role,
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  async listMembershipsForUser(): Promise<Array<WorkspaceRecord & { role: "owner" }>> {
+    return [];
+  }
+
+  async listMembers(): Promise<WorkspaceMemberRecord[]> {
+    return [...this.members.values()];
+  }
+
+  async getMembership(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | undefined> {
+    return this.members.get(this.memberKey(workspaceId, userId));
+  }
+}
+
+const workspaceId = "ws_team_1";
+const appUrl = "https://app.example.com";
+
+const owner: Principal = {
+  type: "user",
+  id: "user_owner",
+  ownerUserId: "user_owner",
+  email: "owner@example.com",
+  scopes: []
+};
+
+const invitee: Principal = {
+  type: "user",
+  id: "user_invitee",
+  ownerUserId: "user_invitee",
+  email: "invitee@example.com",
+  scopes: []
+};
+
+const intruder: Principal = {
+  type: "user",
+  id: "user_other",
+  ownerUserId: "user_other",
+  email: "other@example.com",
+  scopes: []
+};
+
+function createHarness() {
+  const workspaceRepository = new MemoryWorkspaceRepository();
+  workspaceRepository.addWorkspace({
+    id: workspaceId,
+    slug: "acme",
+    name: "Acme",
+    kind: "team",
+    personalUserId: null,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+
+  const invitationRepository = new MemoryInvitationRepository();
+  const roleResolver = new MemoryWorkspaceRoleResolver();
+  roleResolver.setMembership(workspaceId, owner.id, "owner");
+
+  const service = new InvitationService(
+    invitationRepository,
+    workspaceRepository,
+    createWorkspaceAccess(roleResolver),
+    appUrl
+  );
+
+  return { service, invitationRepository, workspaceRepository };
+}
+
+describe("InvitationService", () => {
+  it("creates an invitation when the inviter can manage members", async () => {
+    const { service } = createHarness();
+
+    const created = await service.createInvitation(workspaceId, "invitee@example.com", "member", owner);
+
+    expect(created.email).toBe("invitee@example.com");
+    expect(created.role).toBe("member");
+    expect(created.acceptUrl).toMatch(/^https:\/\/app\.example\.com\/workspace-invite\//);
+  });
+
+  it("denies invitation creation without manage_members permission", async () => {
+    const { service } = createHarness();
+
+    await expect(
+      service.createInvitation(workspaceId, "invitee@example.com", "member", intruder)
+    ).rejects.toThrow(WorkspaceForbiddenError);
+  });
+
+  it("rejects duplicate pending invitations for the same email", async () => {
+    const { service } = createHarness();
+
+    await service.createInvitation(workspaceId, "invitee@example.com", "member", owner);
+
+    await expect(
+      service.createInvitation(workspaceId, "invitee@example.com", "viewer", owner)
+    ).rejects.toThrow(WorkspaceInvitationConflictError);
+  });
+
+  it("accepts an invitation and creates membership", async () => {
+    const { service, invitationRepository, workspaceRepository } = createHarness();
+    const token = "invite-token-123";
+
+    await invitationRepository.create({
+      id: "inv_1",
+      workspaceId,
+      email: "invitee@example.com",
+      role: "admin",
+      tokenHash: hashInvitationToken(token),
+      invitedByUserId: owner.id,
+      expiresAt: new Date(Date.now() + 60_000)
+    });
+
+    const result = await service.acceptInvitation(token, invitee);
+
+    expect(result).toEqual({ workspaceId, role: "admin" });
+    const membership = await workspaceRepository.getMembership(workspaceId, invitee.id);
+    expect(membership?.role).toBe("admin");
+  });
+
+  it("rejects acceptance when the signed-in email does not match", async () => {
+    const { service, invitationRepository } = createHarness();
+    const token = "invite-token-456";
+
+    await invitationRepository.create({
+      id: "inv_2",
+      workspaceId,
+      email: "someone-else@example.com",
+      role: "member",
+      tokenHash: hashInvitationToken(token),
+      invitedByUserId: owner.id,
+      expiresAt: new Date(Date.now() + 60_000)
+    });
+
+    await expect(service.acceptInvitation(token, invitee)).rejects.toThrow(WorkspaceForbiddenError);
+  });
+
+  it("marks expired invitations and rejects acceptance", async () => {
+    const { service, invitationRepository } = createHarness();
+    const token = "expired-token";
+
+    await invitationRepository.create({
+      id: "inv_3",
+      workspaceId,
+      email: "invitee@example.com",
+      role: "member",
+      tokenHash: hashInvitationToken(token),
+      invitedByUserId: owner.id,
+      expiresAt: new Date(Date.now() - 60_000)
+    });
+
+    await expect(service.acceptInvitation(token, invitee)).rejects.toThrow(WorkspaceInvitationExpiredError);
+
+    const invitation = await invitationRepository.getById("inv_3");
+    expect(invitation?.state).toBe("expired");
+  });
+
+  it("revokes pending invitations for managers", async () => {
+    const { service, invitationRepository } = createHarness();
+    const token = "revoke-token";
+
+    await invitationRepository.create({
+      id: "inv_4",
+      workspaceId,
+      email: "invitee@example.com",
+      role: "member",
+      tokenHash: hashInvitationToken(token),
+      invitedByUserId: owner.id,
+      expiresAt: new Date(Date.now() + 60_000)
+    });
+
+    await service.revokeInvitation("inv_4", owner);
+
+    const invitation = await invitationRepository.getById("inv_4");
+    expect(invitation?.state).toBe("revoked");
+    expect(invitation?.revokedAt).toBeInstanceOf(Date);
+  });
+
+  it("resends pending invitations with a fresh token and expiry", async () => {
+    const { service, invitationRepository } = createHarness();
+    const originalToken = "original-token";
+    const originalExpiry = new Date(Date.now() + 60_000);
+
+    await invitationRepository.create({
+      id: "inv_5",
+      workspaceId,
+      email: "invitee@example.com",
+      role: "member",
+      tokenHash: hashInvitationToken(originalToken),
+      invitedByUserId: owner.id,
+      expiresAt: originalExpiry
+    });
+
+    const resent = await service.resendInvitation("inv_5", owner);
+
+    expect(resent.acceptUrl).toContain("/workspace-invite/");
+    expect(new Date(resent.expiresAt).getTime()).toBeGreaterThan(originalExpiry.getTime());
+
+    await expect(service.acceptInvitation(originalToken, invitee)).rejects.toThrow(
+      WorkspaceInvitationNotFoundError
+    );
+  });
+
+  it("lists non-expired pending invitations for managers", async () => {
+    const { service, invitationRepository } = createHarness();
+
+    await invitationRepository.create({
+      id: "inv_active",
+      workspaceId,
+      email: "active@example.com",
+      role: "member",
+      tokenHash: hashInvitationToken("active-token"),
+      invitedByUserId: owner.id,
+      expiresAt: new Date(Date.now() + 60_000)
+    });
+
+    await invitationRepository.create({
+      id: "inv_expired",
+      workspaceId,
+      email: "expired@example.com",
+      role: "viewer",
+      tokenHash: hashInvitationToken("expired-token"),
+      invitedByUserId: owner.id,
+      expiresAt: new Date(Date.now() - 60_000)
+    });
+
+    const invitations = await service.listPendingInvitations(workspaceId, owner);
+
+    expect(invitations).toHaveLength(1);
+    expect(invitations[0]?.email).toBe("active@example.com");
+  });
+});

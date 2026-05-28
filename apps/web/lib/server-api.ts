@@ -60,6 +60,9 @@ export interface WorkspaceMemberSummary {
   id: string;
   workspaceId: string;
   userId: string;
+  email?: string | null;
+  name?: string | null;
+  displayName?: string | null;
   role: WorkspaceRole;
   createdAt: string;
   updatedAt: string;
@@ -216,6 +219,24 @@ export const createWorkspace = (cookie: string, body: { slug: string; name: stri
 export const fetchWorkspaceMembers = (workspaceId: string, cookie: string) =>
   apiCall<{ members: WorkspaceMemberSummary[] }>(`${workspaceApi(workspaceId)}/members`, { cookie });
 
+export const updateWorkspaceMemberRole = (
+  workspaceId: string,
+  cookie: string,
+  userId: string,
+  role: WorkspaceRole
+) =>
+  apiCall<{ member: WorkspaceMemberSummary }>(`${workspaceApi(workspaceId)}/members/${encodeURIComponent(userId)}`, {
+    cookie,
+    method: "PATCH",
+    body: { role }
+  });
+
+export const removeWorkspaceMember = (workspaceId: string, cookie: string, userId: string) =>
+  apiCall<{ removed: true }>(`${workspaceApi(workspaceId)}/members/${encodeURIComponent(userId)}`, {
+    cookie,
+    method: "DELETE"
+  });
+
 export const fetchWorkspaceProjects = (workspaceId: string, cookie: string) =>
   apiCall<{ projects: WorkspaceProjectSummary[] }>(`${workspaceApi(workspaceId)}/projects`, { cookie });
 
@@ -244,6 +265,18 @@ export const acceptWorkspaceInvitation = (cookie: string, token: string) =>
     method: "POST",
     body: { token }
   });
+
+export const revokeWorkspaceInvitation = (cookie: string, invitationId: string) =>
+  apiCall<{ revoked: true }>(`/api/workspace-invitations/${encodeURIComponent(invitationId)}/revoke`, {
+    cookie,
+    method: "POST"
+  });
+
+export const resendWorkspaceInvitation = (cookie: string, invitationId: string) =>
+  apiCall<{ invitation: { id: string; acceptUrl: string; expiresAt: string } }>(
+    `/api/workspace-invitations/${encodeURIComponent(invitationId)}/resend`,
+    { cookie, method: "POST" }
+  );
 
 export async function resolveWorkspaceBySlug(
   cookie: string,

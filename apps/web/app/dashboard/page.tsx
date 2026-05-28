@@ -58,9 +58,14 @@ export default async function DashboardPage() {
           <h1>Dashboard</h1>
           <p className="subtle">Projects and artifacts owned by your signed-in account.</p>
         </div>
-        <Link className="ghost-button" href="/settings/account">
-          Account settings
-        </Link>
+        <div className="row-actions">
+          <Link className="ghost-button" href="/workspaces/new">
+            New workspace
+          </Link>
+          <Link className="ghost-button" href="/settings/account">
+            Account settings
+          </Link>
+        </div>
       </header>
 
       {loadWarnings.length > 0 ? (

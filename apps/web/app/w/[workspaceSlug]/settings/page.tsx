@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { WorkspaceInvitationActions } from "../../../components/workspace-invitation-actions";
 import { WorkspaceInviteForm } from "../../../components/workspace-invite-form";
+import { WorkspaceMemberActions } from "../../../components/workspace-member-actions";
 import {
   cookieHeader,
   fetchWorkspaceAuditEvents,
@@ -74,9 +76,13 @@ export default async function WorkspaceSettingsPage(props: {
               {members.map((member) => (
                 <li key={member.id}>
                   <div>
-                    <strong>{member.userId}</strong>
-                    <p className="muted small">{member.role}</p>
+                    <strong>{member.displayName ?? member.name ?? member.email ?? member.userId}</strong>
+                    <p className="muted small">
+                      {member.email ? `${member.email} · ` : null}
+                      {member.userId}
+                    </p>
                   </div>
+                  <WorkspaceMemberActions workspaceId={workspace.id} userId={member.userId} role={member.role} />
                 </li>
               ))}
             </ul>
@@ -97,6 +103,7 @@ export default async function WorkspaceSettingsPage(props: {
                       {invitation.role} · expires {new Date(invitation.expiresAt).toLocaleDateString()}
                     </p>
                   </div>
+                  <WorkspaceInvitationActions invitationId={invitation.id} />
                 </li>
               ))}
             </ul>

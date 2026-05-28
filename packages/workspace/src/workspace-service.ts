@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
-import { userProfiles, workspaceMembers, workspaces } from "@agent-artifacts/db";
+import { users, userProfiles, workspaceMembers, workspaces } from "@agent-artifacts/db";
 import type {
   Principal,
   WorkspaceKind,
@@ -32,6 +32,9 @@ export interface WorkspaceMemberRecord {
   id: string;
   workspaceId: string;
   userId: string;
+  email?: string | null;
+  name?: string | null;
+  displayName?: string | null;
   role: WorkspaceRole;
   createdAt: Date;
   updatedAt: Date;
@@ -291,11 +294,16 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
         id: workspaceMembers.id,
         workspaceId: workspaceMembers.workspaceId,
         userId: workspaceMembers.userId,
+        email: users.email,
+        name: users.name,
+        displayName: userProfiles.displayName,
         role: workspaceMembers.role,
         createdAt: workspaceMembers.createdAt,
         updatedAt: workspaceMembers.updatedAt
       })
       .from(workspaceMembers)
+      .leftJoin(users, eq(users.id, workspaceMembers.userId))
+      .leftJoin(userProfiles, eq(userProfiles.userId, workspaceMembers.userId))
       .where(eq(workspaceMembers.workspaceId, workspaceId));
   }
 

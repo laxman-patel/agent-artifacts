@@ -60,6 +60,12 @@ export function WorkspaceSwitcher(props: { workspaces: WorkspaceSummary[] }) {
             </li>
           );
         })}
+        <li>
+          <Link href="/workspaces/new">
+            <span>Create workspace</span>
+            <span className="muted small">New team namespace</span>
+          </Link>
+        </li>
       </ul>
     </details>
   );

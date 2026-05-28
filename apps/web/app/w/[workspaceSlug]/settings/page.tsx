@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { WorkspaceInviteForm } from "../../../components/workspace-invite-form";
 import {
   cookieHeader,
+  fetchWorkspaceAuditEvents,
   fetchWorkspaceInvitations,
   fetchWorkspaceMembers,
   resolveWorkspaceBySlug,
@@ -37,14 +38,16 @@ export default async function WorkspaceSettingsPage(props: {
     redirect("/settings/account");
   }
 
-  const [membersResult, invitationsResult] = await Promise.all([
+  const [membersResult, invitationsResult, auditResult] = await Promise.all([
     fetchWorkspaceMembers(workspace.id, header),
-    fetchWorkspaceInvitations(workspace.id, header)
+    fetchWorkspaceInvitations(workspace.id, header),
+    fetchWorkspaceAuditEvents(workspace.id, header)
   ]);
 
   const canManageMembers = membersResult.ok;
   const members = membersResult.ok ? membersResult.body.members : [];
   const invitations = invitationsResult.ok ? invitationsResult.body.invitations : [];
+  const auditEvents = auditResult.ok ? auditResult.body.events : [];
 
   return (
     <main className="page-shell">
@@ -107,6 +110,36 @@ export default async function WorkspaceSettingsPage(props: {
             <h2>Invite teammate</h2>
             <p className="muted">Send an email invitation to join this team workspace.</p>
             <WorkspaceInviteForm workspaceId={workspace.id} />
+          </div>
+        </section>
+      ) : null}
+
+      {canManageMembers ? (
+        <section className="card flat stack">
+          <div>
+            <h2>Audit log</h2>
+            {auditEvents.length === 0 ? (
+              <p className="muted">No workspace audit events yet.</p>
+            ) : (
+              <table className="audit-table">
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Action</th>
+                    <th>Actor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditEvents.map((event) => (
+                    <tr key={event.id}>
+                      <td>{new Date(event.createdAt).toLocaleString()}</td>
+                      <td>{event.action}</td>
+                      <td className="muted">{event.actorPrincipalType}:{event.actorPrincipalId}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </section>
       ) : null}

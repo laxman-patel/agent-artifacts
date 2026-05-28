@@ -225,6 +225,9 @@ export const fetchWorkspaceArtifacts = (workspaceId: string, cookie: string) =>
 export const fetchWorkspaceInvitations = (workspaceId: string, cookie: string) =>
   apiCall<{ invitations: WorkspaceInvitationSummary[] }>(`${workspaceApi(workspaceId)}/invitations`, { cookie });
 
+export const fetchWorkspaceAuditEvents = (workspaceId: string, cookie: string, limit = 50) =>
+  apiCall<{ events: AuditEvent[] }>(`${workspaceApi(workspaceId)}/audit-events`, { cookie, query: { limit } });
+
 export const createWorkspaceInvitation = (
   workspaceId: string,
   cookie: string,

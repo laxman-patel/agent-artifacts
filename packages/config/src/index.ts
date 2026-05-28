@@ -18,7 +18,10 @@ export const serverEnvSchema = z.object({
   BETTER_STACK_SOURCE_TOKEN: z.string().min(1).optional(),
   BETTER_STACK_INGESTING_URL: urlSchema.optional(),
   BETTER_STACK_WEB_SOURCE_TOKEN: z.string().min(1).optional(),
-  LOG_IP_SALT: z.string().min(1).optional()
+  LOG_IP_SALT: z.string().min(1).optional(),
+  DODO_PAYMENTS_API_KEY: z.string().min(1).optional(),
+  DODO_STUDIO_PRODUCT_ID: z.string().min(1).optional(),
+  DODO_EXTRA_SEAT_PRODUCT_ID: z.string().min(1).optional()
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

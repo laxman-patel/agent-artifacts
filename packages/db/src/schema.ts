@@ -352,6 +352,28 @@ export const shareLinks = pgTable(
   })
 );
 
+export const billableSubjectType = pgEnum("billable_subject_type", ["personal", "workspace"]);
+
+export const billableAccounts = pgTable(
+  "billable_accounts",
+  {
+    id: text("id").primaryKey(),
+    subjectType: billableSubjectType("subject_type").notNull(),
+    subjectId: text("subject_id").notNull(),
+    dodoCustomerId: text("dodo_customer_id"),
+    dodoSubscriptionId: text("dodo_subscription_id"),
+    planId: text("plan_id"),
+    includedSeats: integer("included_seats").default(0).notNull(),
+    extraSeats: integer("extra_seats").default(0).notNull(),
+    status: text("status").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    subjectUnique: uniqueIndex("billable_accounts_subject_unique").on(table.subjectType, table.subjectId)
+  })
+);
+
 export const auditEvents = pgTable(
   "audit_events",
   {

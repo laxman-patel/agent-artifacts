@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
+import { createWorkspaceProjectInputSchema } from "@agent-artifacts/artifact";
 import { createTeamWorkspaceInputSchema, changeMemberRoleInputSchema } from "@agent-artifacts/workspace";
-import { getMembershipService, getWorkspaceService } from "../deps.js";
+import { getArtifactService, getMembershipService, getProjectService, getWorkspaceService } from "../deps.js";
 import { handle } from "../http/handler.js";
 import { requirePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
@@ -40,6 +41,55 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
       const workspace = await getWorkspaceService().getWorkspace(c.req.param("workspaceId"), principal);
 
       return { body: { workspace } };
+    })
+  );
+
+  app.get("/api/workspaces/:workspaceId/projects", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const workspaceId = c.req.param("workspaceId");
+      const projects = await getProjectService().listWorkspaceProjects(workspaceId, principal);
+
+      return { body: { projects } };
+    })
+  );
+
+  app.get("/api/workspaces/:workspaceId/projects/slug-availability/:slug", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const result = await getProjectService().checkWorkspaceProjectSlugAvailability(
+        c.req.param("workspaceId"),
+        c.req.param("slug"),
+        principal
+      );
+
+      return result;
+    })
+  );
+
+  app.post("/api/workspaces/:workspaceId/projects", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const workspaceId = c.req.param("workspaceId");
+      const workspace = await getWorkspaceService().getWorkspace(workspaceId, principal);
+      const body = createWorkspaceProjectInputSchema.parse(await c.req.json());
+      const project = await getProjectService().createWorkspaceProject(
+        workspaceId,
+        workspace.slug,
+        body,
+        principal
+      );
+
+      return { body: { project }, status: 201 };
+    })
+  );
+
+  app.get("/api/workspaces/:workspaceId/artifacts", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const artifacts = await getArtifactService().listWorkspaceArtifacts(c.req.param("workspaceId"), principal);
+
+      return { body: { artifacts } };
     })
   );
 

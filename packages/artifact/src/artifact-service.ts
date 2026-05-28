@@ -48,7 +48,11 @@ export class ArtifactService {
     await this.access.assertAuthorized({
       principal,
       action: "artifact.create",
-      context: { kind: "namespace", ownerUserId: owner.userId }
+      context: {
+        kind: "namespace",
+        ownerUserId: owner.userId,
+        workspaceId: project.workspaceId ?? undefined
+      }
     });
     const available = !(await this.repository.slugExistsInProject(project.id, normalizedSlug));
 
@@ -58,13 +62,16 @@ export class ArtifactService {
   async createArtifact(input: CreateArtifactInput, principal: Principal): Promise<ArtifactSummary> {
     const parsed = createArtifactInputSchema.parse(input);
     const owner = await this.requireOwner(parsed.ownerUsername);
+    const project = await this.requireProject(owner.username, parsed.projectSlug);
     await this.access.assertAuthorized({
       principal,
       action: "artifact.create",
-      context: { kind: "namespace", ownerUserId: owner.userId }
+      context: {
+        kind: "namespace",
+        ownerUserId: owner.userId,
+        workspaceId: project.workspaceId ?? undefined
+      }
     });
-
-    const project = await this.requireProject(owner.username, parsed.projectSlug);
     const normalizedSlug = validateSlug(parsed.slug);
     const available = !(await this.repository.slugExistsInProject(project.id, normalizedSlug));
     if (!available) {
@@ -270,6 +277,24 @@ export class ArtifactService {
     return this.repository.listVersions(artifactId, Math.min(Math.max(limit, 1), 100));
   }
 
+  async listWorkspaceArtifacts(workspaceId: string, principal: Principal): Promise<ArtifactRecord[]> {
+    const artifacts = await this.repository.listArtifactsForWorkspace(workspaceId);
+    const visible: ArtifactRecord[] = [];
+
+    for (const artifact of artifacts) {
+      const decision = await this.access.authorize({
+        principal,
+        action: "artifact.view",
+        context: { kind: "artifact", artifact: this.artifactRoleContext(artifact) }
+      });
+      if (decision.allowed) {
+        visible.push(artifact);
+      }
+    }
+
+    return visible;
+  }
+
   async listOwnedArtifacts(principal: Principal): Promise<ArtifactRecord[]> {
     if (principal.type !== "user") {
       throw new ArtifactForbiddenError("Only signed-in users can list owned artifacts.");
@@ -379,7 +404,10 @@ export class ArtifactService {
     return owner;
   }
 
-  private async requireProject(ownerUsername: string, projectSlug: string): Promise<{ id: string; slug: string }> {
+  private async requireProject(
+    ownerUsername: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string | null }> {
     const project = await this.repository.getProjectByOwnerSlug(ownerUsername, validateProjectSlug(projectSlug));
     if (!project) {
       throw new ArtifactNotFoundError();
@@ -418,6 +446,7 @@ export class ArtifactService {
     return {
       id: artifact.id,
       ownerUserId: artifact.ownerUserId,
+      workspaceId: artifact.workspaceId,
       publicView: artifact.publicView,
       publicEdit: artifact.publicEdit
     };

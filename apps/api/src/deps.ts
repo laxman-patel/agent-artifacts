@@ -18,6 +18,9 @@ import {
   createDrizzleInvitationService,
   createDrizzleMembershipService,
   createDrizzleWorkspaceService,
+  createWorkspaceAccess,
+  DrizzleWorkspaceRepository,
+  DrizzleWorkspaceRoleResolver,
   type InvitationService,
   type MembershipService,
   type WorkspaceService
@@ -98,7 +101,14 @@ export function getProjectService() {
     const env = loadServerEnv();
     const db = getDb();
     const roleResolver = new DrizzleArtifactRoleResolver(db);
-    return new ProjectService(new DrizzleProjectRepository(db), env.PUBLIC_APP_URL, createArtifactAccess(roleResolver));
+    const workspaceRepository = new DrizzleWorkspaceRepository(db);
+    const workspaceAccess = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(workspaceRepository));
+    return new ProjectService(
+      new DrizzleProjectRepository(db),
+      env.PUBLIC_APP_URL,
+      createArtifactAccess(roleResolver),
+      workspaceAccess
+    );
   })();
 
   return projectServiceInstance;

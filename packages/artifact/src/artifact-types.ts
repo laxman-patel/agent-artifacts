@@ -78,7 +78,10 @@ export interface ArtifactSummary {
 
 export interface ArtifactRepository {
   getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined>;
-  getProjectByOwnerSlug(username: string, projectSlug: string): Promise<{ id: string; slug: string } | undefined>;
+  getProjectByOwnerSlug(
+    username: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string | null } | undefined>;
   slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean>;
   getArtifactById(artifactId: string): Promise<ArtifactRecord | undefined>;
   getArtifactByOwnerProjectSlug(
@@ -93,6 +96,7 @@ export interface ArtifactRepository {
   createAuditEvent(input: PersistAuditEventInput): Promise<void>;
   listArtifactsForOwner(ownerUserId: string): Promise<ArtifactRecord[]>;
   listArtifactsForProject(projectId: string): Promise<ArtifactRecord[]>;
+  listArtifactsForWorkspace(workspaceId: string): Promise<ArtifactRecord[]>;
   listViewerEmailsForArtifact(artifactId: string): Promise<string[]>;
   replaceArtifactEmailAccess(input: ReplaceArtifactEmailAccessInput): Promise<void>;
   softDeleteArtifact(artifactId: string): Promise<void>;
@@ -136,6 +140,7 @@ export interface ArtifactRecord {
   ownerUsername: string;
   projectId: string;
   projectSlug: string;
+  workspaceId: string | null;
   slug: string;
   title: string;
   description: string | null;

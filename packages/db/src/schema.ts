@@ -235,6 +235,9 @@ export const projects = pgTable(
     ownerSlugUnique: uniqueIndex("projects_owner_slug_unique").on(table.ownerUserId, sql`lower(${table.slug})`),
     ownerIdx: index("projects_owner_idx").on(table.ownerUserId),
     workspaceIdx: index("projects_workspace_idx").on(table.workspaceId),
+    workspaceSlugUnique: uniqueIndex("projects_workspace_slug_unique")
+      .on(table.workspaceId, sql`lower(${table.slug})`)
+      .where(sql`${table.workspaceId} IS NOT NULL`),
     slugFormat: check(
       "projects_slug_format",
       sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND length(${table.slug}) BETWEEN 1 AND 80`

@@ -28,8 +28,19 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
   async getProjectByOwnerSlug(
     username: string,
     projectSlug: string
-  ): Promise<{ id: string; slug: string } | undefined> {
-    return getProjectIdByOwnerSlug(this.db, username, projectSlug);
+  ): Promise<{ id: string; slug: string; workspaceId: string | null } | undefined> {
+    const match = await getProjectIdByOwnerSlug(this.db, username, projectSlug);
+    if (!match) {
+      return undefined;
+    }
+
+    const [project] = await this.db
+      .select({ id: projects.id, slug: projects.slug, workspaceId: projects.workspaceId })
+      .from(projects)
+      .where(eq(projects.id, match.id))
+      .limit(1);
+
+    return project;
   }
 
   async slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean> {
@@ -138,6 +149,12 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
       .orderBy(desc(artifacts.updatedAt));
   }
 
+  async listArtifactsForWorkspace(workspaceId: string): Promise<ArtifactRecord[]> {
+    return this.artifactQuery()
+      .where(and(eq(projects.workspaceId, workspaceId), eq(artifacts.state, "active")))
+      .orderBy(desc(artifacts.updatedAt));
+  }
+
   private artifactQuery() {
     return this.db
       .select({
@@ -146,6 +163,7 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
         ownerUsername: userProfiles.username,
         projectId: artifacts.projectId,
         projectSlug: projects.slug,
+        workspaceId: projects.workspaceId,
         slug: artifacts.slug,
         title: artifacts.title,
         description: artifacts.description,

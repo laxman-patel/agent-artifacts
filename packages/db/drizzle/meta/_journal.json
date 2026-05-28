@@ -71,6 +71,13 @@
       "when": 1779600000000,
       "tag": "0009_backfill_personal_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779700000000,
+      "tag": "0010_workspace_project_slug_unique",
+      "breakpoints": true
     }
   ]
 }

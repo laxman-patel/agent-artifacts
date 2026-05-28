@@ -14,7 +14,7 @@ export const roleRank: Record<ArtifactRole, number> = {
 
 const actionMinimumRole: Record<ArtifactAction, ArtifactRole> = {
   "artifact.view": "viewer",
-  "artifact.create": "owner",
+  "artifact.create": "admin",
   "project.view": "viewer",
   "artifact.update": "editor",
   "artifact.restore": "editor",

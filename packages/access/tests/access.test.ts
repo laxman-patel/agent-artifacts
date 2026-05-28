@@ -46,7 +46,7 @@ describe("authorize", () => {
 
     expect(decision.allowed).toBe(false);
     if (!decision.allowed) {
-      expect(decision.reason).toContain("owner");
+      expect(decision.reason).toContain("admin");
     }
   });
 

@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
-import { createTeamWorkspaceInputSchema } from "@agent-artifacts/workspace";
-import { getWorkspaceService } from "../deps.js";
+import { createTeamWorkspaceInputSchema, changeMemberRoleInputSchema } from "@agent-artifacts/workspace";
+import { getMembershipService, getWorkspaceService } from "../deps.js";
 import { handle } from "../http/handler.js";
 import { requirePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
@@ -49,6 +49,34 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
       const members = await getWorkspaceService().listMembers(c.req.param("workspaceId"), principal);
 
       return { body: { members } };
+    })
+  );
+
+  app.patch("/api/workspaces/:workspaceId/members/:userId", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const body = changeMemberRoleInputSchema.parse(await c.req.json());
+      const member = await getMembershipService().changeMemberRole(
+        c.req.param("workspaceId"),
+        c.req.param("userId"),
+        body.role,
+        principal
+      );
+
+      return { body: { member } };
+    })
+  );
+
+  app.delete("/api/workspaces/:workspaceId/members/:userId", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      await getMembershipService().removeMember(
+        c.req.param("workspaceId"),
+        c.req.param("userId"),
+        principal
+      );
+
+      return { body: { removed: true } };
     })
   );
 }

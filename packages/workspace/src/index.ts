@@ -36,6 +36,14 @@ export {
   type WorkspaceInvitationSummary
 } from "./invitation-service.js";
 export {
+  changeMemberRoleInputSchema,
+  createDrizzleMembershipService,
+  MembershipService,
+  WorkspaceMemberConflictError,
+  WorkspaceMemberNotFoundError,
+  type ChangeMemberRoleInput
+} from "./membership-service.js";
+export {
   createDrizzleWorkspaceService,
   createTeamWorkspaceInputSchema,
   DrizzleWorkspaceRepository,

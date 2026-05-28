@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Principal } from "@agent-artifacts/shared";
+import type { Principal, WorkspaceRole } from "@agent-artifacts/shared";
 import { WorkspaceForbiddenError } from "@agent-artifacts/shared";
 import { MemoryWorkspaceRoleResolver, createWorkspaceAccess } from "../src/access.js";
 import {
@@ -77,6 +77,23 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
 
   async getMembership(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | undefined> {
     return this.members.get(this.memberKey(workspaceId, userId));
+  }
+
+  async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void> {
+    const member = this.members.get(this.memberKey(workspaceId, userId));
+    if (!member) {
+      return;
+    }
+
+    this.members.set(this.memberKey(workspaceId, userId), {
+      ...member,
+      role,
+      updatedAt: new Date()
+    });
+  }
+
+  async removeMember(workspaceId: string, userId: string): Promise<void> {
+    this.members.delete(this.memberKey(workspaceId, userId));
   }
 }
 

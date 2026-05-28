@@ -16,8 +16,10 @@ import { S3ArtifactStorage } from "@agent-artifacts/storage";
 import type { Principal } from "@agent-artifacts/shared";
 import {
   createDrizzleInvitationService,
+  createDrizzleMembershipService,
   createDrizzleWorkspaceService,
   type InvitationService,
+  type MembershipService,
   type WorkspaceService
 } from "@agent-artifacts/workspace";
 import { logger } from "./logger.js";
@@ -37,6 +39,7 @@ let shareLinkServiceInstance: ShareLinkService | undefined;
 let auditServiceInstance: AuditService | undefined;
 let workspaceServiceInstance: WorkspaceService | undefined;
 let invitationServiceInstance: InvitationService | undefined;
+let membershipServiceInstance: MembershipService | undefined;
 let dbInstance: Database | undefined;
 
 export function getDb() {
@@ -124,4 +127,9 @@ export function getWorkspaceService() {
 export function getInvitationService() {
   invitationServiceInstance ??= createDrizzleInvitationService(getDb(), loadServerEnv().PUBLIC_APP_URL);
   return invitationServiceInstance;
+}
+
+export function getMembershipService() {
+  membershipServiceInstance ??= createDrizzleMembershipService(getDb());
+  return membershipServiceInstance;
 }

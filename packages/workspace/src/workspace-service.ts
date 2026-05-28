@@ -48,6 +48,8 @@ export interface WorkspaceRepository {
   listMembershipsForUser(userId: string): Promise<Array<WorkspaceRecord & { role: WorkspaceRole }>>;
   listMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]>;
   getMembership(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | undefined>;
+  updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void>;
+  removeMember(workspaceId: string, userId: string): Promise<void>;
 }
 
 export interface PersistCreateWorkspaceInput {
@@ -312,6 +314,19 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       .limit(1);
 
     return member;
+  }
+
+  async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void> {
+    await this.db
+      .update(workspaceMembers)
+      .set({ role, updatedAt: new Date() })
+      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)));
+  }
+
+  async removeMember(workspaceId: string, userId: string): Promise<void> {
+    await this.db
+      .delete(workspaceMembers)
+      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)));
   }
 
   private toRecord(workspace: typeof workspaces.$inferSelect): WorkspaceRecord {

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { ArtifactAccess } from "@agent-artifacts/access";
 import type { ArtifactAction, ArtifactType, Principal } from "@agent-artifacts/shared";
-import { buildProjectArtifactUrl } from "@agent-artifacts/shared";
+import { buildProjectArtifactUrl, buildWorkspaceProjectArtifactUrl } from "@agent-artifacts/shared";
 import type { ArtifactStorage } from "@agent-artifacts/storage";
 import { createVersionSourceKey } from "@agent-artifacts/storage";
 import { createTwoFilesPatch } from "diff";
@@ -12,6 +12,7 @@ import {
   SlugUnavailableError,
   contentTypeForArtifact,
   createArtifactInputSchema,
+  createWorkspaceArtifactInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema,
   type ArtifactAccessSnapshot,
@@ -20,6 +21,7 @@ import {
   type ArtifactSummary,
   type ArtifactVersionRecord,
   type CreateArtifactInput,
+  type CreateWorkspaceArtifactInput,
   type SetArtifactAccessInput,
   type UpdateArtifactInput
 } from "./artifact-types.js";
@@ -141,6 +143,92 @@ export class ArtifactService {
     };
   }
 
+  async createWorkspaceArtifact(
+    workspaceId: string,
+    workspaceSlug: string,
+    input: CreateWorkspaceArtifactInput,
+    principal: Principal
+  ): Promise<ArtifactSummary> {
+    const parsed = createWorkspaceArtifactInputSchema.parse(input);
+    const project = await this.requireWorkspaceProject(workspaceId, parsed.projectSlug);
+    await this.access.assertAuthorized({
+      principal,
+      action: "artifact.create",
+      context: {
+        kind: "namespace",
+        ownerUserId: project.ownerUserId,
+        workspaceId: project.workspaceId
+      }
+    });
+    const normalizedSlug = validateSlug(parsed.slug);
+    const available = !(await this.repository.slugExistsInProject(project.id, normalizedSlug));
+    if (!available) {
+      throw new SlugUnavailableError(normalizedSlug);
+    }
+
+    const artifactId = randomUUID();
+    const versionId = randomUUID();
+    const content = await this.writeContent({
+      ownerUserId: project.ownerUserId,
+      artifactId,
+      versionNumber: 1,
+      type: parsed.type,
+      content: parsed.content
+    });
+
+    await this.repository.createArtifact({
+      artifact: {
+        id: artifactId,
+        ownerUserId: project.ownerUserId,
+        projectId: project.id,
+        slug: normalizedSlug,
+        title: parsed.title,
+        description: parsed.description,
+        type: parsed.type,
+        latestVersionId: versionId,
+        createdByPrincipalType: principal.type,
+        createdByPrincipalId: principal.id,
+        publicView: parsed.access.publicView,
+        publicEdit: parsed.access.publicEdit
+      },
+      version: {
+        id: versionId,
+        artifactId,
+        versionNumber: 1,
+        contentObjectKey: content.contentObjectKey,
+        contentSha256: content.contentSha256,
+        contentBytes: content.contentBytes,
+        changelog: parsed.changelog,
+        createdByPrincipalType: principal.type,
+        createdByPrincipalId: principal.id
+      }
+    });
+
+    await this.audit(project.ownerUserId, artifactId, principal, "artifact.created", "artifact", artifactId, {
+      slug: normalizedSlug,
+      versionNumber: 1
+    }, project.workspaceId);
+
+    return {
+      artifactId,
+      versionId,
+      versionNumber: 1,
+      ownerUserId: project.ownerUserId,
+      ownerUsername: workspaceSlug,
+      projectId: project.id,
+      projectSlug: project.slug,
+      normalizedSlug,
+      type: parsed.type,
+      title: parsed.title,
+      url: buildWorkspaceProjectArtifactUrl(this.appUrl, workspaceSlug, project.slug, normalizedSlug),
+      contentObjectKey: content.contentObjectKey,
+      contentSha256: content.contentSha256,
+      contentBytes: content.contentBytes,
+      publicView: parsed.access.publicView,
+      publicEdit: parsed.access.publicEdit
+    };
+  }
+
   async updateArtifact(input: UpdateArtifactInput, principal: Principal): Promise<ArtifactSummary> {
     const parsed = updateArtifactInputSchema.parse(input);
     const artifact = await this.requireArtifactById(parsed.artifactId);
@@ -209,6 +297,25 @@ export class ArtifactService {
   ): Promise<ArtifactRecord> {
     const artifact = await this.repository.getArtifactByOwnerProjectSlug(
       username,
+      validateProjectSlug(projectSlug),
+      validateSlug(slug)
+    );
+    if (!artifact || artifact.state !== "active") {
+      throw new ArtifactNotFoundError();
+    }
+
+    await this.assertArtifactAction(artifact, principal, "artifact.view");
+    return artifact;
+  }
+
+  async getArtifactByWorkspacePath(
+    workspaceId: string,
+    projectSlug: string,
+    slug: string,
+    principal: Principal
+  ): Promise<ArtifactRecord> {
+    const artifact = await this.repository.getArtifactByWorkspaceProjectSlug(
+      workspaceId,
       validateProjectSlug(projectSlug),
       validateSlug(slug)
     );
@@ -407,8 +514,20 @@ export class ArtifactService {
   private async requireProject(
     ownerUsername: string,
     projectSlug: string
-  ): Promise<{ id: string; slug: string; workspaceId: string | null }> {
+  ): Promise<{ id: string; slug: string; workspaceId: string | null; ownerUserId: string }> {
     const project = await this.repository.getProjectByOwnerSlug(ownerUsername, validateProjectSlug(projectSlug));
+    if (!project) {
+      throw new ArtifactNotFoundError();
+    }
+
+    return project;
+  }
+
+  private async requireWorkspaceProject(
+    workspaceId: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string; ownerUserId: string }> {
+    const project = await this.repository.getProjectByWorkspaceSlug(workspaceId, validateProjectSlug(projectSlug));
     if (!project) {
       throw new ArtifactNotFoundError();
     }

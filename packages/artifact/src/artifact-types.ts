@@ -34,6 +34,12 @@ export const createArtifactInputSchema = z.object({
 
 export type CreateArtifactInput = z.infer<typeof createArtifactInputSchema>;
 
+export const createWorkspaceArtifactInputSchema = createArtifactInputSchema.omit({
+  ownerUsername: true
+});
+
+export type CreateWorkspaceArtifactInput = z.infer<typeof createWorkspaceArtifactInputSchema>;
+
 export const updateArtifactInputSchema = z.object({
   artifactId: z.string().min(1),
   content: artifactContentSchema,
@@ -81,11 +87,20 @@ export interface ArtifactRepository {
   getProjectByOwnerSlug(
     username: string,
     projectSlug: string
-  ): Promise<{ id: string; slug: string; workspaceId: string | null } | undefined>;
+  ): Promise<{ id: string; slug: string; workspaceId: string | null; ownerUserId: string } | undefined>;
+  getProjectByWorkspaceSlug(
+    workspaceId: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string; ownerUserId: string } | undefined>;
   slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean>;
   getArtifactById(artifactId: string): Promise<ArtifactRecord | undefined>;
   getArtifactByOwnerProjectSlug(
     username: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord | undefined>;
+  getArtifactByWorkspaceProjectSlug(
+    workspaceId: string,
     projectSlug: string,
     slug: string
   ): Promise<ArtifactRecord | undefined>;

@@ -154,6 +154,19 @@ export function buildWorkspaceUrl(appUrl: string, workspaceSlug: string): string
   return `${base}/w/${workspaceSlug}`;
 }
 
+export function buildWorkspaceProjectUrl(appUrl: string, workspaceSlug: string, projectSlug: string): string {
+  return `${buildWorkspaceUrl(appUrl, workspaceSlug)}/${projectSlug}`;
+}
+
+export function buildWorkspaceProjectArtifactUrl(
+  appUrl: string,
+  workspaceSlug: string,
+  projectSlug: string,
+  artifactSlug: string
+): string {
+  return `${buildWorkspaceProjectUrl(appUrl, workspaceSlug, projectSlug)}/${artifactSlug}`;
+}
+
 export function buildProjectUrl(appUrl: string, username: string, projectSlug: string): string {
   const base = appUrl.replace(/\/+$/, "");
   return `${base}/${username}/${projectSlug}`;

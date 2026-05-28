@@ -28,19 +28,33 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
   async getProjectByOwnerSlug(
     username: string,
     projectSlug: string
-  ): Promise<{ id: string; slug: string; workspaceId: string | null } | undefined> {
+  ): Promise<{ id: string; slug: string; workspaceId: string | null; ownerUserId: string } | undefined> {
     const match = await getProjectIdByOwnerSlug(this.db, username, projectSlug);
     if (!match) {
       return undefined;
     }
 
     const [project] = await this.db
-      .select({ id: projects.id, slug: projects.slug, workspaceId: projects.workspaceId })
+      .select({ id: projects.id, slug: projects.slug, workspaceId: projects.workspaceId, ownerUserId: projects.ownerUserId })
       .from(projects)
       .where(eq(projects.id, match.id))
       .limit(1);
 
     return project;
+  }
+
+  async getProjectByWorkspaceSlug(
+    workspaceId: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string; ownerUserId: string } | undefined> {
+    const normalizedProjectSlug = validateProjectSlug(projectSlug);
+    const [project] = await this.db
+      .select({ id: projects.id, slug: projects.slug, workspaceId: projects.workspaceId, ownerUserId: projects.ownerUserId })
+      .from(projects)
+      .where(and(eq(projects.workspaceId, workspaceId), sql`lower(${projects.slug}) = ${normalizedProjectSlug}`))
+      .limit(1);
+
+    return project?.workspaceId ? { ...project, workspaceId: project.workspaceId } : undefined;
   }
 
   async slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean> {
@@ -70,6 +84,26 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
         and(
           sql`lower(${userProfiles.username}) = ${normalizedUsername}`,
           sql`lower(${projects.slug}) = ${projectSlug}`,
+          sql`lower(${artifacts.slug}) = ${normalizedSlug}`
+        )
+      )
+      .limit(1);
+
+    return artifact;
+  }
+
+  async getArtifactByWorkspaceProjectSlug(
+    workspaceId: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord | undefined> {
+    const normalizedProjectSlug = validateProjectSlug(projectSlug);
+    const normalizedSlug = validateSlug(slug);
+    const [artifact] = await this.artifactQuery()
+      .where(
+        and(
+          eq(projects.workspaceId, workspaceId),
+          sql`lower(${projects.slug}) = ${normalizedProjectSlug}`,
           sql`lower(${artifacts.slug}) = ${normalizedSlug}`
         )
       )

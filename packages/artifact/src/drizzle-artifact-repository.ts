@@ -128,6 +128,7 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
     await this.db.insert(auditEvents).values(input);
     this.logger?.info("audit_event", {
       ownerUserId: input.ownerUserId,
+      workspaceId: input.workspaceId,
       artifactId: input.artifactId,
       action: input.action,
       targetType: input.targetType,

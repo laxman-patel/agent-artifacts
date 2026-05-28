@@ -78,6 +78,13 @@
       "when": 1779700000000,
       "tag": "0010_workspace_project_slug_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779900000000,
+      "tag": "0012_audit_workspace_scope",
+      "breakpoints": true
     }
   ]
 }

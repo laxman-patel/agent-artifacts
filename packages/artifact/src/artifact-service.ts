@@ -119,7 +119,7 @@ export class ArtifactService {
     await this.audit(owner.userId, artifactId, principal, "artifact.created", "artifact", artifactId, {
       slug: normalizedSlug,
       versionNumber: 1
-    });
+    }, project.workspaceId ?? undefined);
 
     return {
       artifactId,
@@ -179,7 +179,7 @@ export class ArtifactService {
     await this.audit(artifact.ownerUserId, artifact.id, principal, "artifact.updated", "artifact_version", versionId, {
       previousVersionNumber: latestVersion.versionNumber,
       versionNumber: nextVersionNumber
-    });
+    }, artifact.workspaceId ?? undefined);
 
     return {
       artifactId: artifact.id,
@@ -235,7 +235,7 @@ export class ArtifactService {
     await this.audit(artifact.ownerUserId, artifact.id, principal, "artifact.deleted", "artifact", artifact.id, {
       slug: artifact.slug,
       title: artifact.title
-    });
+    }, artifact.workspaceId ?? undefined);
 
     return { artifactId: artifact.id, deleted: true };
   }
@@ -361,7 +361,7 @@ export class ArtifactService {
       publicView: parsed.publicView,
       publicEdit: parsed.publicEdit,
       viewerEmails: normalizedEmails
-    });
+    }, artifact.workspaceId ?? undefined);
 
     return {
       publicView: parsed.publicView,
@@ -483,11 +483,13 @@ export class ArtifactService {
     action: string,
     targetType: string,
     targetId: string,
-    metadata: Record<string, unknown> = {}
+    metadata: Record<string, unknown> = {},
+    workspaceId?: string
   ): Promise<void> {
     await this.repository.createAuditEvent({
       id: randomUUID(),
       ownerUserId,
+      workspaceId,
       artifactId,
       actorPrincipalType: principal.type,
       actorPrincipalId: principal.id,

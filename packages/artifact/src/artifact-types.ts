@@ -206,6 +206,7 @@ export interface PersistCreateVersionInput {
 export interface PersistAuditEventInput {
   id: string;
   ownerUserId: string;
+  workspaceId?: string;
   artifactId?: string;
   actorPrincipalType: Principal["type"];
   actorPrincipalId: string;

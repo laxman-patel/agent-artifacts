@@ -65,6 +65,7 @@ describe("ArtifactService", () => {
     expect(storage.text(created.contentObjectKey)).toBe("# Hello");
     expect(repository.auditEvents).toHaveLength(1);
     expect(repository.auditEvents[0]?.action).toBe("artifact.created");
+    expect(repository.auditEvents[0]?.workspaceId).toBe("ws_1");
   });
 
   it("denies create in another user's namespace", async () => {
@@ -383,7 +384,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
   constructor(private readonly roleResolver?: MemoryArtifactRoleResolver) {}
 
   readonly owners = new Map([["laxman", { userId: "user_1", username: "laxman" }]]);
-  readonly defaultProject = { id: "project_default", slug: "default" };
+  readonly defaultProject = { id: "project_default", slug: "default", workspaceId: "ws_1" as string | null };
   readonly artifacts = new Map<string, ArtifactRecord>();
   readonly versions = new Map<string, ArtifactVersionRecord[]>();
   readonly auditEvents: PersistAuditEventInput[] = [];
@@ -393,7 +394,10 @@ class MemoryArtifactRepository implements ArtifactRepository {
     return this.owners.get(username.toLowerCase());
   }
 
-  async getProjectByOwnerSlug(username: string, projectSlug: string): Promise<{ id: string; slug: string } | undefined> {
+  async getProjectByOwnerSlug(
+    username: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string | null } | undefined> {
     if (username.toLowerCase() !== "laxman" || projectSlug !== "default") {
       return undefined;
     }
@@ -450,6 +454,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
       ownerUsername: "laxman",
       projectId: input.artifact.projectId,
       projectSlug: this.defaultProject.slug,
+      workspaceId: this.defaultProject.workspaceId,
       slug: input.artifact.slug,
       title: input.artifact.title,
       description: input.artifact.description ?? null,

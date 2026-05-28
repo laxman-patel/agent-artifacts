@@ -143,3 +143,12 @@ export function getMembershipService() {
   membershipServiceInstance ??= createDrizzleMembershipService(getDb());
   return membershipServiceInstance;
 }
+
+let workspaceAccessInstance: ReturnType<typeof createWorkspaceAccess> | undefined;
+
+export function getWorkspaceAccess() {
+  workspaceAccessInstance ??= createWorkspaceAccess(
+    new DrizzleWorkspaceRoleResolver(new DrizzleWorkspaceRepository(getDb()))
+  );
+  return workspaceAccessInstance;
+}

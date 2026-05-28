@@ -1,10 +1,20 @@
 import type { Hono } from "hono";
+import { z } from "zod";
 import { createWorkspaceProjectInputSchema } from "@agent-artifacts/artifact";
 import { createTeamWorkspaceInputSchema, changeMemberRoleInputSchema } from "@agent-artifacts/workspace";
-import { getArtifactService, getMembershipService, getProjectService, getWorkspaceService } from "../deps.js";
+import {
+  getArtifactService,
+  getAuditService,
+  getMembershipService,
+  getProjectService,
+  getWorkspaceAccess,
+  getWorkspaceService
+} from "../deps.js";
 import { handle } from "../http/handler.js";
-import { requirePrincipal } from "../http/principal.js";
+import { requireHumanPrincipal, requirePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
+
+const auditEventsLimitSchema = z.coerce.number().int().positive().max(100).default(50);
 
 export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) {
   app.get("/api/workspaces", (c) =>
@@ -127,6 +137,25 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
       );
 
       return { body: { removed: true } };
+    })
+  );
+
+  app.get("/api/workspaces/:workspaceId/audit-events", (c) =>
+    handle(c, async () => {
+      const principal = await requireHumanPrincipal(c);
+      const workspaceId = c.req.param("workspaceId");
+      const artifactId = c.req.query("artifactId");
+      const limit = auditEventsLimitSchema.parse(c.req.query("limit"));
+
+      await getWorkspaceAccess().assertAuthorized({
+        principal,
+        action: "workspace.manage_members",
+        context: { workspaceId }
+      });
+
+      const events = await getAuditService().listAuditEvents({ workspaceId, artifactId, limit });
+
+      return { body: { events } };
     })
   );
 }

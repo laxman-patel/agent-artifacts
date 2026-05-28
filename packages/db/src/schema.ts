@@ -357,6 +357,7 @@ export const auditEvents = pgTable(
   {
     id: text("id").primaryKey(),
     ownerUserId: text("owner_user_id").notNull(),
+    workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "set null" }),
     artifactId: text("artifact_id"),
     actorPrincipalType: principalType("actor_principal_type").notNull(),
     actorPrincipalId: text("actor_principal_id").notNull(),
@@ -368,6 +369,7 @@ export const auditEvents = pgTable(
   },
   (table) => ({
     ownerIdx: index("audit_events_owner_idx").on(table.ownerUserId),
+    workspaceIdx: index("audit_events_workspace_idx").on(table.workspaceId),
     artifactIdx: index("audit_events_artifact_idx").on(table.artifactId)
   })
 );

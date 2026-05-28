@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import type { Hono } from "hono";
 import { z } from "zod";
 import {
@@ -100,7 +101,13 @@ export function registerBillingRoutes(app: Hono<{ Variables: AppVariables }>) {
       const env = loadServerEnv();
       const expected = env.BILLING_CRON_SECRET;
       const provided = c.req.header("authorization")?.replace(/^bearer\s+/i, "");
-      if (!expected || provided !== expected) {
+      if (!expected || !provided) {
+        return c.json({ error: "forbidden", message: "Valid billing cron credentials are required." }, 403);
+      }
+
+      const expectedBytes = Buffer.from(expected);
+      const providedBytes = Buffer.from(provided);
+      if (expectedBytes.byteLength !== providedBytes.byteLength || !timingSafeEqual(expectedBytes, providedBytes)) {
         return c.json({ error: "forbidden", message: "Valid billing cron credentials are required." }, 403);
       }
 

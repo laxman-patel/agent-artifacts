@@ -3,7 +3,14 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
 import { projects, userProfiles, workspaces } from "@agent-artifacts/db";
 import type { Principal } from "@agent-artifacts/shared";
-import { ArtifactForbiddenError, buildProjectUrl, buildWorkspaceUrl, normalizeSlug, slugSchema } from "@agent-artifacts/shared";
+import {
+  ArtifactForbiddenError,
+  buildProjectUrl,
+  buildWorkspaceProjectUrl,
+  buildWorkspaceUrl,
+  normalizeSlug,
+  slugSchema
+} from "@agent-artifacts/shared";
 import type { ArtifactAccess } from "@agent-artifacts/access";
 import type { WorkspaceAccess } from "@agent-artifacts/workspace";
 import { z } from "zod";
@@ -52,7 +59,9 @@ export interface ProjectRepository {
   workspaceProjectSlugExists(workspaceId: string, normalizedSlug: string): Promise<boolean>;
   getProjectByOwnerSlug(username: string, projectSlug: string): Promise<ProjectRecord | undefined>;
   getProjectByWorkspaceSlug(workspaceId: string, projectSlug: string): Promise<ProjectRecord | undefined>;
+  getProjectById(projectId: string): Promise<ProjectRecord | undefined>;
   createProject(input: PersistCreateProjectInput): Promise<void>;
+  transferProjectToWorkspace(projectId: string, workspaceId: string): Promise<void>;
   listProjectsForOwner(ownerUserId: string): Promise<ProjectRecord[]>;
   listProjectsForWorkspace(workspaceId: string): Promise<ProjectRecord[]>;
   getPersonalWorkspaceId(userId: string): Promise<string | undefined>;
@@ -207,6 +216,46 @@ export class ProjectService {
     };
   }
 
+  async transferProjectToWorkspace(
+    projectId: string,
+    workspaceId: string,
+    workspaceSlug: string,
+    principal: Principal
+  ): Promise<ProjectSummary & { workspaceId: string }> {
+    if (principal.type !== "user") {
+      throw new ArtifactForbiddenError("Only signed-in users can transfer projects.");
+    }
+
+    const project = await this.repository.getProjectById(projectId);
+    if (!project) {
+      throw new ProjectNotFoundError();
+    }
+
+    await this.access.assertAuthorized({
+      principal,
+      action: "artifact.create",
+      context: this.namespaceContext(project)
+    });
+    await this.requireWorkspaceAccess(workspaceId, principal, "workspace.create_content");
+
+    const slugTaken = await this.repository.workspaceProjectSlugExists(workspaceId, project.slug);
+    if (slugTaken && project.workspaceId !== workspaceId) {
+      throw new ProjectSlugUnavailableError(project.slug);
+    }
+
+    await this.repository.transferProjectToWorkspace(project.id, workspaceId);
+
+    return {
+      projectId: project.id,
+      ownerUserId: project.ownerUserId,
+      ownerUsername: workspaceSlug,
+      normalizedSlug: project.slug,
+      title: project.title,
+      workspaceId,
+      url: buildWorkspaceProjectUrl(this.appUrl, workspaceSlug, project.slug)
+    };
+  }
+
   async getProjectByPath(username: string, projectSlug: string, principal: Principal): Promise<ProjectRecord> {
     const project = await this.repository.getProjectByOwnerSlug(username, validateProjectSlug(projectSlug));
     if (!project) {
@@ -333,6 +382,11 @@ export class DrizzleProjectRepository implements ProjectRepository {
     return project;
   }
 
+  async getProjectById(projectId: string): Promise<ProjectRecord | undefined> {
+    const [project] = await this.projectQuery().where(eq(projects.id, projectId)).limit(1);
+    return project;
+  }
+
   async getPersonalWorkspaceId(userId: string): Promise<string | undefined> {
     const [workspace] = await this.db
       .select({ id: workspaces.id })
@@ -365,6 +419,13 @@ export class DrizzleProjectRepository implements ProjectRepository {
       createdAt: now,
       updatedAt: now
     });
+  }
+
+  async transferProjectToWorkspace(projectId: string, workspaceId: string): Promise<void> {
+    await this.db
+      .update(projects)
+      .set({ workspaceId, updatedAt: new Date() })
+      .where(eq(projects.id, projectId));
   }
 
   async listProjectsForOwner(ownerUserId: string): Promise<ProjectRecord[]> {

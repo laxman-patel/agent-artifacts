@@ -106,6 +106,22 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
     })
   );
 
+  app.post("/api/workspaces/:workspaceId/projects/:projectId/transfer", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const workspaceId = c.req.param("workspaceId");
+      const workspace = await getWorkspaceService().getWorkspace(workspaceId, principal);
+      const project = await getProjectService().transferProjectToWorkspace(
+        c.req.param("projectId"),
+        workspaceId,
+        workspace.slug,
+        principal
+      );
+
+      return { body: { project } };
+    })
+  );
+
   app.get("/api/workspaces/:workspaceId/artifacts", (c) =>
     handle(c, async () => {
       const principal = await requirePrincipal(c);

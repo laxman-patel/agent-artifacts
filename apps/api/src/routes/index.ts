@@ -9,6 +9,7 @@ import { registerCliRoutes } from "./cli.js";
 import { registerProfileRoutes } from "./profile.js";
 import { registerProjectRoutes } from "./projects.js";
 import { registerShareLinkRoutes } from "./share-links.js";
+import { registerWorkspaceRoutes } from "./workspaces.js";
 import type { AppVariables } from "../deps.js";
 
 export function registerRoutes(app: Hono<{ Variables: AppVariables }>) {
@@ -35,6 +36,7 @@ export function registerRoutes(app: Hono<{ Variables: AppVariables }>) {
   );
 
   registerProjectRoutes(app);
+  registerWorkspaceRoutes(app);
   registerProfileRoutes(app);
   registerArtifactRoutes(app);
   registerShareLinkRoutes(app);

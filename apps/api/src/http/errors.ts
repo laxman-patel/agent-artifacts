@@ -11,7 +11,7 @@ import {
   UsernameAlreadySetError,
   UsernameTakenError
 } from "@agent-artifacts/artifact";
-import { ArtifactForbiddenError } from "@agent-artifacts/shared";
+import { ArtifactForbiddenError, WorkspaceForbiddenError, WorkspaceNotFoundError, WorkspaceSlugUnavailableError } from "@agent-artifacts/shared";
 import { z } from "zod";
 
 function isUniqueViolation(error: unknown): boolean {
@@ -19,7 +19,12 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 export function artifactErrorResponse(c: Context, error: unknown) {
-  if (error instanceof ArtifactNotFoundError || error instanceof ProfileNotFoundError || error instanceof ShareLinkNotFoundError) {
+  if (
+    error instanceof ArtifactNotFoundError ||
+    error instanceof ProfileNotFoundError ||
+    error instanceof ShareLinkNotFoundError ||
+    error instanceof WorkspaceNotFoundError
+  ) {
     return c.json({ error: "not_found", message: error.message }, 404);
   }
 
@@ -27,7 +32,7 @@ export function artifactErrorResponse(c: Context, error: unknown) {
     return c.json({ error: "gone", message: error.message }, 410);
   }
 
-  if (error instanceof ArtifactForbiddenError) {
+  if (error instanceof ArtifactForbiddenError || error instanceof WorkspaceForbiddenError) {
     return c.json({ error: "forbidden", message: error.message }, 403);
   }
 
@@ -36,7 +41,8 @@ export function artifactErrorResponse(c: Context, error: unknown) {
     error instanceof ProjectSlugUnavailableError ||
     error instanceof ArtifactConflictError ||
     error instanceof UsernameAlreadySetError ||
-    error instanceof UsernameTakenError
+    error instanceof UsernameTakenError ||
+    error instanceof WorkspaceSlugUnavailableError
   ) {
     return c.json({ error: "conflict", message: error.message }, 409);
   }

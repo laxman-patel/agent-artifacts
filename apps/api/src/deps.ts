@@ -14,6 +14,7 @@ import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, type Database } from "@agent-artifacts/db";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
 import type { Principal } from "@agent-artifacts/shared";
+import { createDrizzleWorkspaceService, type WorkspaceService } from "@agent-artifacts/workspace";
 import { logger } from "./logger.js";
 
 export type AppVariables = {
@@ -29,6 +30,7 @@ let projectServiceInstance: ProjectService | undefined;
 let profileServiceInstance: ProfileService | undefined;
 let shareLinkServiceInstance: ShareLinkService | undefined;
 let auditServiceInstance: AuditService | undefined;
+let workspaceServiceInstance: WorkspaceService | undefined;
 let dbInstance: Database | undefined;
 
 export function getDb() {
@@ -106,4 +108,9 @@ export function getShareLinkService() {
 export function getAuditService() {
   auditServiceInstance ??= new AuditService(getDb());
   return auditServiceInstance;
+}
+
+export function getWorkspaceService() {
+  workspaceServiceInstance ??= createDrizzleWorkspaceService(getDb());
+  return workspaceServiceInstance;
 }

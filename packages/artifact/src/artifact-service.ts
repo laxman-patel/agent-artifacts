@@ -131,12 +131,15 @@ export class ArtifactService {
       slug: normalizedSlug,
       versionNumber: 1
     });
-    await this.billing?.recordVersionWrite?.({
-      ownerUserId: owner.userId,
-      artifactId,
-      versionNumber: 1,
-      contentBytes: content.contentBytes
-    });
+    this.recordBillingMetering(
+      "recordVersionWrite",
+      this.billing?.recordVersionWrite?.({
+        ownerUserId: owner.userId,
+        artifactId,
+        versionNumber: 1,
+        contentBytes: content.contentBytes
+      })
+    );
 
     return {
       artifactId,
@@ -200,12 +203,15 @@ export class ArtifactService {
       previousVersionNumber: latestVersion.versionNumber,
       versionNumber: nextVersionNumber
     });
-    await this.billing?.recordVersionWrite?.({
-      ownerUserId: artifact.ownerUserId,
-      artifactId: artifact.id,
-      versionNumber: nextVersionNumber,
-      contentBytes: content.contentBytes
-    });
+    this.recordBillingMetering(
+      "recordVersionWrite",
+      this.billing?.recordVersionWrite?.({
+        ownerUserId: artifact.ownerUserId,
+        artifactId: artifact.id,
+        versionNumber: nextVersionNumber,
+        contentBytes: content.contentBytes
+      })
+    );
 
     return {
       artifactId: artifact.id,
@@ -286,12 +292,15 @@ export class ArtifactService {
     await this.assertArtifactAction(artifact, principal, "artifact.view");
     const version = await this.requireVersion(artifact.id, versionNumber);
     const object = await this.storage.getObject(version.contentObjectKey);
-    await this.billing?.recordDelivery?.({
-      ownerUserId: artifact.ownerUserId,
-      artifactId: artifact.id,
-      versionNumber: version.versionNumber,
-      contentBytes: version.contentBytes
-    });
+    this.recordBillingMetering(
+      "recordDelivery",
+      this.billing?.recordDelivery?.({
+        ownerUserId: artifact.ownerUserId,
+        artifactId: artifact.id,
+        versionNumber: version.versionNumber,
+        contentBytes: version.contentBytes
+      })
+    );
 
     return {
       artifact,
@@ -489,6 +498,13 @@ export class ArtifactService {
       contentSha256,
       contentBytes: encodedContent.byteLength
     };
+  }
+
+  private recordBillingMetering(operation: string, promise: Promise<void> | undefined): void {
+    if (!promise) return;
+    void promise.catch((error: unknown) => {
+      console.error(`Billing ${operation} failed`, error);
+    });
   }
 
   private async audit(

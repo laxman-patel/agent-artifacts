@@ -59,6 +59,12 @@ export function BillingPortalButton() {
         method: "POST",
         credentials: "include"
       });
+
+      if (response.status === 401 || response.status === 403) {
+        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        return;
+      }
+
       const payload = (await response.json()) as { url?: string; message?: string };
       if (!response.ok || !payload.url) {
         throw new Error(payload.message ?? "Billing portal could not be opened.");

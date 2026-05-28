@@ -222,8 +222,36 @@ export class ProjectService {
     return project;
   }
 
+  async getWorkspaceProjectByPath(
+    workspaceId: string,
+    projectSlug: string,
+    principal: Principal
+  ): Promise<ProjectRecord> {
+    const project = await this.repository.getProjectByWorkspaceSlug(workspaceId, validateProjectSlug(projectSlug));
+    if (!project) {
+      throw new ProjectNotFoundError();
+    }
+
+    await this.access.assertAuthorized({
+      principal,
+      action: "project.view",
+      context: this.namespaceContext(project)
+    });
+
+    return project;
+  }
+
   async getProjectByPathRaw(username: string, projectSlug: string): Promise<ProjectRecord> {
     const project = await this.repository.getProjectByOwnerSlug(username, validateProjectSlug(projectSlug));
+    if (!project) {
+      throw new ProjectNotFoundError();
+    }
+
+    return project;
+  }
+
+  async getWorkspaceProjectByPathRaw(workspaceId: string, projectSlug: string): Promise<ProjectRecord> {
+    const project = await this.repository.getProjectByWorkspaceSlug(workspaceId, validateProjectSlug(projectSlug));
     if (!project) {
       throw new ProjectNotFoundError();
     }

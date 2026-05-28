@@ -169,6 +169,17 @@ export function workspacePath(workspace: { slug: string }): string {
   return `/w/${workspace.slug}`;
 }
 
+export function workspaceProjectPath(workspace: { slug: string }, project: { slug: string }): string {
+  return `${workspacePath(workspace)}/${project.slug}`;
+}
+
+export function workspaceArtifactPath(
+  workspace: { slug: string },
+  artifact: { projectSlug: string; slug: string }
+): string {
+  return `${workspacePath(workspace)}/${artifact.projectSlug}/${artifact.slug}`;
+}
+
 export function workspaceSettingsPath(workspace: { slug: string }): string {
   return `/w/${workspace.slug}/settings`;
 }
@@ -213,6 +224,11 @@ export const fetchWorkspaces = (cookie: string) =>
 export const fetchWorkspace = (workspaceId: string, cookie: string) =>
   apiCall<{ workspace: Omit<WorkspaceSummary, "role"> }>(workspaceApi(workspaceId), { cookie });
 
+export const fetchPublicWorkspaceBySlug = (slug: string, cookie?: string) =>
+  apiCall<{ workspace: Omit<WorkspaceSummary, "role"> }>(`/api/workspaces/by-slug/${encodeURIComponent(slug)}`, {
+    cookie
+  });
+
 export const createWorkspace = (cookie: string, body: { slug: string; name: string }) =>
   apiCall<{ workspace: WorkspaceSummary }>("/api/workspaces", { cookie, method: "POST", body });
 
@@ -242,6 +258,23 @@ export const fetchWorkspaceProjects = (workspaceId: string, cookie: string) =>
 
 export const fetchWorkspaceArtifacts = (workspaceId: string, cookie: string) =>
   apiCall<{ artifacts: WorkspaceArtifactSummary[] }>(`${workspaceApi(workspaceId)}/artifacts`, { cookie });
+
+export const fetchWorkspaceProjectByPath = (workspaceId: string, projectSlug: string, cookie?: string) =>
+  apiCall<{ project: WorkspaceProjectSummary; artifacts: WorkspaceArtifactSummary[] }>(
+    `${workspaceApi(workspaceId)}/by-path/${encodeURIComponent(projectSlug)}`,
+    { cookie }
+  );
+
+export const fetchWorkspaceArtifactMeta = (
+  workspaceId: string,
+  projectSlug: string,
+  slug: string,
+  cookie?: string
+) =>
+  apiCall<ArtifactMeta>(
+    `${workspaceApi(workspaceId)}/by-path/${encodeURIComponent(projectSlug)}/${encodeURIComponent(slug)}`,
+    { cookie }
+  );
 
 export const fetchWorkspaceInvitations = (workspaceId: string, cookie: string) =>
   apiCall<{ invitations: WorkspaceInvitationSummary[] }>(`${workspaceApi(workspaceId)}/invitations`, { cookie });
@@ -298,6 +331,22 @@ export async function loadArtifactGate(
   username: string, projectSlug: string, slug: string, cookie: string | undefined, opts: { redirectPath: string }
 ): Promise<{ kind: "ok"; meta: ArtifactMeta } | { kind: "restricted"; message: string; loginHref: string }> {
   const result = await fetchArtifactMeta(username, projectSlug, slug, cookie);
+  if (!result.ok && result.status === 404) notFound();
+  if (!result.ok && result.status === 403) {
+    return { kind: "restricted", message: result.message, loginHref: `/login?next=${encodeURIComponent(opts.redirectPath)}` };
+  }
+  if (!result.ok) throw new Error(`Unexpected artifact response: ${result.status}`);
+  return { kind: "ok", meta: result.body };
+}
+
+export async function loadWorkspaceArtifactGate(
+  workspaceId: string,
+  projectSlug: string,
+  slug: string,
+  cookie: string | undefined,
+  opts: { redirectPath: string }
+): Promise<{ kind: "ok"; meta: ArtifactMeta } | { kind: "restricted"; message: string; loginHref: string }> {
+  const result = await fetchWorkspaceArtifactMeta(workspaceId, projectSlug, slug, cookie);
   if (!result.ok && result.status === 404) notFound();
   if (!result.ok && result.status === 403) {
     return { kind: "restricted", message: result.message, loginHref: `/login?next=${encodeURIComponent(opts.redirectPath)}` };

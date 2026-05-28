@@ -2,12 +2,12 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import {
-  artifactPath,
   cookieHeader,
   fetchWorkspaceArtifacts,
   fetchWorkspaceProjects,
-  projectPath,
   resolveWorkspaceBySlug,
+  workspaceArtifactPath,
+  workspaceProjectPath,
   workspaceSettingsPath
 } from "../../../lib/server-api";
 
@@ -93,10 +93,10 @@ export default async function WorkspaceDashboardPage(props: {
             <section className="card flat" key={project.id}>
               <header className="inline-header">
                 <div>
-                  <Link href={projectPath(project)}>
+                  <Link href={workspaceProjectPath(workspace, project)}>
                     <h2>{project.title}</h2>
                   </Link>
-                  <p className="muted small">{projectPath(project)}</p>
+                  <p className="muted small">{workspaceProjectPath(workspace, project)}</p>
                 </div>
               </header>
 
@@ -107,16 +107,16 @@ export default async function WorkspaceDashboardPage(props: {
                   {projectArtifacts.map((artifact) => (
                     <li key={artifact.id}>
                       <div>
-                        <Link href={artifactPath(artifact)}>
+                        <Link href={workspaceArtifactPath(workspace, artifact)}>
                           <strong>{artifact.title}</strong>
                         </Link>
                         <p className="muted small">
-                          {artifact.type} · {artifactPath(artifact)}
+                          {artifact.type} · {workspaceArtifactPath(workspace, artifact)}
                         </p>
                       </div>
                       <div className="row-actions">
-                        <Link href={`${artifactPath(artifact)}/history`}>History</Link>
-                        <Link href={`${artifactPath(artifact)}/settings`}>Access</Link>
+                        <Link href={`${workspaceArtifactPath(workspace, artifact)}/history`}>History</Link>
+                        <Link href={`${workspaceArtifactPath(workspace, artifact)}/settings`}>Access</Link>
                       </div>
                     </li>
                   ))}

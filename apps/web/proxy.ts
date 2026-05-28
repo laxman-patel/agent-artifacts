@@ -9,7 +9,6 @@ function needsAuthProtection(pathname: string): boolean {
   return (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/settings") ||
-    pathname.startsWith("/w/") ||
     pathname.startsWith("/workspaces/") ||
     pathname.startsWith("/workspace-invite/")
   );
@@ -30,5 +29,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/settings/:path*", "/w/:path*", "/workspaces/:path*", "/workspace-invite/:path*"]
+  matcher: ["/dashboard/:path*", "/settings/:path*", "/workspaces/:path*", "/workspace-invite/:path*"]
 };

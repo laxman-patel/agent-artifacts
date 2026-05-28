@@ -1,6 +1,10 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { createWorkspaceArtifactInputSchema, createWorkspaceProjectInputSchema } from "@agent-artifacts/artifact";
+import {
+  createWorkspaceArtifactInputSchema,
+  createWorkspaceProjectInputSchema,
+  ProjectNotFoundError
+} from "@agent-artifacts/artifact";
 import { createTeamWorkspaceInputSchema, changeMemberRoleInputSchema } from "@agent-artifacts/workspace";
 import {
   getArtifactService,
@@ -11,7 +15,7 @@ import {
   getWorkspaceService
 } from "../deps.js";
 import { handle } from "../http/handler.js";
-import { requireHumanPrincipal, requirePrincipal } from "../http/principal.js";
+import { requireHumanPrincipal, requirePrincipal, resolvePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
 
 const auditEventsLimitSchema = z.coerce.number().int().positive().max(100).default(50);
@@ -32,6 +36,14 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
       const result = await getWorkspaceService().checkSlugAvailability(c.req.param("slug"));
 
       return result;
+    })
+  );
+
+  app.get("/api/workspaces/by-slug/:slug", (c) =>
+    handle(c, async () => {
+      const workspace = await getWorkspaceService().getPublicWorkspaceBySlug(c.req.param("slug"));
+
+      return { body: { workspace } };
     })
   );
 
@@ -120,9 +132,35 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
     })
   );
 
+  app.get("/api/workspaces/:workspaceId/by-path/:projectSlug", (c) =>
+    handle(c, async () => {
+      const principal = await resolvePrincipal(c);
+      const workspaceId = c.req.param("workspaceId");
+      const projectSlug = c.req.param("projectSlug");
+      const project = await getProjectService().getWorkspaceProjectByPathRaw(workspaceId, projectSlug);
+      const artifacts = await getArtifactService().listArtifactsInWorkspaceProject(
+        workspaceId,
+        projectSlug,
+        principal
+      );
+      if (artifacts.length === 0) {
+        const decision = await getWorkspaceAccess().authorize({
+          principal,
+          action: "workspace.view",
+          context: { workspaceId }
+        });
+        if (!decision.allowed) {
+          throw new ProjectNotFoundError();
+        }
+      }
+
+      return { project, artifacts };
+    })
+  );
+
   app.get("/api/workspaces/:workspaceId/by-path/:projectSlug/:slug", (c) =>
     handle(c, async () => {
-      const principal = await requirePrincipal(c);
+      const principal = await resolvePrincipal(c);
       const artifact = await getArtifactService().getArtifactByWorkspacePath(
         c.req.param("workspaceId"),
         c.req.param("projectSlug"),

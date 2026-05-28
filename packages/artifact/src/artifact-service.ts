@@ -432,6 +432,28 @@ export class ArtifactService {
     return visible;
   }
 
+  async listArtifactsInWorkspaceProject(
+    workspaceId: string,
+    projectSlug: string,
+    principal: Principal
+  ): Promise<ArtifactRecord[]> {
+    const project = await this.requireWorkspaceProject(workspaceId, projectSlug);
+    const artifacts = await this.repository.listArtifactsForProject(project.id);
+    const visible: ArtifactRecord[] = [];
+    for (const artifact of artifacts) {
+      const decision = await this.access.authorize({
+        principal,
+        action: "artifact.view",
+        context: { kind: "artifact", artifact: this.artifactRoleContext(artifact) }
+      });
+      if (decision.allowed) {
+        visible.push(artifact);
+      }
+    }
+
+    return visible;
+  }
+
   async getArtifactAccess(artifactId: string, principal: Principal): Promise<ArtifactAccessSnapshot> {
     const artifact = await this.requireArtifactById(artifactId);
     await this.assertArtifactAction(artifact, principal, "artifact.manage_access");

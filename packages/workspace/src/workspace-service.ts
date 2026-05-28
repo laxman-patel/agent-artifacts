@@ -166,6 +166,15 @@ export class WorkspaceService {
     return this.getWorkspace(workspace.id, principal);
   }
 
+  async getPublicWorkspaceBySlug(slug: string): Promise<WorkspaceRecord> {
+    const workspace = await this.repository.getBySlug(validateWorkspaceSlug(slug));
+    if (!workspace) {
+      throw new WorkspaceNotFoundError();
+    }
+
+    return workspace;
+  }
+
   async listWorkspacesForUser(principal: Principal): Promise<Array<WorkspaceRecord & { role: WorkspaceRole }>> {
     if (principal.type !== "user") {
       throw new WorkspaceForbiddenError("Only signed-in users can list workspaces.");

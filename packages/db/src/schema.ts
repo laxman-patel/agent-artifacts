@@ -128,6 +128,95 @@ export const userProfiles = pgTable(
   })
 );
 
+export const workspaceKind = pgEnum("workspace_kind", ["personal", "team"]);
+export const workspaceState = pgEnum("workspace_state", ["active", "archived"]);
+export const workspaceRole = pgEnum("workspace_role", [
+  "owner",
+  "admin",
+  "member",
+  "viewer",
+  "billing_admin"
+]);
+export const workspaceInvitationState = pgEnum("workspace_invitation_state", [
+  "pending",
+  "accepted",
+  "revoked",
+  "expired"
+]);
+
+export const workspaces = pgTable(
+  "workspaces",
+  {
+    id: text("id").primaryKey(),
+    slug: varchar("slug", { length: 32 }).notNull(),
+    name: text("name").notNull(),
+    kind: workspaceKind("kind").notNull(),
+    state: workspaceState("state").default("active").notNull(),
+    createdByUserId: text("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    personalUserId: text("personal_user_id").references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    slugUnique: uniqueIndex("workspaces_slug_unique").on(sql`lower(${table.slug})`),
+    personalUserUnique: uniqueIndex("workspaces_personal_user_unique").on(table.personalUserId),
+    slugFormat: check(
+      "workspaces_slug_format",
+      sql`${table.slug} ~ '^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$' AND length(${table.slug}) BETWEEN 3 AND 32`
+    )
+  })
+);
+
+export const workspaceMembers = pgTable(
+  "workspace_members",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: workspaceRole("role").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    workspaceUserUnique: uniqueIndex("workspace_members_workspace_user_unique").on(
+      table.workspaceId,
+      table.userId
+    ),
+    workspaceIdx: index("workspace_members_workspace_idx").on(table.workspaceId),
+    userIdx: index("workspace_members_user_idx").on(table.userId)
+  })
+);
+
+export const workspaceInvitations = pgTable(
+  "workspace_invitations",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: workspaceRole("role").notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    invitedByUserId: text("invited_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    state: workspaceInvitationState("state").default("pending").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    tokenUnique: uniqueIndex("workspace_invitations_token_hash_unique").on(table.tokenHash),
+    workspaceIdx: index("workspace_invitations_workspace_idx").on(table.workspaceId),
+    emailIdx: index("workspace_invitations_email_idx").on(sql`lower(${table.email})`)
+  })
+);
+
 export const projects = pgTable(
   "projects",
   {
@@ -135,6 +224,7 @@ export const projects = pgTable(
     ownerUserId: text("owner_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     slug: varchar("slug", { length: 80 }).notNull(),
     title: text("title").notNull(),
     description: text("description"),
@@ -144,6 +234,7 @@ export const projects = pgTable(
   (table) => ({
     ownerSlugUnique: uniqueIndex("projects_owner_slug_unique").on(table.ownerUserId, sql`lower(${table.slug})`),
     ownerIdx: index("projects_owner_idx").on(table.ownerUserId),
+    workspaceIdx: index("projects_workspace_idx").on(table.workspaceId),
     slugFormat: check(
       "projects_slug_format",
       sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND length(${table.slug}) BETWEEN 1 AND 80`

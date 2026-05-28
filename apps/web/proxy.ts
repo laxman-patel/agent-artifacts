@@ -6,7 +6,12 @@ import { hasAuthenticatedSession } from "./lib/server-auth";
 // `/_betterstack/*` is outside this matcher today. If the matcher is ever widened, exclude `/_betterstack/(.*)`
 // so Better Stack browser log/web-vitals proxy routes stay reachable (see @logtail/next docs).
 function needsAuthProtection(pathname: string): boolean {
-  return pathname.startsWith("/dashboard") || pathname.startsWith("/settings");
+  return (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/w/") ||
+    pathname.startsWith("/workspace-invite/")
+  );
 }
 
 export async function proxy(request: NextRequest) {
@@ -23,4 +28,6 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/dashboard/:path*", "/settings/:path*"] };
+export const config = {
+  matcher: ["/dashboard/:path*", "/settings/:path*", "/w/:path*", "/workspace-invite/:path*"]
+};

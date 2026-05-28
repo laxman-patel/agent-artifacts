@@ -55,6 +55,7 @@ export interface ProjectRepository {
 export interface PersistCreateProjectInput {
   id: string;
   ownerUserId: string;
+  workspaceId?: string;
   slug: string;
   title: string;
   description?: string;
@@ -204,6 +205,7 @@ export class DrizzleProjectRepository implements ProjectRepository {
     await this.db.insert(projects).values({
       id: input.id,
       ownerUserId: input.ownerUserId,
+      workspaceId: input.workspaceId ?? null,
       slug: input.slug,
       title: input.title,
       description: input.description ?? null,

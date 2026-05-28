@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
 import { projects, userProfiles, users } from "@agent-artifacts/db";
 import { usernameSchema } from "@agent-artifacts/shared";
+import { ensurePersonalWorkspace } from "@agent-artifacts/workspace";
 import { z } from "zod";
 
 export interface ProfileUser {
@@ -103,6 +104,7 @@ export class ProfileService {
     }
 
     const now = new Date();
+    let workspaceId: string;
     await this.db.transaction(async (tx) => {
       await tx.insert(userProfiles).values({
         userId,
@@ -112,9 +114,16 @@ export class ProfileService {
         updatedAt: now
       });
 
+      workspaceId = await ensurePersonalWorkspace(tx as unknown as Database, {
+        userId,
+        username: normalizedUsername,
+        displayName: userRow.name ?? null
+      });
+
       await tx.insert(projects).values({
         id: randomUUID(),
         ownerUserId: userId,
+        workspaceId,
         slug: "default",
         title: "Default",
         description: null,

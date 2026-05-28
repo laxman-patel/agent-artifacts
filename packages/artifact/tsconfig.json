@@ -10,7 +10,8 @@
     { "path": "../access" },
     { "path": "../db" },
     { "path": "../shared" },
-    { "path": "../storage" }
+    { "path": "../storage" },
+    { "path": "../workspace" }
   ],
   "include": ["src/**/*.ts"]
 }

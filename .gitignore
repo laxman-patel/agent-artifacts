@@ -1,3 +1,7 @@
+# Agent-local skills and config
+.agent/
+.agents/
+
 # Dependencies
 node_modules/
 

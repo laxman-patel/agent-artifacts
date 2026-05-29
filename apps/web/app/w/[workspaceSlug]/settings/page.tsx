@@ -82,7 +82,12 @@ export default async function WorkspaceSettingsPage(props: {
                       {member.userId}
                     </p>
                   </div>
-                  <WorkspaceMemberActions workspaceId={workspace.id} userId={member.userId} role={member.role} />
+                  <WorkspaceMemberActions
+                    workspaceId={workspace.id}
+                    userId={member.userId}
+                    role={member.role}
+                    actorRole={workspace.role}
+                  />
                 </li>
               ))}
             </ul>

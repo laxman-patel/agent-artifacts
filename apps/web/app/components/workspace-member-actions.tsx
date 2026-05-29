@@ -4,17 +4,27 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { WorkspaceRole } from "../../lib/server-api";
 
-const roles: WorkspaceRole[] = ["owner", "admin", "member", "viewer", "billing_admin"];
+const allRoles: WorkspaceRole[] = ["owner", "admin", "member", "viewer", "billing_admin"];
+
+function assignableRoles(actorRole: WorkspaceRole, currentRole: WorkspaceRole): WorkspaceRole[] {
+  const allowed = actorRole === "owner" ? allRoles : allRoles.filter((role) => role !== "owner");
+  if (allowed.includes(currentRole)) {
+    return allowed;
+  }
+  return [currentRole, ...allowed];
+}
 
 export function WorkspaceMemberActions(props: {
   workspaceId: string;
   userId: string;
   role: WorkspaceRole;
+  actorRole: WorkspaceRole;
 }) {
   const router = useRouter();
   const [role, setRole] = useState<WorkspaceRole>(props.role);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const roles = assignableRoles(props.actorRole, props.role);
 
   async function updateRole(nextRole: WorkspaceRole) {
     setRole(nextRole);

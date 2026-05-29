@@ -85,6 +85,8 @@ export default async function WorkspaceSettingsPage(props: {
                   <WorkspaceMemberActions
                     workspaceId={workspace.id}
                     userId={member.userId}
+                    displayName={member.displayName ?? member.name}
+                    email={member.email}
                     role={member.role}
                     actorRole={workspace.role}
                   />

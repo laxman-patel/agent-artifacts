@@ -17,6 +17,8 @@ function assignableRoles(actorRole: WorkspaceRole, currentRole: WorkspaceRole): 
 export function WorkspaceMemberActions(props: {
   workspaceId: string;
   userId: string;
+  displayName?: string | null;
+  email?: string | null;
   role: WorkspaceRole;
   actorRole: WorkspaceRole;
 }) {
@@ -25,6 +27,7 @@ export function WorkspaceMemberActions(props: {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const roles = assignableRoles(props.actorRole, props.role);
+  const memberLabel = props.displayName ?? props.email ?? props.userId;
 
   async function updateRole(nextRole: WorkspaceRole) {
     setRole(nextRole);
@@ -79,7 +82,7 @@ export function WorkspaceMemberActions(props: {
     <div className="stack tight member-actions">
       <div className="row-actions">
         <select
-          aria-label={`Role for ${props.userId}`}
+          aria-label={`Role for ${memberLabel}`}
           className="input compact"
           disabled={pending}
           onChange={(event) => void updateRole(event.target.value as WorkspaceRole)}

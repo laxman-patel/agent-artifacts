@@ -5,6 +5,9 @@ export function extractArtifactId(data: unknown): string | undefined {
     const record = data as Record<string, unknown>;
     if (typeof record.artifactId === "string") return record.artifactId;
     if (typeof record.id === "string") return record.id;
+    if (typeof record.artifact === "object" && record.artifact !== null) {
+      return extractArtifactId(record.artifact);
+    }
   }
   return undefined;
 }

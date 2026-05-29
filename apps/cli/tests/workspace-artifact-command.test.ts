@@ -27,7 +27,7 @@ describe("workspace artifact commands", () => {
       },
       async post(path: string, body: unknown) {
         calls.push({ method: "POST", path, body });
-        return { artifactId: "artifact_1" };
+        return { artifact: { artifactId: "artifact_1" } };
       }
     } as unknown as ApiClient;
 

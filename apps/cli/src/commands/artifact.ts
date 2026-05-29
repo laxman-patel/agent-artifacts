@@ -82,8 +82,12 @@ export const artifactCreateCommand: CommandSpec = {
       const workspaceId = await resolveWorkspaceId(client, config.workspace);
       const parsed = createWorkspaceArtifactInputSchema.parse(body);
       try {
-        const data = await client.post<Record<string, unknown>>(workspaceApiPath(workspaceId, "/artifacts"), parsed);
-        return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
+        const response = await client.post<{ artifact?: Record<string, unknown> } & Record<string, unknown>>(
+          workspaceApiPath(workspaceId, "/artifacts"),
+          parsed
+        );
+        const artifact = response.artifact ?? response;
+        return { data: { ...artifact, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(artifact)) };
       } catch (error) {
         if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
           const existing = await client.get<Record<string, unknown>>(

@@ -144,7 +144,7 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
         principal
       );
 
-      return { body: artifact, status: 201 };
+      return { body: { artifact }, status: 201 };
     })
   );
 

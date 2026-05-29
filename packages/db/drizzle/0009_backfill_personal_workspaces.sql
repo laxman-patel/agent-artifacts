@@ -26,4 +26,9 @@ ON CONFLICT DO NOTHING;
 --> statement-breakpoint
 UPDATE "projects" AS p
 SET "workspace_id" = 'ws_personal_' || p.owner_user_id
-WHERE p.workspace_id IS NULL;
+WHERE p.workspace_id IS NULL
+  AND EXISTS (
+    SELECT 1
+    FROM "user_profiles" AS up
+    WHERE up.user_id = p.owner_user_id
+  );

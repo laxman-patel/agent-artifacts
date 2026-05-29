@@ -114,7 +114,7 @@ export class ProfileService {
         updatedAt: now
       });
 
-      workspaceId = await ensurePersonalWorkspace(tx as unknown as Database, {
+      workspaceId = await ensurePersonalWorkspace(tx, {
         userId,
         username: normalizedUsername,
         displayName: userRow.name ?? null

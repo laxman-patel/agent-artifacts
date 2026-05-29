@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
-import type { Database } from "@agent-artifacts/db";
+import type { Database, DbExecutor } from "@agent-artifacts/db";
 import { users, userProfiles, workspaceMembers, workspaces } from "@agent-artifacts/db";
 import type {
   Principal,
@@ -195,7 +195,7 @@ export class WorkspaceService {
 }
 
 export class DrizzleWorkspaceRepository implements WorkspaceRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: DbExecutor) {}
 
   async slugExists(normalizedSlug: string): Promise<boolean> {
     const [workspace] = await this.db
@@ -382,7 +382,7 @@ export function createDrizzleWorkspaceService(db: Database): WorkspaceService {
 }
 
 export async function ensurePersonalWorkspace(
-  db: Database,
+  db: DbExecutor,
   input: { userId: string; username: string; displayName?: string | null }
 ): Promise<string> {
   const repository = new DrizzleWorkspaceRepository(db);

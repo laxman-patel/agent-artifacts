@@ -20,7 +20,12 @@ function currentWorkspace(
 ): WorkspaceSummary | undefined {
   const teamMatch = pathname.match(/^\/w\/([^/]+)/);
   if (teamMatch) {
-    const slug = decodeURIComponent(teamMatch[1] ?? "").toLowerCase();
+    let slug: string;
+    try {
+      slug = decodeURIComponent(teamMatch[1] ?? "").toLowerCase();
+    } catch {
+      return undefined;
+    }
     return workspaces.find((workspace) => workspace.slug.toLowerCase() === slug);
   }
 

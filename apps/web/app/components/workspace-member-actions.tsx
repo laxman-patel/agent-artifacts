@@ -34,26 +34,31 @@ export function WorkspaceMemberActions(props: {
     setPending(true);
     setError(null);
 
-    const response = await fetch(
-      `/api/workspaces/${encodeURIComponent(props.workspaceId)}/members/${encodeURIComponent(props.userId)}`,
-      {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ role: nextRole })
+    try {
+      const response = await fetch(
+        `/api/workspaces/${encodeURIComponent(props.workspaceId)}/members/${encodeURIComponent(props.userId)}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ role: nextRole })
+        }
+      );
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { message?: string };
+        setRole(props.role);
+        setError(body.message ?? "Could not update role.");
+        return;
       }
-    );
 
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { message?: string };
+      router.refresh();
+    } catch (error) {
       setRole(props.role);
-      setError(body.message ?? "Could not update role.");
+      setError(error instanceof Error ? error.message : "Network error updating role.");
+    } finally {
       setPending(false);
-      return;
     }
-
-    setPending(false);
-    router.refresh();
   }
 
   async function removeMember() {

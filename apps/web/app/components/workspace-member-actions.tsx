@@ -65,22 +65,27 @@ export function WorkspaceMemberActions(props: {
     setPending(true);
     setError(null);
 
-    const response = await fetch(
-      `/api/workspaces/${encodeURIComponent(props.workspaceId)}/members/${encodeURIComponent(props.userId)}`,
-      {
-        method: "DELETE",
-        credentials: "include"
+    try {
+      const response = await fetch(
+        `/api/workspaces/${encodeURIComponent(props.workspaceId)}/members/${encodeURIComponent(props.userId)}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      );
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { message?: string };
+        setError(body.message ?? "Could not remove member.");
+        return;
       }
-    );
 
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { message?: string };
-      setError(body.message ?? "Could not remove member.");
+      router.refresh();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error removing member.");
+    } finally {
       setPending(false);
-      return;
     }
-
-    router.refresh();
   }
 
   return (

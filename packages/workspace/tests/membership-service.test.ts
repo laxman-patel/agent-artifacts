@@ -79,7 +79,7 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
   async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void> {
     const member = this.members.get(this.memberKey(workspaceId, userId));
     if (!member) {
-      return;
+      throw new WorkspaceMemberNotFoundError();
     }
 
     this.members.set(this.memberKey(workspaceId, userId), {

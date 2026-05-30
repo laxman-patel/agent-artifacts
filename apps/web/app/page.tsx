@@ -348,90 +348,32 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
 
 function DemoPanel() {
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-      <div className="rounded-[10px] border border-border p-1">
-        <div className="overflow-hidden rounded-md border border-foreground/[0.1] bg-card">
-          <div className="flex items-center gap-2 border-b border-foreground/[0.08] px-4 py-3">
-            <span className="size-2 rounded-full bg-red-400/70" />
-            <span className="size-2 rounded-full bg-amber-400/70" />
-            <span className="size-2 rounded-full bg-emerald-400/70" />
-            <div className="ml-3 flex-1 rounded-sm border border-foreground/[0.06] bg-foreground/[0.03] py-1 text-center font-mono text-[11px] text-foreground/35">
-              agent-artifacts.com/you/model-eval
-            </div>
+    <div className="rounded-[10px] border border-border p-1">
+      <div className="demo-video-frame overflow-hidden rounded-md border border-foreground/[0.1] bg-card">
+        <div className="flex items-center gap-2 border-b border-foreground/[0.08] px-4 py-3">
+          <span className="size-2 rounded-full bg-red-400/70" />
+          <span className="size-2 rounded-full bg-amber-400/70" />
+          <span className="size-2 rounded-full bg-emerald-400/70" />
+          <div className="ml-3 min-w-0 flex-1 truncate text-[12px] font-medium tracking-[-0.015em] text-foreground/48">
+            artifacts-demo-final-final-v2.mp4
           </div>
-          <div className="grid min-h-[23rem] grid-cols-1 sm:grid-cols-[14rem_1fr]">
-            <aside className="border-b border-foreground/[0.08] p-4 sm:border-b-0 sm:border-r">
-              <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/35">Artifacts</div>
-              <div className="space-y-2">
-                {[
-                  ["Model eval", "HTML · v7"],
-                  ["PR review", "Markdown · v3"],
-                  ["Pricing prototype", "JSX · v12"]
-                ].map(([title, meta], index) => (
-                  <div
-                    key={title}
-                    className={cn(
-                      "rounded-md border p-3",
-                      index === 0
-                        ? "border-foreground/[0.14] bg-foreground/[0.04]"
-                        : "border-foreground/[0.06] bg-transparent"
-                    )}
-                  >
-                    <div className="text-sm font-medium text-foreground/85">{title}</div>
-                    <div className="mt-1 font-mono text-[11px] text-foreground/35">{meta}</div>
-                  </div>
-                ))}
-              </div>
-            </aside>
-            <div className="p-4 sm:p-6">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-foreground/90">Quarterly model eval</div>
-                  <div className="mt-1 font-mono text-[11px] text-foreground/35">current · version 7 · private workspace</div>
-                </div>
-                <span className="rounded-sm border border-border bg-foreground/[0.03] px-2 py-1 text-xs text-foreground/60">Share</span>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  ["Accuracy", "94.2%"],
-                  ["Regressions", "3"],
-                  ["Last run", "14m"]
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-md border border-foreground/[0.07] bg-foreground/[0.02] p-3">
-                    <div className="text-[11px] uppercase tracking-[0.14em] text-foreground/35">{label}</div>
-                    <div className="mt-2 text-lg font-semibold text-foreground/90">{value}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 rounded-md border border-foreground/[0.07] bg-background/60 p-4">
-                <div className="mb-3 h-2 w-28 rounded-full bg-foreground/15" />
-                <div className="space-y-2">
-                  <div className="h-2 rounded-full bg-foreground/10" />
-                  <div className="h-2 w-11/12 rounded-full bg-foreground/10" />
-                  <div className="h-2 w-8/12 rounded-full bg-foreground/10" />
-                </div>
-                <div className="mt-5 h-28 rounded-md border border-dashed border-foreground/[0.1] bg-[linear-gradient(135deg,oklch(0.985_0_0/0.06),transparent)]" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="rounded-[10px] border border-border p-1">
-        <div className="h-full rounded-md border border-foreground/[0.1] bg-card p-4">
-          <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/35">Behind the URL</div>
-          <div className="space-y-3">
-            {[
-              ["mcp.create_artifact", "Stored content hash · rendered preview"],
-              ["policy.check", "workspace member allowed"],
-              ["versions.append", "v7 created from v6"],
-              ["audit.write", "agent updated artifact"]
-            ].map(([title, description]) => (
-              <div key={title} className="rounded-md border border-foreground/[0.07] bg-background/70 p-3">
-                <code className="font-mono text-[11px] text-amber-300">{title}</code>
-                <div className="mt-1 text-xs leading-relaxed text-foreground/45">{description}</div>
-              </div>
-            ))}
+        </div>
+
+        <div className="demo-video-screen relative aspect-video overflow-hidden bg-background" aria-label="Demo video placeholder">
+          {/* Replace this placeholder with the recorded demo when ready:
+          <video className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline preload="metadata" poster="/demo/artifacts-demo-poster.jpg">
+            <source src="/demo/artifacts-demo.mp4" type="video/mp4" />
+          </video>
+          */}
+          <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
+            <div className="max-w-md">
+              <img src={logoPath} alt="" className="mx-auto mb-4 size-5 opacity-45" />
+              <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/35">Demo recording</div>
+              <p className="mt-2 text-sm leading-relaxed text-foreground/45">
+                Drop in the Claude Code run here: generate a PR report, publish the URL, then append v2.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -475,8 +417,8 @@ export default function HomePage() {
         <div className="mb-8 max-w-2xl space-y-2 lg:mb-10">
           <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">How it works</h2>
           <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
-            Your agent writes the artifact. Artifacts stores it, returns a URL, versions every update, and keeps the
-            same access checks across humans, agents, API keys, and MCP.
+            A Claude Code recording will show the whole path: prompt, generated HTML report, publish command, live URL,
+            and a version update.
           </p>
         </div>
         <div className="mb-8 grid gap-4 md:grid-cols-3">

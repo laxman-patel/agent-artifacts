@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, CSSProperties, ReactNode } from "react";
 import { Braces, Code2, FileCode2, GitBranch, Globe2, LockKeyhole, PackageCheck, ShieldCheck, Terminal } from "lucide-react";
 
 import { CommandCopyButton } from "./components/command-copy-button";
@@ -49,38 +49,52 @@ const features: { icon: IconComponent; title: string; description: string }[] = 
   }
 ];
 
+const artifactTones = {
+  cyan: "oklch(0.72 0.08 215)",
+  amber: "oklch(0.72 0.08 75)",
+  rose: "oklch(0.68 0.09 15)",
+  emerald: "oklch(0.7 0.08 155)"
+} as const;
+
 const artifactKinds: {
   variant: "exploration" | "plan" | "review" | "report" | "explainer" | "editor";
+  tone: keyof typeof artifactTones;
   title: string;
   description: string;
 }[] = [
   {
     variant: "exploration",
+    tone: "cyan",
     title: "Exploration grids",
     description: "Compare directions side by side, then point at the one worth expanding."
   },
   {
     variant: "plan",
+    tone: "amber",
     title: "Implementation plans",
     description: "Turn a long plan into milestones, data flows, snippets, and review checkpoints."
   },
   {
     variant: "review",
+    tone: "rose",
     title: "PR review surfaces",
     description: "Group diffs by risk, annotate the important paths, and guide the reviewer’s attention."
   },
   {
     variant: "report",
+    tone: "amber",
     title: "Research reports",
     description: "Synthesize Slack, Git history, docs, and issues into a page people will actually read."
   },
   {
     variant: "explainer",
+    tone: "cyan",
     title: "Interactive explainers",
     description: "Use diagrams, tabs, sliders, and toggles when text alone would bury the point."
   },
   {
     variant: "editor",
+    tone: "emerald",
     title: "Throwaway editors",
     description: "Build one-use interfaces for shaping JSON, CSV, prompts, or configuration by hand."
   }
@@ -89,22 +103,22 @@ const artifactKinds: {
 const quoteNotes = [
   {
     person: "Thariq",
-    avatar: "T",
+    avatarUrl: "https://github.com/thdxr.png",
     note: "HTML is the new Markdown."
   },
   {
     person: "Karpathy",
-    avatar: "K",
+    avatarUrl: "https://github.com/karpathy.png",
     note: "Vision, images, animations, and video, are the preferred output from AI."
   },
   {
     person: "Theo",
-    avatar: "T",
+    avatarUrl: "https://github.com/t3dotgg.png",
     note: "There is evidently an opportunity for a microservice for this."
   },
   {
     person: "Anthropic",
-    avatar: "A",
+    avatarUrl: "https://github.com/anthropics.png",
     note: "Each file trades a document you would skim for one you would actually read."
   }
 ];
@@ -266,7 +280,7 @@ function FeatureCard({
 }) {
   return (
     <div className={cn("group rounded-[10px] border border-foreground/[0.08] p-1 transition-colors hover:border-foreground/[0.14]", className)}>
-      <div className="flex min-h-[10.25rem] flex-col gap-4 rounded-md border border-foreground/[0.06] p-5 transition-colors group-hover:border-foreground/[0.1] group-hover:bg-foreground/[0.015]">
+      <div className="flex h-full flex-col gap-3 rounded-md border border-foreground/[0.06] px-5 py-4 transition-colors group-hover:border-foreground/[0.1] group-hover:bg-foreground/[0.015]">
         <Icon className="size-5 text-foreground/40 transition-colors group-hover:text-foreground/60" aria-hidden />
         <div className="space-y-1.5">
           <h3 className="text-sm font-semibold text-foreground/90">{title}</h3>
@@ -282,10 +296,10 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
     return (
       <div className="grid grid-cols-3 gap-2">
         {["A", "B", "C"].map((item) => (
-          <div key={item} className="rounded-sm border border-foreground/[0.08] bg-background/70 p-2">
+          <div key={item} className="artifact-accent-border rounded-sm border bg-background/70 p-2">
             <div className="mb-2 font-mono text-[10px] text-foreground/35">Option {item}</div>
-            <div className="h-10 rounded-sm bg-foreground/[0.05]" />
-            <div className="mt-2 h-1.5 w-3/4 rounded-full bg-foreground/10" />
+            <div className="artifact-accent-soft h-10 rounded-sm" />
+            <div className="artifact-accent-line mt-2 h-1.5 w-3/4 rounded-full" />
           </div>
         ))}
       </div>
@@ -296,9 +310,9 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
     return (
       <div className="space-y-2">
         {["Schema", "Renderer", "Sharing"].map((item, index) => (
-          <div key={item} className="flex items-center gap-3 rounded-sm border border-foreground/[0.08] bg-background/70 p-2">
-            <span className="font-mono text-[10px] text-foreground/30">0{index + 1}</span>
-            <span className="h-1.5 flex-1 rounded-full bg-foreground/10" />
+          <div key={item} className="artifact-accent-border flex items-center gap-3 rounded-sm border bg-background/70 p-2">
+            <span className="artifact-accent-text font-mono text-[10px]">0{index + 1}</span>
+            <span className="artifact-accent-line h-1.5 flex-1 rounded-full" />
             <span className="font-mono text-[10px] text-foreground/35">{item}</span>
           </div>
         ))}
@@ -309,12 +323,12 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
   if (variant === "review") {
     return (
       <div className="grid grid-cols-[0.8fr_1.2fr] gap-2">
-        <div className="space-y-2 rounded-sm border border-foreground/[0.08] bg-background/70 p-2">
+        <div className="artifact-accent-border space-y-2 rounded-sm border bg-background/70 p-2">
           <div className="h-1.5 rounded-full bg-red-400/45" />
           <div className="h-1.5 w-5/6 rounded-full bg-amber-400/35" />
           <div className="h-1.5 w-2/3 rounded-full bg-emerald-400/30" />
         </div>
-        <div className="rounded-sm border border-foreground/[0.08] bg-background/70 p-2 font-mono text-[10px] leading-4 text-foreground/35">
+        <div className="artifact-accent-border rounded-sm border bg-background/70 p-2 font-mono text-[10px] leading-4 text-foreground/35">
           <div>+ stream.flush()</div>
           <div>- buffer.wait()</div>
           <div className="text-amber-300/70">! backpressure</div>
@@ -325,12 +339,34 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
 
   if (variant === "report") {
     return (
-      <div className="rounded-sm border border-foreground/[0.08] bg-background/70 p-3">
-        <div className="mb-3 h-2 w-32 rounded-full bg-foreground/15" />
-        <div className="grid grid-cols-3 gap-2">
-          <div className="h-12 rounded-sm bg-foreground/[0.05]" />
-          <div className="h-12 rounded-sm bg-foreground/[0.05]" />
-          <div className="h-12 rounded-sm bg-foreground/[0.05]" />
+      <div className="artifact-accent-border rounded-sm border bg-background/70 p-3">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="artifact-accent-line h-2 w-28 rounded-full" />
+          <div className="font-mono text-[10px] text-foreground/30">n=2,184</div>
+        </div>
+        <div className="grid grid-cols-[1.15fr_0.85fr] gap-3">
+          <div className="flex h-12 items-end gap-1.5 rounded-sm bg-foreground/[0.025] px-2 pb-2">
+            {[34, 58, 42, 72, 51, 84].map((height, index) => (
+              <span
+                key={index}
+                className="artifact-accent-line w-full rounded-t-[2px]"
+                style={{ height: `${height}%` }}
+              />
+            ))}
+          </div>
+          <div className="relative h-12 rounded-sm bg-foreground/[0.025] p-2">
+            <svg viewBox="0 0 96 44" className="h-full w-full overflow-visible" aria-hidden="true">
+              <polyline
+                points="0,34 16,29 30,31 46,18 62,22 78,10 96,13"
+                fill="none"
+                stroke="color-mix(in oklch, var(--artifact-accent) 48%, transparent)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="78" cy="10" r="3" fill="color-mix(in oklch, var(--artifact-accent) 62%, transparent)" />
+            </svg>
+          </div>
         </div>
       </div>
     );
@@ -338,27 +374,27 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
 
   if (variant === "explainer") {
     return (
-      <div className="rounded-sm border border-foreground/[0.08] bg-background/70 p-3">
+      <div className="artifact-accent-border rounded-sm border bg-background/70 p-3">
         <div className="mb-3 flex items-center justify-between font-mono text-[10px] text-foreground/35">
           <span>token bucket</span>
           <span>42%</span>
         </div>
         <div className="h-1.5 rounded-full bg-foreground/10">
-          <div className="h-1.5 w-5/12 rounded-full bg-sky-300/50" />
+          <div className="artifact-accent-line h-1.5 w-5/12 rounded-full" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-sm border border-foreground/[0.08] bg-background/70 p-3">
+    <div className="artifact-accent-border rounded-sm border bg-background/70 p-3">
       <div className="mb-3 grid grid-cols-3 gap-2">
-        <div className="h-8 rounded-sm border border-foreground/[0.08] bg-foreground/[0.04]" />
-        <div className="h-8 rounded-sm border border-foreground/[0.08] bg-foreground/[0.04]" />
-        <div className="h-8 rounded-sm border border-foreground/[0.08] bg-foreground/[0.04]" />
+        <div className="artifact-accent-border artifact-accent-soft h-8 rounded-sm border" />
+        <div className="artifact-accent-border artifact-accent-soft h-8 rounded-sm border" />
+        <div className="artifact-accent-border artifact-accent-soft h-8 rounded-sm border" />
       </div>
       <div className="flex justify-end">
-        <span className="rounded-sm border border-foreground/[0.08] px-2 py-1 font-mono text-[10px] text-foreground/35">copy JSON</span>
+        <span className="artifact-accent-border artifact-accent-text rounded-sm border px-2 py-1 font-mono text-[10px]">copy JSON</span>
       </div>
     </div>
   );
@@ -518,7 +554,7 @@ export default function HomePage() {
             Everything generated work needs after the model is done writing it.
           </p>
         </div>
-        <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
             <FeatureCard key={feature.title} {...feature} />
           ))}
@@ -534,43 +570,55 @@ export default function HomePage() {
             Agents already make finished surfaces. Artifacts gives those surfaces somewhere to live after the task ends.
           </p>
         </div>
-        <div className="grid auto-rows-fr gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {artifactKinds.map((kind) => (
-            <article key={kind.title} className="flex h-full flex-col rounded-[10px] border border-foreground/[0.08] p-4 transition-colors hover:border-foreground/[0.14]">
-              <div className="mb-5 flex h-[8.25rem] items-center rounded-md border border-foreground/[0.06] bg-card p-3">
-                <div className="w-full">
-                  <ArtifactPreview variant={kind.variant} />
+        <div className="grid items-start gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
+          {artifactKinds.map((kind) => {
+            const accent = artifactTones[kind.tone];
+            return (
+              <article
+                key={kind.title}
+                style={{ "--artifact-accent": accent } as CSSProperties}
+                className="flex flex-col"
+              >
+                <div className="artifact-preview mb-4 flex h-[7.6rem] items-center rounded-md border p-3">
+                  <div className="w-full">
+                    <ArtifactPreview variant={kind.variant} />
+                  </div>
                 </div>
-              </div>
-              <div className="min-h-[7.25rem]">
                 <h3 className="text-sm font-semibold text-foreground/90">{kind.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-foreground/45">{kind.description}</p>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
+
       </SectionShell>
 
       <SectionShell id="quotes">
         <div className="mb-8 max-w-xl space-y-2 lg:mb-10">
-          <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">Why this now</h2>
+          <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">The shift to HTML artifacts</h2>
           <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
-            The web is becoming a better output surface for agents. Drop sourced pull quotes here before launch.
+            Industry voices are pointing past chat text toward rich,
+            <br />
+            inspectable web outputs.
           </p>
         </div>
-        <div className="relative -mx-5 py-2 sm:-mx-8 lg:-mx-12">
+        <div className="relative -mx-5 py-3 sm:-mx-8 lg:-mx-12">
           <div className="quote-fade overflow-hidden">
-            <div className="quote-marquee flex w-max gap-12">
+            <div className="quote-marquee flex w-max items-start gap-8">
               {[...quoteNotes, ...quoteNotes].map((quote, index) => (
-                <figure key={`${quote.person}-${index}`} className="flex w-[26rem] shrink-0 items-start gap-3 py-2">
-                  <div className="grid size-9 shrink-0 place-items-center rounded-full border border-foreground/[0.08] bg-card font-mono text-[11px] text-foreground/55">
-                    {quote.avatar}
+                <figure key={`${quote.person}-${index}`} className="group flex w-[21rem] shrink-0 items-start gap-3 py-2">
+                  <div className="relative mt-0.5 size-9 shrink-0 rounded-full bg-background p-[2px]">
+                    <img
+                      src={quote.avatarUrl}
+                      alt=""
+                      className="size-full rounded-full border border-foreground/[0.12] object-cover grayscale transition duration-300 group-hover:grayscale-0"
+                    />
                   </div>
-                  <div>
-                    <blockquote className="text-base italic leading-relaxed text-foreground/62">
-                      <q>{quote.note}</q>
+                  <div className="min-w-0 max-w-[16.5rem] whitespace-normal">
+                    <blockquote className="text-pretty text-[14px] italic leading-6 text-foreground/68">
+                      <span aria-hidden className="text-foreground/28">“</span>{quote.note}<span aria-hidden className="text-foreground/28">”</span>
                     </blockquote>
-                    <figcaption className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground/35">
+                    <figcaption className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/34">
                       {quote.person}
                     </figcaption>
                   </div>

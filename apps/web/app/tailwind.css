@@ -141,20 +141,43 @@
 
 @keyframes quote-marquee {
   from {
-    transform: translateX(-50%);
+    transform: translateX(0);
   }
   to {
-    transform: translateX(0);
+    transform: translateX(-50%);
   }
 }
 
 .quote-marquee {
-  animation: quote-marquee 34s linear infinite;
+  animation: quote-marquee 36s linear infinite;
 }
 
 .quote-fade {
-  mask-image: linear-gradient(90deg, transparent 0, black 7rem, black calc(100% - 7rem), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, black 4rem, black calc(100% - 4rem), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, black 4rem, black calc(100% - 4rem), transparent 100%);
 }
+
+.artifact-preview {
+  background-color: color-mix(in oklch, var(--artifact-accent) 3.5%, var(--card));
+  border-color: color-mix(in oklch, var(--artifact-accent) 11%, transparent);
+}
+
+.artifact-accent-border {
+  border-color: color-mix(in oklch, var(--artifact-accent) 12%, transparent);
+}
+
+.artifact-accent-soft {
+  background-color: color-mix(in oklch, var(--artifact-accent) 6%, transparent);
+}
+
+.artifact-accent-line {
+  background-color: color-mix(in oklch, var(--artifact-accent) 38%, transparent);
+}
+
+.artifact-accent-text {
+  color: color-mix(in oklch, var(--artifact-accent) 58%, var(--foreground));
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   .quote-marquee {

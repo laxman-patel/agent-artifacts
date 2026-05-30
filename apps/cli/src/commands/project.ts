@@ -56,7 +56,7 @@ export const projectCreateCommand: CommandSpec = {
       } catch (error) {
         if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
           const existing = await client.get<{ project: Record<string, unknown> }>(
-            `/api/by-path/${encodeURIComponent(config.workspace)}/${encodeURIComponent(parsed.slug)}`
+            workspaceApiPath(workspaceId, `/by-path/${encodeURIComponent(parsed.slug)}`)
           );
           return {
             data: { ...existing.project, created: false },

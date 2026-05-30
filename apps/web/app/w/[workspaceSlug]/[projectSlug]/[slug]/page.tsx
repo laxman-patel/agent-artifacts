@@ -45,8 +45,15 @@ export default async function WorkspaceArtifactPage(props: {
   }
 
   const meta = gate.meta;
-  const versionNumber = searchParams.version ? Number.parseInt(searchParams.version, 10) : undefined;
-  const contentResult = await fetchArtifactContent(meta.id, header, Number.isFinite(versionNumber) ? versionNumber : undefined);
+  const parsedVersionNumber =
+    searchParams.version && /^\d+$/.test(searchParams.version)
+      ? Number.parseInt(searchParams.version, 10)
+      : undefined;
+  const versionNumber =
+    parsedVersionNumber !== undefined && Number.isSafeInteger(parsedVersionNumber) && parsedVersionNumber > 0
+      ? parsedVersionNumber
+      : undefined;
+  const contentResult = await fetchArtifactContent(meta.id, header, versionNumber);
 
   if (!contentResult.ok) {
     return (

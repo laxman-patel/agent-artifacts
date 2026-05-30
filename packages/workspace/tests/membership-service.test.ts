@@ -9,6 +9,7 @@ import {
 } from "../src/membership-service.js";
 import type {
   PersistAddMemberInput,
+  PersistCreateWorkspaceInput,
   WorkspaceMemberRecord,
   WorkspaceRecord,
   WorkspaceRepository
@@ -50,7 +51,23 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
     return undefined;
   }
 
-  async createWorkspace(): Promise<void> {}
+  async createWorkspace(input: PersistCreateWorkspaceInput): Promise<void> {
+    const now = new Date();
+    this.workspaces.set(input.id, {
+      id: input.id,
+      slug: input.slug,
+      name: input.name,
+      kind: input.kind,
+      personalUserId: input.personalUserId ?? null,
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  async createWorkspaceWithOwner(workspace: PersistCreateWorkspaceInput, member: PersistAddMemberInput): Promise<void> {
+    await this.createWorkspace(workspace);
+    await this.addMember(member);
+  }
 
   async addMember(input: PersistAddMemberInput): Promise<void> {
     const now = new Date();

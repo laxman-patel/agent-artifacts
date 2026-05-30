@@ -14,24 +14,28 @@ export function WorkspaceInvitationActions(props: { invitationId: string }) {
     setMessage(null);
     setError(null);
 
-    const response = await fetch(
-      `/api/workspace-invitations/${encodeURIComponent(props.invitationId)}/${action}`,
-      {
-        method: "POST",
-        credentials: "include"
+    try {
+      const response = await fetch(
+        `/api/workspace-invitations/${encodeURIComponent(props.invitationId)}/${action}`,
+        {
+          method: "POST",
+          credentials: "include"
+        }
+      );
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { message?: string };
+        setError(body.message ?? `Could not ${action} invitation.`);
+        return;
       }
-    );
 
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { message?: string };
-      setError(body.message ?? `Could not ${action} invitation.`);
+      setMessage(action === "resend" ? "Invitation resent." : "Invitation revoked.");
+      router.refresh();
+    } catch (error) {
+      setError(error instanceof Error ? `Could not ${action} invitation: ${error.message}` : `Could not ${action} invitation.`);
+    } finally {
       setPending(false);
-      return;
     }
-
-    setPending(false);
-    setMessage(action === "resend" ? "Invitation resent." : "Invitation revoked.");
-    router.refresh();
   }
 
   return (

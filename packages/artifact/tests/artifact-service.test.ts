@@ -13,6 +13,7 @@ import {
 } from "../src/index.js";
 import { createArtifactAccess, MemoryArtifactRoleResolver } from "@agent-artifacts/access";
 import type { Principal } from "@agent-artifacts/shared";
+import { createWorkspaceAccess, MemoryWorkspaceRoleResolver } from "@agent-artifacts/workspace";
 import type { ArtifactStorage, GetObjectOutput, PutObjectInput } from "@agent-artifacts/storage";
 
 const APP_URL = "https://www.agents-artifacts";
@@ -37,9 +38,17 @@ function createTestHarness() {
   const repository = new MemoryArtifactRepository(roleResolver);
   const storage = new MemoryArtifactStorage();
   const access = createArtifactAccess(roleResolver);
-  const service = new ArtifactService(repository, storage, APP_URL, access);
+  const workspaceRoleResolver = new MemoryWorkspaceRoleResolver();
+  workspaceRoleResolver.setMembership("ws_team", ownerPrincipal.id, "member");
+  const service = new ArtifactService(
+    repository,
+    storage,
+    APP_URL,
+    access,
+    createWorkspaceAccess(workspaceRoleResolver)
+  );
 
-  return { repository, roleResolver, storage, service };
+  return { repository, roleResolver, storage, service, workspaceRoleResolver };
 }
 
 describe("ArtifactService", () => {
@@ -96,6 +105,13 @@ describe("ArtifactService", () => {
     expect(created.url).toBe("https://www.agents-artifacts/w/acme/team-docs/launch-plan");
     expect(storage.text(created.contentObjectKey)).toBe("# Plan");
     expect(repository.auditEvents[0]?.workspaceId).toBe("ws_team");
+
+    const updated = await service.updateArtifact(
+      { artifactId: created.artifactId, content: "# Updated" },
+      ownerPrincipal
+    );
+    expect(updated.ownerUsername).toBe("acme");
+    expect(updated.url).toBe("https://www.agents-artifacts/w/acme/team-docs/launch-plan");
   });
 
   it("denies create in another user's namespace", async () => {
@@ -497,6 +513,12 @@ class MemoryArtifactRepository implements ArtifactRepository {
     );
   }
 
+  async listArtifactsForWorkspace(workspaceId: string): Promise<ArtifactRecord[]> {
+    return [...this.artifacts.values()].filter(
+      (artifact) => artifact.workspaceId === workspaceId && artifact.state === "active"
+    );
+  }
+
   async getVersion(artifactId: string, versionNumber?: number): Promise<ArtifactVersionRecord | undefined> {
     const versions = this.versions.get(artifactId) ?? [];
     return versionNumber === undefined
@@ -519,6 +541,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
       projectId: input.artifact.projectId,
       projectSlug: project?.slug ?? this.defaultProject.slug,
       workspaceId: project?.workspaceId ?? this.defaultProject.workspaceId,
+      workspaceSlug: project?.workspaceId === "ws_team" ? "acme" : project?.workspaceId ? "laxman" : null,
       slug: input.artifact.slug,
       title: input.artifact.title,
       description: input.artifact.description ?? null,

@@ -43,6 +43,9 @@ export function WorkspaceInviteAcceptForm(props: { token: string }) {
 
       router.replace("/dashboard");
       router.refresh();
+    } catch (error) {
+      console.error(error);
+      setError(error instanceof Error ? `Could not accept invitation: ${error.message}` : "Could not accept invitation.");
     } finally {
       setPending(false);
     }

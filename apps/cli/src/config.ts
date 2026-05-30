@@ -37,6 +37,11 @@ function envFlag(name: string): boolean {
   return value === "1" || value === "true" || value === "yes";
 }
 
+function normalizeOptionalString(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export function preParseGlobals(argv: string[]): {
   format?: OutputFormat;
   noInput?: boolean;
@@ -85,7 +90,7 @@ export function resolveConfig(options: {
     DEFAULT_WEB_URL
   ).replace(/\/+$/, "");
   const token = options.token ?? process.env.AGENT_ARTIFACTS_TOKEN ?? stored?.token;
-  const workspace = options.workspace ?? process.env.AGENT_ARTIFACTS_WORKSPACE;
+  const workspace = normalizeOptionalString(options.workspace) ?? normalizeOptionalString(process.env.AGENT_ARTIFACTS_WORKSPACE);
   const envFormat = process.env.AGENT_ARTIFACTS_FORMAT;
   const formatFromEnv = envFormat === "json" || envFormat === "text" ? envFormat : undefined;
   const format = options.format ?? formatFromEnv ?? (process.stdout.isTTY ? "text" : "json");

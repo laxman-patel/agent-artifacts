@@ -8,7 +8,7 @@ export function workspaceRoleToArtifactRole(role: WorkspaceRole): ArtifactRole |
     case "admin":
       return "admin";
     case "member":
-      return "admin";
+      return "editor";
     case "viewer":
       return "viewer";
     case "billing_admin":

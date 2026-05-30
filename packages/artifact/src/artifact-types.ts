@@ -156,6 +156,7 @@ export interface ArtifactRecord {
   projectId: string;
   projectSlug: string;
   workspaceId: string | null;
+  workspaceSlug: string | null;
   slug: string;
   title: string;
   description: string | null;

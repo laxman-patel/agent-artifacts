@@ -14,25 +14,30 @@ export function WorkspaceCreateForm() {
     event.preventDefault();
     setError(null);
 
-    const response = await fetch("/api/workspaces", {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, slug })
-    });
+    try {
+      const response = await fetch("/api/workspaces", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, slug })
+      });
 
-    const body = (await response.json().catch(() => ({}))) as {
-      workspace?: { slug: string };
-      message?: string;
-    };
+      const body = (await response.json().catch(() => ({}))) as {
+        workspace?: { slug: string };
+        message?: string;
+      };
 
-    if (!response.ok || !body.workspace) {
-      setError(body.message ?? "Could not create workspace.");
-      return;
+      if (!response.ok || !body.workspace) {
+        setError(body.message ?? "Could not create workspace.");
+        return;
+      }
+
+      router.push(`/w/${body.workspace.slug}`);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setError(error instanceof Error ? `Could not create workspace: ${error.message}` : "Could not create workspace.");
     }
-
-    router.push(`/w/${body.workspace.slug}`);
-    router.refresh();
   }
 
   return (
@@ -58,6 +63,8 @@ export function WorkspaceCreateForm() {
           name="slug"
           onChange={(event) => setSlug(event.target.value)}
           pattern="[a-z0-9][a-z0-9_-]*[a-z0-9]"
+          minLength={3}
+          maxLength={32}
           placeholder="acme"
           required
           value={slug}

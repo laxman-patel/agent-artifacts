@@ -163,6 +163,10 @@ export const workspaces = pgTable(
     slugFormat: check(
       "workspaces_slug_format",
       sql`${table.slug} ~ '^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$' AND length(${table.slug}) BETWEEN 3 AND 32`
+    ),
+    kindPersonalInvariant: check(
+      "workspaces_kind_personal_invariant",
+      sql`(${table.kind} = 'personal' AND ${table.personalUserId} IS NOT NULL) OR (${table.kind} = 'team' AND ${table.personalUserId} IS NULL)`
     )
   })
 );
@@ -212,6 +216,9 @@ export const workspaceInvitations = pgTable(
   },
   (table) => ({
     tokenUnique: uniqueIndex("workspace_invitations_token_hash_unique").on(table.tokenHash),
+    workspaceEmailPendingUnique: uniqueIndex("workspace_invitations_workspace_email_pending_unique")
+      .on(table.workspaceId, sql`lower(${table.email})`)
+      .where(sql`${table.state} = 'pending'`),
     workspaceIdx: index("workspace_invitations_workspace_idx").on(table.workspaceId),
     emailIdx: index("workspace_invitations_email_idx").on(sql`lower(${table.email})`)
   })

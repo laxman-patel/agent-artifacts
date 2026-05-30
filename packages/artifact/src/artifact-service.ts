@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { ArtifactAccess } from "@agent-artifacts/access";
+import type { WorkspaceAccess } from "@agent-artifacts/workspace";
 import type { ArtifactAction, ArtifactType, Principal } from "@agent-artifacts/shared";
 import { buildProjectArtifactUrl, buildWorkspaceProjectArtifactUrl } from "@agent-artifacts/shared";
 import type { ArtifactStorage } from "@agent-artifacts/storage";
@@ -35,7 +36,8 @@ export class ArtifactService {
     private readonly repository: ArtifactRepository,
     private readonly storage: ArtifactStorage,
     private readonly appUrl: string,
-    private readonly access: ArtifactAccess
+    private readonly access: ArtifactAccess,
+    private readonly workspaceAccess: WorkspaceAccess
   ) {}
 
   async checkSlugAvailability(
@@ -151,14 +153,10 @@ export class ArtifactService {
   ): Promise<ArtifactSummary> {
     const parsed = createWorkspaceArtifactInputSchema.parse(input);
     const project = await this.requireWorkspaceProject(workspaceId, parsed.projectSlug);
-    await this.access.assertAuthorized({
+    await this.workspaceAccess.assertAuthorized({
       principal,
-      action: "artifact.create",
-      context: {
-        kind: "namespace",
-        ownerUserId: project.ownerUserId,
-        workspaceId: project.workspaceId
-      }
+      action: "workspace.create_content",
+      context: { workspaceId }
     });
     const normalizedSlug = validateSlug(parsed.slug);
     const available = !(await this.repository.slugExistsInProject(project.id, normalizedSlug));
@@ -239,6 +237,11 @@ export class ArtifactService {
       throw new ArtifactConflictError(`Expected latest version ${parsed.expectedLatestVersion}, got ${latestVersion.versionNumber}.`);
     }
 
+    const namespaceSlug = artifact.workspaceId ? artifact.workspaceSlug : artifact.ownerUsername;
+    if (!namespaceSlug) {
+      throw new ArtifactNotFoundError();
+    }
+
     const nextVersionNumber = latestVersion.versionNumber + 1;
     const versionId = randomUUID();
     const content = await this.writeContent({
@@ -274,13 +277,20 @@ export class ArtifactService {
       versionId,
       versionNumber: nextVersionNumber,
       ownerUserId: artifact.ownerUserId,
-      ownerUsername: artifact.ownerUsername,
+      ownerUsername: namespaceSlug,
       projectId: artifact.projectId,
       projectSlug: artifact.projectSlug,
       normalizedSlug: artifact.slug,
       type: artifact.type,
       title: artifact.title,
-      url: buildProjectArtifactUrl(this.appUrl, artifact.ownerUsername, artifact.projectSlug, artifact.slug),
+      url: artifact.workspaceId
+        ? buildWorkspaceProjectArtifactUrl(
+            this.appUrl,
+            namespaceSlug,
+            artifact.projectSlug,
+            artifact.slug
+          )
+        : buildProjectArtifactUrl(this.appUrl, namespaceSlug, artifact.projectSlug, artifact.slug),
       contentObjectKey: content.contentObjectKey,
       contentSha256: content.contentSha256,
       contentBytes: content.contentBytes,

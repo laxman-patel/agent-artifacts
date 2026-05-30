@@ -348,7 +348,7 @@ export async function loadWorkspaceArtifactGate(
 ): Promise<{ kind: "ok"; meta: ArtifactMeta } | { kind: "restricted"; message: string; loginHref: string }> {
   const result = await fetchWorkspaceArtifactMeta(workspaceId, projectSlug, slug, cookie);
   if (!result.ok && result.status === 404) notFound();
-  if (!result.ok && result.status === 403) {
+  if (!result.ok && (result.status === 401 || result.status === 403)) {
     return { kind: "restricted", message: result.message, loginHref: `/login?next=${encodeURIComponent(opts.redirectPath)}` };
   }
   if (!result.ok) throw new Error(`Unexpected artifact response: ${result.status}`);

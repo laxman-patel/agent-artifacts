@@ -22,8 +22,12 @@ export default async function WorkspaceSettingsPage(props: {
 
   const workspaceResult = await resolveWorkspaceBySlug(header, workspaceSlug);
 
-  if (!workspaceResult.ok && (workspaceResult.status === 401 || workspaceResult.status === 403)) {
+  if (!workspaceResult.ok && workspaceResult.status === 401) {
     redirect(`/login?next=${encodeURIComponent(`/w/${workspaceSlug}/settings`)}`);
+  }
+
+  if (!workspaceResult.ok && workspaceResult.status === 403) {
+    notFound();
   }
 
   if (!workspaceResult.ok && workspaceResult.status === 404) {

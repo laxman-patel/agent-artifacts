@@ -4,7 +4,8 @@ import {
   MemoryArtifactRoleResolver,
   assertAuthorized,
   authorize,
-  createArtifactAccess
+  createArtifactAccess,
+  workspaceRoleToArtifactRole
 } from "../src/index.js";
 
 const owner: Principal = {
@@ -100,6 +101,12 @@ describe("authorize", () => {
     });
 
     expect(decision.allowed).toBe(true);
+  });
+});
+
+describe("workspaceRoleToArtifactRole", () => {
+  it("does not elevate workspace members to artifact admins", () => {
+    expect(workspaceRoleToArtifactRole("member")).toBe("editor");
   });
 });
 

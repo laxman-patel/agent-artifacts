@@ -9,7 +9,9 @@ function needsAuthProtection(pathname: string): boolean {
   return (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/settings") ||
+    pathname === "/workspaces" ||
     pathname.startsWith("/workspaces/") ||
+    pathname === "/workspace-invite" ||
     pathname.startsWith("/workspace-invite/")
   );
 }

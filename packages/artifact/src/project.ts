@@ -14,7 +14,7 @@ import {
 import type { ArtifactAccess } from "@agent-artifacts/access";
 import type { WorkspaceAccess } from "@agent-artifacts/workspace";
 import { z } from "zod";
-import { getOwnerByUsername, getProjectIdByOwnerSlug } from "./drizzle-owner-lookup.js";
+import { getOwnerByUsername } from "./drizzle-owner-lookup.js";
 
 export class ProjectNotFoundError extends Error {
   constructor() {
@@ -51,6 +51,10 @@ export interface ProjectSummary {
   normalizedSlug: string;
   title: string;
   url: string;
+}
+
+function personalProjectNamespaceCondition() {
+  return sql`(${projects.workspaceId} IS NULL OR EXISTS (SELECT 1 FROM ${workspaces} WHERE ${workspaces.id} = ${projects.workspaceId} AND ${workspaces.kind} = 'personal' AND ${workspaces.personalUserId} = ${projects.ownerUserId}))`;
 }
 
 export interface ProjectRepository {
@@ -231,11 +235,10 @@ export class ProjectService {
       throw new ProjectNotFoundError();
     }
 
-    await this.access.assertAuthorized({
-      principal,
-      action: "artifact.create",
-      context: this.namespaceContext(project)
-    });
+    if (project.ownerUserId !== principal.id) {
+      throw new ArtifactForbiddenError("Only the project owner can transfer projects.");
+    }
+
     await this.requireWorkspaceAccess(workspaceId, principal, "workspace.create_content");
 
     const slugTaken = await this.repository.workspaceProjectSlugExists(workspaceId, project.slug);
@@ -398,12 +401,17 @@ export class DrizzleProjectRepository implements ProjectRepository {
   }
 
   async getProjectByOwnerSlug(username: string, projectSlug: string): Promise<ProjectRecord | undefined> {
-    const match = await getProjectIdByOwnerSlug(this.db, username, projectSlug);
-    if (!match) {
-      return undefined;
-    }
-
-    const [project] = await this.projectQuery().where(eq(projects.id, match.id)).limit(1);
+    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedProjectSlug = validateProjectSlug(projectSlug);
+    const [project] = await this.projectQuery()
+      .where(
+        and(
+          sql`lower(${userProfiles.username}) = ${normalizedUsername}`,
+          sql`lower(${projects.slug}) = ${normalizedProjectSlug}`,
+          personalProjectNamespaceCondition()
+        )
+      )
+      .limit(1);
     return project;
   }
 

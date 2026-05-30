@@ -108,9 +108,9 @@ export interface InvitationRepository {
   findUserIdByEmail(email: string): Promise<string | undefined>;
   create(input: PersistCreateInvitationInput): Promise<void>;
   updateTokenAndExpiry(invitationId: string, tokenHash: string, expiresAt: Date): Promise<void>;
-  markAccepted(invitationId: string, acceptedAt: Date): Promise<void>;
-  markRevoked(invitationId: string, revokedAt: Date): Promise<void>;
-  markExpired(invitationId: string): Promise<void>;
+  markAccepted(invitationId: string, acceptedAt: Date): Promise<boolean>;
+  markRevoked(invitationId: string, revokedAt: Date): Promise<boolean>;
+  markExpired(invitationId: string): Promise<boolean>;
   listPendingByWorkspace(workspaceId: string): Promise<WorkspaceInvitationRecord[]>;
 }
 
@@ -192,7 +192,11 @@ export class InvitationService {
       normalizedEmail
     );
     if (pendingInvitation) {
-      throw new WorkspaceInvitationConflictError("A pending invitation already exists for that email.");
+      if (isInvitationExpired(pendingInvitation)) {
+        await this.invitationRepository.markExpired(pendingInvitation.id);
+      } else {
+        throw new WorkspaceInvitationConflictError("A pending invitation already exists for that email.");
+      }
     }
 
     const token = randomBytes(32).toString("base64url");
@@ -254,7 +258,9 @@ export class InvitationService {
 
     const existingMembership = await this.workspaceRepository.getMembership(invitation.workspaceId, principal.id);
     if (existingMembership) {
-      await this.invitationRepository.markAccepted(invitation.id, new Date());
+      if (!(await this.invitationRepository.markAccepted(invitation.id, new Date()))) {
+        throw new WorkspaceInvitationConflictError("This invitation is no longer pending.");
+      }
       return { workspaceId: invitation.workspaceId, role: existingMembership.role };
     }
 
@@ -265,7 +271,9 @@ export class InvitationService {
       role: invitation.role
     });
 
-    await this.invitationRepository.markAccepted(invitation.id, new Date());
+    if (!(await this.invitationRepository.markAccepted(invitation.id, new Date()))) {
+      throw new WorkspaceInvitationConflictError("This invitation is no longer pending.");
+    }
     await this.recordAudit(
       invitation.workspaceId,
       principal,
@@ -289,7 +297,9 @@ export class InvitationService {
       throw new WorkspaceInvitationConflictError("Only pending invitations can be revoked.");
     }
 
-    await this.invitationRepository.markRevoked(invitationId, new Date());
+    if (!(await this.invitationRepository.markRevoked(invitationId, new Date()))) {
+      throw new WorkspaceInvitationConflictError("Only pending invitations can be revoked.");
+    }
     await this.recordAudit(
       invitation.workspaceId,
       principal,
@@ -470,25 +480,36 @@ export class DrizzleInvitationRepository implements InvitationRepository {
       .where(eq(workspaceInvitations.id, invitationId));
   }
 
-  async markAccepted(invitationId: string, acceptedAt: Date): Promise<void> {
-    await this.db
+  async markAccepted(invitationId: string, acceptedAt: Date): Promise<boolean> {
+    const updated = await this.db
       .update(workspaceInvitations)
       .set({ state: "accepted", acceptedAt })
-      .where(eq(workspaceInvitations.id, invitationId));
+      .where(and(eq(workspaceInvitations.id, invitationId), eq(workspaceInvitations.state, "pending")))
+      .returning({ id: workspaceInvitations.id });
+
+    return updated.length > 0;
   }
 
-  async markRevoked(invitationId: string, revokedAt: Date): Promise<void> {
-    await this.db
+  async markRevoked(invitationId: string, revokedAt: Date): Promise<boolean> {
+    const updated = await this.db
       .update(workspaceInvitations)
       .set({ state: "revoked", revokedAt })
-      .where(eq(workspaceInvitations.id, invitationId));
+      .where(and(eq(workspaceInvitations.id, invitationId), eq(workspaceInvitations.state, "pending")))
+      .returning({ id: workspaceInvitations.id });
+
+    return updated.length > 0;
   }
 
-  async markExpired(invitationId: string): Promise<void> {
-    await this.db
+  async markExpired(invitationId: string): Promise<boolean> {
+    const updated = await this.db
       .update(workspaceInvitations)
       .set({ state: "expired" })
-      .where(eq(workspaceInvitations.id, invitationId));
+      .where(
+        and(eq(workspaceInvitations.id, invitationId), eq(workspaceInvitations.state, "pending"))
+      )
+      .returning({ id: workspaceInvitations.id });
+
+    return updated.length > 0;
   }
 
   async listPendingByWorkspace(workspaceId: string): Promise<WorkspaceInvitationRecord[]> {
@@ -574,31 +595,34 @@ export class MemoryInvitationRepository implements InvitationRepository {
     this.invitations.set(invitationId, { ...invitation, tokenHash, expiresAt });
   }
 
-  async markAccepted(invitationId: string, acceptedAt: Date): Promise<void> {
+  async markAccepted(invitationId: string, acceptedAt: Date): Promise<boolean> {
     const invitation = this.invitations.get(invitationId);
-    if (!invitation) {
-      return;
+    if (!invitation || invitation.state !== "pending") {
+      return false;
     }
 
     this.invitations.set(invitationId, { ...invitation, state: "accepted", acceptedAt });
+    return true;
   }
 
-  async markRevoked(invitationId: string, revokedAt: Date): Promise<void> {
+  async markRevoked(invitationId: string, revokedAt: Date): Promise<boolean> {
     const invitation = this.invitations.get(invitationId);
-    if (!invitation) {
-      return;
+    if (!invitation || invitation.state !== "pending") {
+      return false;
     }
 
     this.invitations.set(invitationId, { ...invitation, state: "revoked", revokedAt });
+    return true;
   }
 
-  async markExpired(invitationId: string): Promise<void> {
+  async markExpired(invitationId: string): Promise<boolean> {
     const invitation = this.invitations.get(invitationId);
-    if (!invitation) {
-      return;
+    if (!invitation || invitation.state !== "pending") {
+      return false;
     }
 
     this.invitations.set(invitationId, { ...invitation, state: "expired" });
+    return true;
   }
 
   async listPendingByWorkspace(workspaceId: string): Promise<WorkspaceInvitationRecord[]> {

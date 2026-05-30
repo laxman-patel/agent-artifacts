@@ -86,11 +86,14 @@ export function getArtifactService() {
     });
 
     const roleResolver = new DrizzleArtifactRoleResolver(db);
+    const workspaceRepository = new DrizzleWorkspaceRepository(db);
+    const workspaceAccess = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(workspaceRepository));
     return new ArtifactService(
       new DrizzleArtifactRepository(db, logger),
       storage,
       env.PUBLIC_APP_URL,
-      createArtifactAccess(roleResolver)
+      createArtifactAccess(roleResolver),
+      workspaceAccess
     );
   })();
 

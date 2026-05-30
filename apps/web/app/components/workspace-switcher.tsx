@@ -52,7 +52,7 @@ export function WorkspaceSwitcher(props: { workspaces: WorkspaceSummary[] }) {
           const href = workspaceHref(workspace);
           const isActive =
             (workspace.kind === "personal" && pathname.startsWith("/dashboard")) ||
-            pathname.startsWith(`/w/${workspace.slug}`);
+            active?.id === workspace.id;
 
           return (
             <li key={workspace.id}>

@@ -9,7 +9,20 @@ import {
 import { createUserPrincipal, withMcpAuth } from "@agent-artifacts/auth";
 import { users } from "@agent-artifacts/db";
 import { callMcpTool, listMcpTools, mcpToolInputSchemas, type McpToolName } from "@agent-artifacts/mcp";
-import { ArtifactForbiddenError, type Principal } from "@agent-artifacts/shared";
+import {
+  WorkspaceInvitationConflictError,
+  WorkspaceInvitationExpiredError,
+  WorkspaceInvitationNotFoundError,
+  WorkspaceMemberConflictError,
+  WorkspaceMemberNotFoundError
+} from "@agent-artifacts/workspace";
+import {
+  ArtifactForbiddenError,
+  WorkspaceForbiddenError,
+  WorkspaceNotFoundError,
+  WorkspaceSlugUnavailableError,
+  type Principal
+} from "@agent-artifacts/shared";
 import { getArtifactService, getAuth, getDb, getProjectService, getWorkspaceService } from "../deps.js";
 
 const mcpJsonRpcRequestSchema = z.object({
@@ -105,14 +118,28 @@ export function mcpErrorPayload(error: unknown): {
   if (error instanceof z.ZodError) {
     return { jsonrpc: "2.0", id: null, error: { code: -32602, message: "Invalid MCP request.", data: error.issues } };
   }
-  if (error instanceof ArtifactForbiddenError) {
+  if (error instanceof ArtifactForbiddenError || error instanceof WorkspaceForbiddenError) {
     return { jsonrpc: "2.0", id: null, error: { code: -32001, message: error.message } };
   }
-  if (error instanceof ArtifactNotFoundError) {
+  if (
+    error instanceof ArtifactNotFoundError ||
+    error instanceof WorkspaceNotFoundError ||
+    error instanceof WorkspaceInvitationNotFoundError ||
+    error instanceof WorkspaceMemberNotFoundError
+  ) {
     return { jsonrpc: "2.0", id: null, error: { code: -32004, message: error.message } };
   }
-  if (error instanceof SlugUnavailableError || error instanceof ArtifactConflictError) {
+  if (
+    error instanceof SlugUnavailableError ||
+    error instanceof ArtifactConflictError ||
+    error instanceof WorkspaceSlugUnavailableError ||
+    error instanceof WorkspaceInvitationConflictError ||
+    error instanceof WorkspaceMemberConflictError
+  ) {
     return { jsonrpc: "2.0", id: null, error: { code: -32009, message: error.message } };
+  }
+  if (error instanceof WorkspaceInvitationExpiredError) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32010, message: error.message } };
   }
   return { jsonrpc: "2.0", id: null, error: { code: -32603, message: error instanceof Error ? error.message : String(error) } };
 }

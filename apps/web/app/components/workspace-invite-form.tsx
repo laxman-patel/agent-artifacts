@@ -17,22 +17,27 @@ export function WorkspaceInviteForm(props: { workspaceId: string }) {
     setError(null);
     setSuccess(null);
 
-    const response = await fetch(`/api/workspaces/${encodeURIComponent(props.workspaceId)}/invitations`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, role })
-    });
+    try {
+      const response = await fetch(`/api/workspaces/${encodeURIComponent(props.workspaceId)}/invitations`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, role })
+      });
 
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { message?: string };
-      setError(body.message ?? "Could not send invitation.");
-      return;
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { message?: string };
+        setError(body.message ?? "Could not send invitation.");
+        return;
+      }
+
+      setEmail("");
+      setSuccess("Invitation sent.");
+      router.refresh();
+    } catch (error) {
+      setSuccess(null);
+      setError(error instanceof Error ? `Could not send invitation: ${error.message}` : "Could not send invitation.");
     }
-
-    setEmail("");
-    setSuccess("Invitation sent.");
-    router.refresh();
   }
 
   return (

@@ -12,6 +12,7 @@ import {
 } from "../src/invitation-service.js";
 import type {
   PersistAddMemberInput,
+  PersistCreateWorkspaceInput,
   WorkspaceMemberRecord,
   WorkspaceRecord,
   WorkspaceRepository
@@ -53,7 +54,23 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
     return undefined;
   }
 
-  async createWorkspace(): Promise<void> {}
+  async createWorkspace(input: PersistCreateWorkspaceInput): Promise<void> {
+    const now = new Date();
+    this.workspaces.set(input.id, {
+      id: input.id,
+      slug: input.slug,
+      name: input.name,
+      kind: input.kind,
+      personalUserId: input.personalUserId ?? null,
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  async createWorkspaceWithOwner(workspace: PersistCreateWorkspaceInput, member: PersistAddMemberInput): Promise<void> {
+    await this.createWorkspace(workspace);
+    await this.addMember(member);
+  }
 
   async addMember(input: PersistAddMemberInput): Promise<void> {
     const now = new Date();
@@ -196,6 +213,26 @@ describe("InvitationService", () => {
     await expect(
       service.createInvitation(workspaceId, "invitee@example.com", "viewer", owner)
     ).rejects.toThrow(WorkspaceInvitationConflictError);
+  });
+
+  it("allows re-inviting when an existing pending invitation has expired", async () => {
+    const { service, invitationRepository } = createHarness();
+
+    await invitationRepository.create({
+      id: "inv_expired_pending",
+      workspaceId,
+      email: "invitee@example.com",
+      role: "member",
+      tokenHash: hashInvitationToken("expired-token"),
+      invitedByUserId: owner.id,
+      expiresAt: new Date(Date.now() - 60_000)
+    });
+
+    const created = await service.createInvitation(workspaceId, "invitee@example.com", "viewer", owner);
+
+    await expect(invitationRepository.getById("inv_expired_pending")).resolves.toMatchObject({ state: "expired" });
+    expect(created.id).not.toBe("inv_expired_pending");
+    expect(created.role).toBe("viewer");
   });
 
   it("accepts an invitation and creates membership", async () => {

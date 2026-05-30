@@ -47,6 +47,7 @@ export interface WorkspaceRepository {
   getBySlug(slug: string): Promise<WorkspaceRecord | undefined>;
   getPersonalWorkspaceForUser(userId: string): Promise<WorkspaceRecord | undefined>;
   createWorkspace(input: PersistCreateWorkspaceInput): Promise<void>;
+  createWorkspaceWithOwner(workspace: PersistCreateWorkspaceInput, member: PersistAddMemberInput): Promise<void>;
   addMember(input: PersistAddMemberInput): Promise<void>;
   listMembershipsForUser(userId: string): Promise<Array<WorkspaceRecord & { role: WorkspaceRole }>>;
   listMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]>;
@@ -109,9 +110,8 @@ export class WorkspaceService {
 
     const parsed = createTeamWorkspaceInputSchema.parse(input);
     const normalizedSlug = validateWorkspaceSlug(parsed.slug);
-    const availability = await this.checkSlugAvailability(normalizedSlug);
 
-    if (!availability.available) {
+    if (await this.repository.usernameExists(normalizedSlug)) {
       throw new WorkspaceSlugUnavailableError(normalizedSlug);
     }
 
@@ -119,20 +119,28 @@ export class WorkspaceService {
     const memberId = randomUUID();
     const now = new Date();
 
-    await this.repository.createWorkspace({
-      id: workspaceId,
-      slug: normalizedSlug,
-      name: parsed.name,
-      kind: "team",
-      createdByUserId: principal.id
-    });
-
-    await this.repository.addMember({
-      id: memberId,
-      workspaceId,
-      userId: principal.id,
-      role: "owner"
-    });
+    try {
+      await this.repository.createWorkspaceWithOwner(
+        {
+          id: workspaceId,
+          slug: normalizedSlug,
+          name: parsed.name,
+          kind: "team",
+          createdByUserId: principal.id
+        },
+        {
+          id: memberId,
+          workspaceId,
+          userId: principal.id,
+          role: "owner"
+        }
+      );
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new WorkspaceSlugUnavailableError(normalizedSlug);
+      }
+      throw error;
+    }
 
     const workspace = await this.repository.getById(workspaceId);
     if (!workspace) {
@@ -255,6 +263,21 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       createdAt: now,
       updatedAt: now
     });
+  }
+
+  async createWorkspaceWithOwner(workspace: PersistCreateWorkspaceInput, member: PersistAddMemberInput): Promise<void> {
+    const run = async (db: DbExecutor) => {
+      const repository = new DrizzleWorkspaceRepository(db);
+      await repository.createWorkspace(workspace);
+      await repository.addMember(member);
+    };
+
+    if ("transaction" in this.db) {
+      await this.db.transaction(run);
+      return;
+    }
+
+    await run(this.db);
   }
 
   async addMember(input: PersistAddMemberInput): Promise<void> {
@@ -394,21 +417,41 @@ export async function ensurePersonalWorkspace(
   const workspaceId = `ws_personal_${input.userId}`;
   const memberId = `wsm_${input.userId}`;
 
-  await repository.createWorkspace({
-    id: workspaceId,
-    slug: input.username,
-    name: input.displayName ?? input.username,
-    kind: "personal",
-    createdByUserId: input.userId,
-    personalUserId: input.userId
-  });
+  try {
+    await repository.createWorkspace({
+      id: workspaceId,
+      slug: input.username,
+      name: input.displayName ?? input.username,
+      kind: "personal",
+      createdByUserId: input.userId,
+      personalUserId: input.userId
+    });
 
-  await repository.addMember({
-    id: memberId,
-    workspaceId,
-    userId: input.userId,
-    role: "owner"
-  });
+    await repository.addMember({
+      id: memberId,
+      workspaceId,
+      userId: input.userId,
+      role: "owner"
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      const raced = await repository.getPersonalWorkspaceForUser(input.userId);
+      if (raced) {
+        return raced.id;
+      }
+    }
+    throw error;
+  }
 
-  return workspaceId;
+  const created = await repository.getPersonalWorkspaceForUser(input.userId);
+  return created?.id ?? workspaceId;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+  while (typeof current === "object" && current !== null) {
+    if ("code" in current && current.code === "23505") return true;
+    current = "cause" in current ? current.cause : undefined;
+  }
+  return false;
 }

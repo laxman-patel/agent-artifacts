@@ -1,0 +1,2 @@
+ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_kind_personal_invariant" CHECK (("workspaces"."kind" = 'personal' AND "workspaces"."personal_user_id" IS NOT NULL) OR ("workspaces"."kind" = 'team' AND "workspaces"."personal_user_id" IS NULL));--> statement-breakpoint
+CREATE UNIQUE INDEX "workspace_invitations_workspace_email_pending_unique" ON "workspace_invitations" USING btree ("workspace_id",lower("email")) WHERE "workspace_invitations"."state" = 'pending';

@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# reference repos
+references/
+
 # Environment files
 .env
 .env.*
@@ -20,7 +23,11 @@ coverage/
 
 # Logs
 *.log
+.pi/
 npm-debug.log*
 pnpm-debug.log*
 bun-debug.log*
 yarn-debug.log*
+
+# Test artifacts
+test-results/

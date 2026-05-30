@@ -3,7 +3,8 @@ import { expect, test } from "@playwright/test";
 test.describe("web smoke", () => {
   test("landing page renders hero copy", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /Durable, versioned artifact hosting/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Every artifact your agent creates has a home/i })).toBeVisible();
+    await expect(page.getByText("npx agent-artifacts@latest setup").first()).toBeVisible();
   });
 
   test("login page exposes Google button", async ({ page }) => {

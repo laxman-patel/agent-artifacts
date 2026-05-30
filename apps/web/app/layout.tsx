@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { BetterStackWebVitals } from "@logtail/next/webVitals";
-import { SessionNav } from "./components/session-nav";
+import { SiteHeader } from "./components/site-header";
 import "./styles.css";
+import "./tailwind.css";
 
 export const metadata: Metadata = {
-  title: "Agent Artifacts",
-  description: "Versioned, access-controlled artifact hosting for humans and agents."
+  title: "Artifacts: Agent-native artifact hosting",
+  description:
+    "Publish HTML reports, Markdown specs, JSX prototypes, and agent-built tools with permanent URLs, immutable versions, access control, and MCP automation."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -15,12 +16,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="site-body">
         <BetterStackWebVitals />
         <div className="site-shell">
-          <header className="site-header">
-            <Link className="brand" href="/">
-              Agent Artifacts
-            </Link>
-            <SessionNav />
-          </header>
+          <SiteHeader />
           {children}
         </div>
       </body>

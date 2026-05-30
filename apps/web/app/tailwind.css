@@ -1,0 +1,211 @@
+/*
+ * Tailwind v4 entry for the marketing / landing surface.
+ *
+ * Preflight is intentionally omitted (we import only the theme and utilities
+ * layers) so the plain-CSS app pages (dashboard, login, [username], share,
+ * settings) keep their exact rendering. The marketing tree opts into the few
+ * resets it needs through the `.marketing` scope in the base layer below.
+ *
+ * `references/` is gitignored, so Tailwind's automatic source detection skips
+ * archived inspiration copies and only scans this app.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@custom-variant dark (&:is(.dark *));
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-font-1.7.1/Geist/webfonts/Geist-Variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-font-1.7.1/Geist/webfonts/Geist-Italic-Variable.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/geist-font-1.7.1/GeistMono/webfonts/GeistMono-Variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Pixel Square";
+  src: url("/fonts/geist-font-1.7.1/GeistPixel/webfonts/GeistPixel-Square.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* shadcn/base-nova-inspired design tokens (OKLCH): light defaults + dark overrides */
+:root {
+  --font-geist-sans: "Geist";
+  --font-geist-mono: "Geist Mono";
+  --font-geist-pixel: "Geist Pixel Square";
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.45rem;
+
+  /* A legacy product accent kept for app surfaces outside this landing page. */
+  --brand: oklch(0.88 0.21 130);
+  --brand-foreground: oklch(0.2 0.05 145);
+  --brand-muted: oklch(0.88 0.21 130 / 0.12);
+}
+
+.dark {
+  --background: oklch(0.17 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.1871 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.87 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.24 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.371 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(26% 0 0);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+}
+
+/* Tailwind theme mapping (v4). `inline` so `.dark` overrides resolve. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  --font-pixel: var(--font-geist-pixel), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+}
+
+@keyframes caret-blink {
+  0%, 70%, 100% { opacity: 1; }
+  20%, 50% { opacity: 0; }
+}
+
+@keyframes quote-marquee {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.quote-marquee {
+  animation: quote-marquee 34s linear infinite;
+}
+
+.quote-fade {
+  mask-image: linear-gradient(90deg, transparent 0, black 7rem, black calc(100% - 7rem), transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quote-marquee {
+    animation: none;
+    transform: translateX(0);
+  }
+}
+
+/*
+ * Make the page canvas near-black on the landing only. Unlayered + the extra
+ * `:has()` specificity beats the unlayered `body { background }` rule in
+ * styles.css; app pages (no `.marketing` descendant) are untouched.
+ */
+body:has(.marketing) {
+  background: oklch(0.17 0 0);
+}
+
+/* Marketing-scoped resets. In `base` so utilities always win. */
+@layer base {
+  .marketing {
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+  .marketing :where(h1, h2, h3, h4, h5, h6, p, figure, blockquote, pre) {
+    margin: 0;
+  }
+  .marketing :where(h1, h2, h3) {
+    font-family: var(--font-geist-pixel), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    text-wrap: balance;
+  }
+  .marketing :where(button) {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .marketing :where(a) {
+    color: inherit;
+    text-decoration: none;
+  }
+  .marketing :where(a, button):focus-visible {
+    outline: 2px solid color-mix(in oklch, var(--foreground) 58%, transparent);
+    outline-offset: 3px;
+  }
+  .marketing :where(ul, ol) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .marketing :where(svg, img) {
+    display: block;
+  }
+}

@@ -32,7 +32,9 @@ describe("CLI schema", () => {
       "share create",
       "share list",
       "share revoke",
-      "whoami"
+      "whoami",
+      "workspace create",
+      "workspace list"
     ]);
   });
 

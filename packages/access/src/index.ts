@@ -3,6 +3,7 @@ import type { ArtifactAction, ArtifactRole, Principal } from "@agent-artifacts/s
 import { ArtifactForbiddenError, artifactRoleSchema } from "@agent-artifacts/shared";
 
 export { ArtifactForbiddenError } from "@agent-artifacts/shared";
+export { workspaceRoleToArtifactRole } from "./workspace-role-map.js";
 
 const NAMESPACE_ACTIONS = new Set<ArtifactAction>(["artifact.create", "project.view"]);
 
@@ -29,16 +30,18 @@ export function actsForOwner(principal: Principal, ownerUserId: string): boolean
   return principal.id === ownerUserId || principal.ownerUserId === ownerUserId;
 }
 
-export interface ArtifactRoleContext {
-  id: string;
-  ownerUserId: string;
-  publicView: boolean;
-  publicEdit: boolean;
-}
-
 export interface NamespaceAccessContext {
   kind: "namespace";
   ownerUserId: string;
+  workspaceId?: string;
+}
+
+export interface ArtifactRoleContext {
+  id: string;
+  ownerUserId: string;
+  workspaceId?: string | null;
+  publicView: boolean;
+  publicEdit: boolean;
 }
 
 export interface ArtifactAccessContext {
@@ -53,7 +56,11 @@ export type AccessDecision =
   | { allowed: false; reason: string };
 
 export interface ArtifactRoleResolver {
-  resolveNamespace(principal: Principal, ownerUserId: string): Promise<{ isOwnerAccount: boolean }>;
+  resolveNamespace(
+    principal: Principal,
+    ownerUserId: string,
+    workspaceId?: string | null
+  ): Promise<{ isOwnerAccount: boolean; role?: ArtifactRole }>;
   resolveArtifact(
     principal: Principal,
     artifact: ArtifactRoleContext
@@ -89,13 +96,17 @@ export async function authorize(
       return { allowed: false, reason: `Action ${action} is not valid for namespace context.` };
     }
 
-    const { isOwnerAccount } = await resolver.resolveNamespace(principal, context.ownerUserId);
-    const decision = canPerformArtifactAction({ principal, action, isOwnerAccount });
+    const { isOwnerAccount, role } = await resolver.resolveNamespace(
+      principal,
+      context.ownerUserId,
+      context.workspaceId
+    );
+    const decision = canPerformArtifactAction({ principal, action, role, isOwnerAccount });
     if (!decision.allowed) {
       return { allowed: false, reason: decision.reason };
     }
 
-    return { allowed: true, effectiveRole: isOwnerAccount ? "owner" : undefined };
+    return { allowed: true, effectiveRole: isOwnerAccount ? "owner" : role };
   }
 
   if (NAMESPACE_ACTIONS.has(action) || action.startsWith("account.")) {
@@ -141,8 +152,12 @@ export class MemoryArtifactRoleResolver implements ArtifactRoleResolver {
     this.emailViewersByArtifact.set(artifactId, viewers);
   }
 
-  async resolveNamespace(principal: Principal, ownerUserId: string): Promise<{ isOwnerAccount: boolean }> {
-    return { isOwnerAccount: actsForOwner(principal, ownerUserId) };
+  async resolveNamespace(
+    principal: Principal,
+    ownerUserId: string,
+    _workspaceId?: string | null
+  ): Promise<{ isOwnerAccount: boolean; role?: ArtifactRole }> {
+    return { isOwnerAccount: actsForOwner(principal, ownerUserId), role: actsForOwner(principal, ownerUserId) ? "owner" : undefined };
   }
 
   async resolveArtifact(

@@ -90,7 +90,7 @@ export const RESERVED_USERNAMES = new Set<string>([
   "login", "logout", "signup", "signin", "signout", "auth",
   "dashboard", "settings", "account", "profile", "preferences",
   "share", "shares", "admin", "support", "help", "docs",
-  "about", "terms", "privacy", "legal", "security",
+  "about", "terms", "privacy", "legal", "security", "w",
   // API/infra paths
   "api", "mcp", "static", "assets", "public", "_next",
   "www", "mail", "ftp", "root", "system",
@@ -109,6 +109,63 @@ export const usernameSchema = z
   .max(32)
   .regex(/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/, "Use lowercase letters, numbers, underscores, or hyphens.")
   .refine((value) => !RESERVED_USERNAMES.has(value.toLowerCase()), "This username is reserved.");
+
+export const workspaceSlugSchema = usernameSchema;
+
+export const workspaceRoleSchema = z.enum(["owner", "admin", "member", "viewer", "billing_admin"]);
+export type WorkspaceRole = z.infer<typeof workspaceRoleSchema>;
+
+export const workspaceActionSchema = z.enum([
+  "workspace.view",
+  "workspace.update",
+  "workspace.manage_members",
+  "workspace.manage_billing",
+  "workspace.create_content",
+  "workspace.delete"
+]);
+export type WorkspaceAction = z.infer<typeof workspaceActionSchema>;
+
+export const workspaceKindSchema = z.enum(["personal", "team"]);
+export type WorkspaceKind = z.infer<typeof workspaceKindSchema>;
+
+export class WorkspaceForbiddenError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = "WorkspaceForbiddenError";
+  }
+}
+
+export class WorkspaceNotFoundError extends Error {
+  constructor() {
+    super("Workspace was not found.");
+    this.name = "WorkspaceNotFoundError";
+  }
+}
+
+export class WorkspaceSlugUnavailableError extends Error {
+  constructor(slug: string) {
+    super(`Workspace slug "${slug}" is not available.`);
+    this.name = "WorkspaceSlugUnavailableError";
+  }
+}
+
+export function buildWorkspaceUrl(appUrl: string, workspaceSlug: string): string {
+  const base = appUrl.replace(/\/+$/, "");
+  return `${base}/w/${workspaceSlug}`;
+}
+
+export function buildWorkspaceProjectUrl(appUrl: string, workspaceSlug: string, projectSlug: string): string {
+  return `${buildWorkspaceUrl(appUrl, workspaceSlug)}/${projectSlug}`;
+}
+
+export function buildWorkspaceProjectArtifactUrl(
+  appUrl: string,
+  workspaceSlug: string,
+  projectSlug: string,
+  artifactSlug: string
+): string {
+  return `${buildWorkspaceProjectUrl(appUrl, workspaceSlug, projectSlug)}/${artifactSlug}`;
+}
 
 export function buildProjectUrl(appUrl: string, username: string, projectSlug: string): string {
   const base = appUrl.replace(/\/+$/, "");

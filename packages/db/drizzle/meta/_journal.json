@@ -57,6 +57,41 @@
       "when": 1779400000000,
       "tag": "0007_artifact_type_rename",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779500000000,
+      "tag": "0008_workspaces",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779600000000,
+      "tag": "0009_backfill_personal_workspaces",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779700000000,
+      "tag": "0010_workspace_project_slug_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779900000000,
+      "tag": "0012_audit_workspace_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780100000000,
+      "tag": "0013_workspaces_constraints",
+      "breakpoints": true
     }
   ]
 }

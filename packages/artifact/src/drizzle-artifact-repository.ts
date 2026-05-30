@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
-import { artifactPermissions, artifacts, artifactVersions, auditEvents, projects, userProfiles } from "@agent-artifacts/db";
+import { artifactPermissions, artifacts, artifactVersions, auditEvents, projects, userProfiles, workspaces } from "@agent-artifacts/db";
 import {
   type ArtifactRecord,
   type ArtifactRepository,
@@ -11,9 +11,13 @@ import {
   type PersistCreateVersionInput,
   type ReplaceArtifactEmailAccessInput
 } from "./artifact-types.js";
-import { getOwnerByUsername, getProjectIdByOwnerSlug } from "./drizzle-owner-lookup.js";
+import { getOwnerByUsername } from "./drizzle-owner-lookup.js";
 import { validateProjectSlug } from "./project.js";
 import { validateSlug } from "./slug.js";
+
+function personalProjectNamespaceCondition() {
+  return sql`(${projects.workspaceId} IS NULL OR (${workspaces.kind} = 'personal' AND ${workspaces.personalUserId} = ${projects.ownerUserId}))`;
+}
 
 export class DrizzleArtifactRepository implements ArtifactRepository {
   constructor(
@@ -28,8 +32,38 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
   async getProjectByOwnerSlug(
     username: string,
     projectSlug: string
-  ): Promise<{ id: string; slug: string } | undefined> {
-    return getProjectIdByOwnerSlug(this.db, username, projectSlug);
+  ): Promise<{ id: string; slug: string; workspaceId: string | null; ownerUserId: string } | undefined> {
+    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedProjectSlug = validateProjectSlug(projectSlug);
+    const [project] = await this.db
+      .select({ id: projects.id, slug: projects.slug, workspaceId: projects.workspaceId, ownerUserId: projects.ownerUserId })
+      .from(projects)
+      .innerJoin(userProfiles, eq(userProfiles.userId, projects.ownerUserId))
+      .leftJoin(workspaces, eq(workspaces.id, projects.workspaceId))
+      .where(
+        and(
+          sql`lower(${userProfiles.username}) = ${normalizedUsername}`,
+          sql`lower(${projects.slug}) = ${normalizedProjectSlug}`,
+          personalProjectNamespaceCondition()
+        )
+      )
+      .limit(1);
+
+    return project;
+  }
+
+  async getProjectByWorkspaceSlug(
+    workspaceId: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string; ownerUserId: string } | undefined> {
+    const normalizedProjectSlug = validateProjectSlug(projectSlug);
+    const [project] = await this.db
+      .select({ id: projects.id, slug: projects.slug, workspaceId: projects.workspaceId, ownerUserId: projects.ownerUserId })
+      .from(projects)
+      .where(and(eq(projects.workspaceId, workspaceId), sql`lower(${projects.slug}) = ${normalizedProjectSlug}`))
+      .limit(1);
+
+    return project?.workspaceId ? { ...project, workspaceId: project.workspaceId } : undefined;
   }
 
   async slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean> {
@@ -59,6 +93,27 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
         and(
           sql`lower(${userProfiles.username}) = ${normalizedUsername}`,
           sql`lower(${projects.slug}) = ${projectSlug}`,
+          sql`lower(${artifacts.slug}) = ${normalizedSlug}`,
+          personalProjectNamespaceCondition()
+        )
+      )
+      .limit(1);
+
+    return artifact;
+  }
+
+  async getArtifactByWorkspaceProjectSlug(
+    workspaceId: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord | undefined> {
+    const normalizedProjectSlug = validateProjectSlug(projectSlug);
+    const normalizedSlug = validateSlug(slug);
+    const [artifact] = await this.artifactQuery()
+      .where(
+        and(
+          eq(projects.workspaceId, workspaceId),
+          sql`lower(${projects.slug}) = ${normalizedProjectSlug}`,
           sql`lower(${artifacts.slug}) = ${normalizedSlug}`
         )
       )
@@ -117,6 +172,7 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
     await this.db.insert(auditEvents).values(input);
     this.logger?.info("audit_event", {
       ownerUserId: input.ownerUserId,
+      workspaceId: input.workspaceId,
       artifactId: input.artifactId,
       action: input.action,
       targetType: input.targetType,
@@ -138,6 +194,12 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
       .orderBy(desc(artifacts.updatedAt));
   }
 
+  async listArtifactsForWorkspace(workspaceId: string): Promise<ArtifactRecord[]> {
+    return this.artifactQuery()
+      .where(and(eq(projects.workspaceId, workspaceId), eq(artifacts.state, "active")))
+      .orderBy(desc(artifacts.updatedAt));
+  }
+
   private artifactQuery() {
     return this.db
       .select({
@@ -146,6 +208,8 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
         ownerUsername: userProfiles.username,
         projectId: artifacts.projectId,
         projectSlug: projects.slug,
+        workspaceId: projects.workspaceId,
+        workspaceSlug: workspaces.slug,
         slug: artifacts.slug,
         title: artifacts.title,
         description: artifacts.description,
@@ -162,7 +226,8 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
       })
       .from(artifacts)
       .innerJoin(userProfiles, eq(userProfiles.userId, artifacts.ownerUserId))
-      .innerJoin(projects, eq(projects.id, artifacts.projectId));
+      .innerJoin(projects, eq(projects.id, artifacts.projectId))
+      .leftJoin(workspaces, eq(workspaces.id, projects.workspaceId));
   }
 
   async listViewerEmailsForArtifact(artifactId: string): Promise<string[]> {

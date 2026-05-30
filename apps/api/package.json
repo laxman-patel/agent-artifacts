@@ -20,6 +20,7 @@
     "@agent-artifacts/mcp": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",
     "@agent-artifacts/storage": "workspace:*",
+    "@agent-artifacts/workspace": "workspace:*",
     "@hono/node-server": "^2.0.2",
     "@logtail/node": "^0.5.8",
     "drizzle-orm": "^0.45.2",

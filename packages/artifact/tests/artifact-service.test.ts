@@ -13,6 +13,7 @@ import {
 } from "../src/index.js";
 import { createArtifactAccess, MemoryArtifactRoleResolver } from "@agent-artifacts/access";
 import type { Principal } from "@agent-artifacts/shared";
+import { createWorkspaceAccess, MemoryWorkspaceRoleResolver } from "@agent-artifacts/workspace";
 import type { ArtifactStorage, GetObjectOutput, PutObjectInput } from "@agent-artifacts/storage";
 
 const APP_URL = "https://www.agents-artifacts";
@@ -37,9 +38,17 @@ function createTestHarness() {
   const repository = new MemoryArtifactRepository(roleResolver);
   const storage = new MemoryArtifactStorage();
   const access = createArtifactAccess(roleResolver);
-  const service = new ArtifactService(repository, storage, APP_URL, access);
+  const workspaceRoleResolver = new MemoryWorkspaceRoleResolver();
+  workspaceRoleResolver.setMembership("ws_team", ownerPrincipal.id, "member");
+  const service = new ArtifactService(
+    repository,
+    storage,
+    APP_URL,
+    access,
+    createWorkspaceAccess(workspaceRoleResolver)
+  );
 
-  return { repository, roleResolver, storage, service };
+  return { repository, roleResolver, storage, service, workspaceRoleResolver };
 }
 
 describe("ArtifactService", () => {
@@ -65,6 +74,44 @@ describe("ArtifactService", () => {
     expect(storage.text(created.contentObjectKey)).toBe("# Hello");
     expect(repository.auditEvents).toHaveLength(1);
     expect(repository.auditEvents[0]?.action).toBe("artifact.created");
+    expect(repository.auditEvents[0]?.workspaceId).toBe("ws_1");
+  });
+
+  it("creates workspace artifacts from the workspace project namespace", async () => {
+    const { repository, storage, service } = createTestHarness();
+    repository.addWorkspaceProject({
+      id: "project_team_docs",
+      slug: "team-docs",
+      workspaceId: "ws_team",
+      ownerUserId: "user_1"
+    });
+
+    const created = await service.createWorkspaceArtifact(
+      "ws_team",
+      "acme",
+      {
+        projectSlug: "team-docs",
+        slug: "Launch Plan!",
+        type: "md",
+        title: "Launch Plan",
+        content: "# Plan"
+      },
+      ownerPrincipal
+    );
+
+    expect(created.ownerUsername).toBe("acme");
+    expect(created.projectSlug).toBe("team-docs");
+    expect(created.normalizedSlug).toBe("launch-plan");
+    expect(created.url).toBe("https://www.agents-artifacts/w/acme/team-docs/launch-plan");
+    expect(storage.text(created.contentObjectKey)).toBe("# Plan");
+    expect(repository.auditEvents[0]?.workspaceId).toBe("ws_team");
+
+    const updated = await service.updateArtifact(
+      { artifactId: created.artifactId, content: "# Updated" },
+      ownerPrincipal
+    );
+    expect(updated.ownerUsername).toBe("acme");
+    expect(updated.url).toBe("https://www.agents-artifacts/w/acme/team-docs/launch-plan");
   });
 
   it("denies create in another user's namespace", async () => {
@@ -383,22 +430,45 @@ class MemoryArtifactRepository implements ArtifactRepository {
   constructor(private readonly roleResolver?: MemoryArtifactRoleResolver) {}
 
   readonly owners = new Map([["laxman", { userId: "user_1", username: "laxman" }]]);
-  readonly defaultProject = { id: "project_default", slug: "default" };
+  readonly defaultProject = {
+    id: "project_default",
+    slug: "default",
+    workspaceId: "ws_1" as string | null,
+    ownerUserId: "user_1"
+  };
+  readonly workspaceProjects = new Map<
+    string,
+    { id: string; slug: string; workspaceId: string; ownerUserId: string }
+  >();
   readonly artifacts = new Map<string, ArtifactRecord>();
   readonly versions = new Map<string, ArtifactVersionRecord[]>();
   readonly auditEvents: PersistAuditEventInput[] = [];
   readonly artifactEmailViewers = new Map<string, Set<string>>();
 
+  addWorkspaceProject(project: { id: string; slug: string; workspaceId: string; ownerUserId: string }): void {
+    this.workspaceProjects.set(`${project.workspaceId}:${project.slug}`, project);
+  }
+
   async getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined> {
     return this.owners.get(username.toLowerCase());
   }
 
-  async getProjectByOwnerSlug(username: string, projectSlug: string): Promise<{ id: string; slug: string } | undefined> {
+  async getProjectByOwnerSlug(
+    username: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string | null; ownerUserId: string } | undefined> {
     if (username.toLowerCase() !== "laxman" || projectSlug !== "default") {
       return undefined;
     }
 
     return this.defaultProject;
+  }
+
+  async getProjectByWorkspaceSlug(
+    workspaceId: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string; ownerUserId: string } | undefined> {
+    return this.workspaceProjects.get(`${workspaceId}:${projectSlug}`);
   }
 
   async slugExistsInProject(projectId: string, normalizedSlug: string): Promise<boolean> {
@@ -424,9 +494,28 @@ class MemoryArtifactRepository implements ArtifactRepository {
     );
   }
 
+  async getArtifactByWorkspaceProjectSlug(
+    workspaceId: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord | undefined> {
+    return [...this.artifacts.values()].find(
+      (artifact) =>
+        artifact.workspaceId === workspaceId &&
+        artifact.projectSlug === projectSlug &&
+        artifact.slug === slug
+    );
+  }
+
   async listArtifactsForProject(projectId: string): Promise<ArtifactRecord[]> {
     return [...this.artifacts.values()].filter(
       (artifact) => artifact.projectId === projectId && artifact.state === "active"
+    );
+  }
+
+  async listArtifactsForWorkspace(workspaceId: string): Promise<ArtifactRecord[]> {
+    return [...this.artifacts.values()].filter(
+      (artifact) => artifact.workspaceId === workspaceId && artifact.state === "active"
     );
   }
 
@@ -444,12 +533,15 @@ class MemoryArtifactRepository implements ArtifactRepository {
   }
 
   async createArtifact(input: PersistCreateArtifactInput): Promise<void> {
+    const project = this.findProjectById(input.artifact.projectId);
     this.artifacts.set(input.artifact.id, {
       id: input.artifact.id,
       ownerUserId: input.artifact.ownerUserId,
-      ownerUsername: "laxman",
+      ownerUsername: project?.workspaceId === "ws_team" ? "acme" : "laxman",
       projectId: input.artifact.projectId,
-      projectSlug: this.defaultProject.slug,
+      projectSlug: project?.slug ?? this.defaultProject.slug,
+      workspaceId: project?.workspaceId ?? this.defaultProject.workspaceId,
+      workspaceSlug: project?.workspaceId === "ws_team" ? "acme" : project?.workspaceId ? "laxman" : null,
       slug: input.artifact.slug,
       title: input.artifact.title,
       description: input.artifact.description ?? null,
@@ -529,5 +621,13 @@ class MemoryArtifactRepository implements ArtifactRepository {
       createdByPrincipalId: input.createdByPrincipalId,
       createdAt: new Date()
     };
+  }
+
+  private findProjectById(projectId: string) {
+    if (this.defaultProject.id === projectId) {
+      return this.defaultProject;
+    }
+
+    return [...this.workspaceProjects.values()].find((project) => project.id === projectId);
   }
 }

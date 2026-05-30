@@ -23,6 +23,7 @@ import { profileSetUsernameCommand } from "./profile-set-username.js";
 import { projectCreateCommand, projectListCommand, projectSlugAvailabilityCommand } from "./project.js";
 import { shareCreateCommand, shareListCommand, shareRevokeCommand } from "./share.js";
 import { whoamiCommand } from "./whoami.js";
+import { workspaceCreateCommand, workspaceListCommand } from "./workspace.js";
 
 export const allCommands: CommandSpec[] = [
   loginCommand,
@@ -31,6 +32,8 @@ export const allCommands: CommandSpec[] = [
   healthCommand,
   profileGetCommand,
   profileSetUsernameCommand,
+  workspaceListCommand,
+  workspaceCreateCommand,
   projectListCommand,
   projectCreateCommand,
   projectSlugAvailabilityCommand,

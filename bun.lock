@@ -25,6 +25,7 @@
         "@agent-artifacts/mcp": "workspace:*",
         "@agent-artifacts/shared": "workspace:*",
         "@agent-artifacts/storage": "workspace:*",
+        "@agent-artifacts/workspace": "workspace:*",
         "@hono/node-server": "^2.0.2",
         "@logtail/node": "^0.5.8",
         "drizzle-orm": "^0.45.2",
@@ -41,6 +42,7 @@
       "dependencies": {
         "@agent-artifacts/artifact": "workspace:*",
         "@agent-artifacts/config": "workspace:*",
+        "@agent-artifacts/workspace": "workspace:*",
         "commander": "^14.0.3",
         "zod": "^4.4.3",
       },
@@ -84,6 +86,7 @@
         "@agent-artifacts/db": "workspace:*",
         "@agent-artifacts/shared": "workspace:*",
         "@agent-artifacts/storage": "workspace:*",
+        "@agent-artifacts/workspace": "workspace:*",
         "diff": "^8.0.2",
         "drizzle-orm": "^0.45.2",
         "zod": "^4.4.3",
@@ -124,6 +127,7 @@
       "dependencies": {
         "@agent-artifacts/artifact": "workspace:*",
         "@agent-artifacts/shared": "workspace:*",
+        "@agent-artifacts/workspace": "workspace:*",
         "zod": "^4.4.3",
       },
     },
@@ -147,6 +151,16 @@
       "dependencies": {
         "@aws-sdk/client-s3": "^3.1046.0",
         "@aws-sdk/s3-request-presigner": "^3.1046.0",
+      },
+    },
+    "packages/workspace": {
+      "name": "@agent-artifacts/workspace",
+      "version": "0.1.0",
+      "dependencies": {
+        "@agent-artifacts/db": "workspace:*",
+        "@agent-artifacts/shared": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+        "zod": "^4.1.5",
       },
     },
   },
@@ -174,6 +188,8 @@
     "@agent-artifacts/storage": ["@agent-artifacts/storage@workspace:packages/storage"],
 
     "@agent-artifacts/web": ["@agent-artifacts/web@workspace:apps/web"],
+
+    "@agent-artifacts/workspace": ["@agent-artifacts/workspace@workspace:packages/workspace"],
 
     "@aws-crypto/crc32": ["@aws-crypto/crc32@5.2.0", "", { "dependencies": { "@aws-crypto/util": "5.2.0", "@aws-sdk/types": "3.973.8", "tslib": "2.8.1" } }, "sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg=="],
 

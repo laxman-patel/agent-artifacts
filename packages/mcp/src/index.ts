@@ -1,19 +1,43 @@
 import {
   createArtifactInputSchema,
   createProjectInputSchema,
+  createWorkspaceArtifactInputSchema,
+  createWorkspaceProjectInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema,
   type ArtifactService,
   type ProjectService
 } from "@agent-artifacts/artifact";
 import type { Principal } from "@agent-artifacts/shared";
+import type { WorkspaceService } from "@agent-artifacts/workspace";
 import { z, type ZodTypeAny } from "zod";
 
 const versionNumberSchema = z.number().int().positive();
+const workspaceSlugSchema = z.object({
+  workspaceSlug: z.string().min(1).optional()
+});
+
+const requireNamespaceOwner = <T extends { workspaceSlug?: string; ownerUsername?: string }>(
+  input: T,
+  label: string
+): T & { ownerUsername: string } => {
+  const ownerUsername = input.ownerUsername ?? input.workspaceSlug;
+  if (!ownerUsername) {
+    throw new z.ZodError([
+      {
+        code: "custom",
+        path: ["ownerUsername"],
+        message: `Either workspaceSlug or ${label} is required.`
+      }
+    ]);
+  }
+  return { ...input, ownerUsername };
+};
 
 export interface McpHandlerContext {
   artifactService: ArtifactService;
   projectService: ProjectService;
+  workspaceService: WorkspaceService;
   principal: Principal;
 }
 
@@ -25,11 +49,20 @@ interface ToolDef<S extends ZodTypeAny, R> {
 
 const def = <S extends ZodTypeAny, R>(tool: ToolDef<S, R>) => tool;
 
+async function resolveWorkspace(workspaceService: WorkspaceService, workspaceSlug: string, principal: Principal) {
+  return workspaceService.getWorkspaceBySlug(workspaceSlug, principal);
+}
+
 export const mcpTools = {
   get_current_principal: def({
     description: "Return the authenticated principal for the current MCP request.",
     schema: z.object({}),
     handler: async (_input, ctx) => ctx.principal
+  }),
+  list_workspaces: def({
+    description: "List workspaces the authenticated user belongs to.",
+    schema: z.object({}),
+    handler: async (_input, ctx) => ctx.workspaceService.listWorkspacesForUser(ctx.principal)
   }),
   check_project_slug_availability: def({
     description: "Check whether a project slug is available in an owner namespace.",
@@ -42,13 +75,48 @@ export const mcpTools = {
   }),
   create_project: def({
     description: "Create a new project to group artifacts.",
-    schema: createProjectInputSchema,
-    handler: (input, ctx) => ctx.projectService.createProject(input, ctx.principal)
+    schema: createProjectInputSchema
+      .extend({
+        workspaceSlug: z.string().min(1).optional(),
+        ownerUsername: z.string().min(1).optional()
+      })
+      .refine((input) => Boolean(input.workspaceSlug || input.ownerUsername), {
+        message: "Either workspaceSlug or ownerUsername is required.",
+        path: ["ownerUsername"]
+      }),
+    handler: async (input, ctx) => {
+      if (input.workspaceSlug) {
+        const workspace = await resolveWorkspace(ctx.workspaceService, input.workspaceSlug, ctx.principal);
+        const projectInput = createWorkspaceProjectInputSchema.parse({
+          slug: input.slug,
+          title: input.title,
+          description: input.description
+        });
+        return ctx.projectService.createWorkspaceProject(
+          workspace.id,
+          workspace.slug,
+          projectInput,
+          ctx.principal
+        );
+      }
+
+      return ctx.projectService.createProject(
+        createProjectInputSchema.parse(requireNamespaceOwner(input, "ownerUsername")),
+        ctx.principal
+      );
+    }
   }),
   list_projects: def({
     description: "List projects owned by the authenticated human user.",
-    schema: z.object({}),
-    handler: async (_input, ctx) => ctx.projectService.listOwnedProjects(ctx.principal)
+    schema: workspaceSlugSchema,
+    handler: async (input, ctx) => {
+      if (input.workspaceSlug) {
+        const workspace = await resolveWorkspace(ctx.workspaceService, input.workspaceSlug, ctx.principal);
+        return ctx.projectService.listWorkspaceProjects(workspace.id, ctx.principal);
+      }
+
+      return ctx.projectService.listOwnedProjects(ctx.principal);
+    }
   }),
   check_slug_availability: def({
     description: "Check whether an artifact slug is available within a project.",
@@ -67,8 +135,30 @@ export const mcpTools = {
   }),
   create_artifact: def({
     description: "Create a new artifact and immutable first version.",
-    schema: createArtifactInputSchema,
-    handler: (input, ctx) => ctx.artifactService.createArtifact(input, ctx.principal)
+    schema: createArtifactInputSchema
+      .extend({
+        workspaceSlug: z.string().min(1).optional(),
+        ownerUsername: z.string().min(1).optional()
+      })
+      .refine((input) => Boolean(input.workspaceSlug || input.ownerUsername), {
+        message: "Either workspaceSlug or ownerUsername is required.",
+        path: ["ownerUsername"]
+      }),
+    handler: async (input, ctx) => {
+      if (input.workspaceSlug) {
+        const workspace = await resolveWorkspace(ctx.workspaceService, input.workspaceSlug, ctx.principal);
+        const payload = createWorkspaceArtifactInputSchema.parse(input);
+        return ctx.artifactService.createWorkspaceArtifact(
+          workspace.id,
+          workspace.slug,
+          payload,
+          ctx.principal
+        );
+      }
+
+      const payload = createArtifactInputSchema.parse(requireNamespaceOwner(input, "ownerUsername"));
+      return ctx.artifactService.createArtifact(payload, ctx.principal);
+    }
   }),
   update_artifact: def({
     description: "Append a new immutable version to an artifact.",
@@ -93,8 +183,15 @@ export const mcpTools = {
   }),
   list_artifacts: def({
     description: "List artifacts owned by the authenticated human user.",
-    schema: z.object({}),
-    handler: async (_input, ctx) => ctx.artifactService.listOwnedArtifacts(ctx.principal)
+    schema: workspaceSlugSchema,
+    handler: async (input, ctx) => {
+      if (input.workspaceSlug) {
+        const workspace = await resolveWorkspace(ctx.workspaceService, input.workspaceSlug, ctx.principal);
+        return ctx.artifactService.listWorkspaceArtifacts(workspace.id, ctx.principal);
+      }
+
+      return ctx.artifactService.listOwnedArtifacts(ctx.principal);
+    }
   }),
   list_artifact_versions: def({
     description: "List immutable versions for an artifact.",

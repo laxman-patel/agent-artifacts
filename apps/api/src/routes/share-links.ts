@@ -1,9 +1,11 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { getArtifactService, getAuditService, getShareLinkService } from "../deps.js";
+import { getArtifactService, getAuditService, getShareLinkService, getWorkspaceAccess } from "../deps.js";
 import { handle } from "../http/handler.js";
 import { requireHumanPrincipal, requirePrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
+
+const auditEventsLimitSchema = z.coerce.number().int().positive().max(100).default(50);
 
 export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) {
   app.post("/api/artifacts/:artifactId/share-links", (c) =>
@@ -90,8 +92,21 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
     handle(c, async () => {
       const principal = await requireHumanPrincipal(c);
       const artifactId = c.req.query("artifactId");
-      const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
-      const events = await getAuditService().listAuditEvents(principal.id, { artifactId, limit });
+      const workspaceId = c.req.query("workspaceId");
+      const limit = auditEventsLimitSchema.parse(c.req.query("limit"));
+
+      if (workspaceId) {
+        await getWorkspaceAccess().assertAuthorized({
+          principal,
+          action: "workspace.manage_members",
+          context: { workspaceId }
+        });
+
+        const events = await getAuditService().listAuditEvents({ workspaceId, artifactId, limit });
+        return { events };
+      }
+
+      const events = await getAuditService().listAuditEvents({ ownerUserId: principal.id, artifactId, limit });
 
       return { events };
     })

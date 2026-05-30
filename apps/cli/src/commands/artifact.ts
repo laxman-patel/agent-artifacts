@@ -1,5 +1,6 @@
 import {
   createArtifactInputSchema,
+  createWorkspaceArtifactInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
@@ -17,6 +18,7 @@ import { CliError } from "../errors.js";
 import { resolveListLimit, sliceListResult } from "../list-limit.js";
 import { extractArtifactId, nextActionsForArtifact, nextActionsForArtifactList } from "../next-actions.js";
 import { parseIntFlag } from "../parse-int-flag.js";
+import { resolveWorkspaceId, workspaceApiPath } from "../workspace-context.js";
 
 const SLUG_EXAMPLE = "artifacts artifact slug-availability --owner alice --project-slug default --slug readme";
 
@@ -33,6 +35,14 @@ export const artifactListCommand: CommandSpec = {
   example: "artifacts artifact list --limit 50",
   async run({ client, options, config }) {
     const limitResult = resolveListLimit(options);
+    if (config.workspace) {
+      const workspaceId = await resolveWorkspaceId(client, config.workspace);
+      const data = await client.get<{ artifacts: unknown[] }>(workspaceApiPath(workspaceId, "/artifacts"));
+      const artifacts = Array.isArray(data.artifacts) ? data.artifacts : [];
+      const { items } = sliceListResult(artifacts, limitResult, config, "artifacts");
+      return { data: { ...data, artifacts: items }, nextActions: nextActionsForArtifactList(items) };
+    }
+
     const data = await client.get<{ artifacts: unknown[] }>("/api/profile/artifacts");
     const artifacts = Array.isArray(data.artifacts) ? data.artifacts : [];
     const { items } = sliceListResult(artifacts, limitResult, config, "artifacts");
@@ -67,15 +77,43 @@ export const artifactCreateCommand: CommandSpec = {
   mutates: true,
   example:
     'artifacts artifact create --json \'{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"md","title":"Readme","content":"# Hi"}\'',
-  async run({ client, body, options }) {
-    const parsed = createArtifactInputSchema.parse(body);
+  async run({ client, body, options, config }) {
+    if (config.workspace !== undefined) {
+      const workspaceId = await resolveWorkspaceId(client, config.workspace);
+      const parsed = createWorkspaceArtifactInputSchema.parse(body);
+      try {
+        const response = await client.post<{ artifact?: Record<string, unknown> } & Record<string, unknown>>(
+          workspaceApiPath(workspaceId, "/artifacts"),
+          parsed
+        );
+        const artifact = response.artifact ?? response;
+        return { data: { ...artifact, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(artifact)) };
+      } catch (error) {
+        if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+          const existing = await client.get<Record<string, unknown>>(
+            workspaceApiPath(
+              workspaceId,
+              `/by-path/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+            )
+          );
+          return {
+            data: { ...existing, created: false },
+            nextActions: nextActionsForArtifact(extractArtifactId(existing))
+          };
+        }
+        throw error;
+      }
+    }
+
+    const payload = createArtifactInputSchema.parse(body);
     try {
-      const data = await client.post<Record<string, unknown>>("/api/artifacts", parsed);
+      const data = await client.post<Record<string, unknown>>("/api/artifacts", payload);
       return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
     } catch (error) {
       if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+        const ownerUsername = payload.ownerUsername;
         const existing = await client.get<Record<string, unknown>>(
-          `/api/by-path/${encodeURIComponent(parsed.ownerUsername)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+          `/api/by-path/${encodeURIComponent(ownerUsername)}/${encodeURIComponent(payload.projectSlug)}/${encodeURIComponent(payload.slug)}`
         );
         return {
           data: { ...existing, created: false },

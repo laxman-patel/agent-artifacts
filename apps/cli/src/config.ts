@@ -8,6 +8,7 @@ export interface CliConfig {
   baseUrl: string;
   webUrl: string;
   token?: string;
+  workspace?: string;
   format: OutputFormat;
   quiet: boolean;
   noInput: boolean;
@@ -36,6 +37,11 @@ function envFlag(name: string): boolean {
   return value === "1" || value === "true" || value === "yes";
 }
 
+function normalizeOptionalString(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export function preParseGlobals(argv: string[]): {
   format?: OutputFormat;
   noInput?: boolean;
@@ -62,6 +68,7 @@ export function resolveConfig(options: {
   baseUrl?: string;
   webUrl?: string;
   token?: string;
+  workspace?: string;
   format?: OutputFormat;
   quiet?: boolean;
   noInput?: boolean;
@@ -83,6 +90,7 @@ export function resolveConfig(options: {
     DEFAULT_WEB_URL
   ).replace(/\/+$/, "");
   const token = options.token ?? process.env.AGENT_ARTIFACTS_TOKEN ?? stored?.token;
+  const workspace = normalizeOptionalString(options.workspace) ?? normalizeOptionalString(process.env.AGENT_ARTIFACTS_WORKSPACE);
   const envFormat = process.env.AGENT_ARTIFACTS_FORMAT;
   const formatFromEnv = envFormat === "json" || envFormat === "text" ? envFormat : undefined;
   const format = options.format ?? formatFromEnv ?? (process.stdout.isTTY ? "text" : "json");
@@ -91,6 +99,7 @@ export function resolveConfig(options: {
     baseUrl,
     webUrl,
     token,
+    workspace,
     format,
     quiet: options.quiet ?? false,
     noInput: options.noInput ?? envFlag("AGENT_ARTIFACTS_NO_INPUT"),

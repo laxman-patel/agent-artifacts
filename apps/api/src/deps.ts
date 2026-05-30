@@ -14,6 +14,17 @@ import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, type Database } from "@agent-artifacts/db";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
 import type { Principal } from "@agent-artifacts/shared";
+import {
+  createDrizzleInvitationService,
+  createDrizzleMembershipService,
+  createDrizzleWorkspaceService,
+  createWorkspaceAccess,
+  DrizzleWorkspaceRepository,
+  DrizzleWorkspaceRoleResolver,
+  type InvitationService,
+  type MembershipService,
+  type WorkspaceService
+} from "@agent-artifacts/workspace";
 import { logger } from "./logger.js";
 
 export type AppVariables = {
@@ -29,6 +40,10 @@ let projectServiceInstance: ProjectService | undefined;
 let profileServiceInstance: ProfileService | undefined;
 let shareLinkServiceInstance: ShareLinkService | undefined;
 let auditServiceInstance: AuditService | undefined;
+let workspaceServiceInstance: WorkspaceService | undefined;
+let invitationServiceInstance: InvitationService | undefined;
+let membershipServiceInstance: MembershipService | undefined;
+let workspaceAccessInstance: ReturnType<typeof createWorkspaceAccess> | undefined;
 let dbInstance: Database | undefined;
 
 export function getDb() {
@@ -71,11 +86,14 @@ export function getArtifactService() {
     });
 
     const roleResolver = new DrizzleArtifactRoleResolver(db);
+    const workspaceRepository = new DrizzleWorkspaceRepository(db);
+    const workspaceAccess = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(workspaceRepository));
     return new ArtifactService(
       new DrizzleArtifactRepository(db, logger),
       storage,
       env.PUBLIC_APP_URL,
-      createArtifactAccess(roleResolver)
+      createArtifactAccess(roleResolver),
+      workspaceAccess
     );
   })();
 
@@ -87,7 +105,14 @@ export function getProjectService() {
     const env = loadServerEnv();
     const db = getDb();
     const roleResolver = new DrizzleArtifactRoleResolver(db);
-    return new ProjectService(new DrizzleProjectRepository(db), env.PUBLIC_APP_URL, createArtifactAccess(roleResolver));
+    const workspaceRepository = new DrizzleWorkspaceRepository(db);
+    const workspaceAccess = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(workspaceRepository));
+    return new ProjectService(
+      new DrizzleProjectRepository(db),
+      env.PUBLIC_APP_URL,
+      createArtifactAccess(roleResolver),
+      workspaceAccess
+    );
   })();
 
   return projectServiceInstance;
@@ -106,4 +131,26 @@ export function getShareLinkService() {
 export function getAuditService() {
   auditServiceInstance ??= new AuditService(getDb());
   return auditServiceInstance;
+}
+
+export function getWorkspaceService() {
+  workspaceServiceInstance ??= createDrizzleWorkspaceService(getDb());
+  return workspaceServiceInstance;
+}
+
+export function getInvitationService() {
+  invitationServiceInstance ??= createDrizzleInvitationService(getDb(), loadServerEnv().PUBLIC_APP_URL);
+  return invitationServiceInstance;
+}
+
+export function getMembershipService() {
+  membershipServiceInstance ??= createDrizzleMembershipService(getDb());
+  return membershipServiceInstance;
+}
+
+export function getWorkspaceAccess() {
+  workspaceAccessInstance ??= createWorkspaceAccess(
+    new DrizzleWorkspaceRoleResolver(new DrizzleWorkspaceRepository(getDb()))
+  );
+  return workspaceAccessInstance;
 }

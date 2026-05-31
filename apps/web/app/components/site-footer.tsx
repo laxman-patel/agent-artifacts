@@ -36,8 +36,8 @@ export function SiteFooter() {
         <div className="grid gap-12 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="inline-flex items-center gap-2.5">
-              <img src="/brand/artifacts-logo.svg" alt="" className="size-6" />
-              <span className="text-base font-semibold tracking-tight text-foreground">Artifacts</span>
+              <img src="/brand/artifacts-logo.svg" alt="" className="size-[18px]" />
+              <span className="font-mono text-[13px] font-semibold uppercase leading-none tracking-[0.045em] text-foreground/92">ARTIFACTS</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
               A home for everything your agents build. Permanent URLs, versions, and access control for the HTML,

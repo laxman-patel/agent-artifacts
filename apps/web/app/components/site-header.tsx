@@ -13,9 +13,9 @@ export function SiteHeader() {
 
   return (
     <header className="site-header">
-      <Link className="brand" href="/">
-        <img src="/brand/artifacts-logo.svg" alt="" className="size-5" />
-        <span>Artifacts</span>
+      <Link className="brand" href="/" aria-label="Artifacts home">
+        <img src="/brand/artifacts-logo.svg" alt="" className="size-[18px]" />
+        <span className="font-mono text-[13px] font-semibold uppercase leading-none tracking-[0.045em] text-foreground/92">ARTIFACTS</span>
       </Link>
       <nav className="product-nav" aria-label="Product">
         <Link href="/#how">How it works</Link>

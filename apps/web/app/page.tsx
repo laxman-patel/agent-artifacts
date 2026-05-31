@@ -177,9 +177,9 @@ function MarketingNav() {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl">
       <div className="relative mx-auto flex h-[45px] w-[calc(100%-1rem)] max-w-[76rem] items-stretch justify-between border-x border-border sm:w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)] xl:w-full">
-        <Link href="#readme" className="flex items-center gap-1.5 px-4 text-sm font-semibold text-foreground sm:px-8">
-          <img src={logoPath} alt="" className="size-[22px] opacity-95" />
-          <span className="text-[17px] font-semibold leading-none tracking-[-0.015em]">Artifacts</span>
+        <Link href="#readme" className="flex items-center gap-2 px-4 text-foreground sm:px-8" aria-label="Artifacts home">
+          <img src={logoPath} alt="" className="size-[18px] opacity-95" />
+          <span className="font-mono text-[13px] font-semibold uppercase leading-none tracking-[0.045em] text-foreground/92">ARTIFACTS</span>
         </Link>
         <nav className="hidden items-stretch border-x border-border md:flex" aria-label="Marketing sections">
           {navItems.map((item) => (
@@ -539,7 +539,7 @@ export default function HomePage() {
 
       <footer className="relative mx-auto flex w-[calc(100%-1rem)] max-w-[76rem] flex-col gap-4 border-x border-t border-border px-5 py-8 text-xs text-foreground/35 sm:w-[calc(100%-2rem)] sm:px-8 md:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)] lg:flex-row lg:items-center lg:justify-between xl:w-full">
         <div className="flex flex-wrap items-center gap-4">
-          <img src={logoPath} alt="Artifacts" className="size-5 opacity-75" />
+          <img src={logoPath} alt="Artifacts" className="size-[18px] opacity-75" />
           <Link href="#readme" className="transition-colors hover:text-foreground/70">Docs</Link>
           <Link href="#how" className="transition-colors hover:text-foreground/70">How it works</Link>
           <Link href="#features" className="transition-colors hover:text-foreground/70">Features</Link>

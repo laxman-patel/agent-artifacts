@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SessionNav } from "./session-nav";
 
-// Shared app header for every page except the landing route. The landing ("/")
-// ships its own marketing header + footer, so this returns null there and the
-// app pages (dashboard, login, [username], share, settings) are left untouched.
+// Shared app header for app pages. Marketing routes ship their own header +
+// footer, so this returns null there and dashboard/login/share/settings keep
+// their product chrome.
 export function SiteHeader() {
   const pathname = usePathname();
-  if (pathname === "/") return null;
+  if (pathname === "/" || pathname === "/pricing") return null;
 
   return (
     <header className="site-header">
@@ -21,6 +21,7 @@ export function SiteHeader() {
         <Link href="/#how">How it works</Link>
         <Link href="/#features">Features</Link>
         <Link href="/#create">Create</Link>
+        <Link href="/pricing">Pricing</Link>
         <Link href="/#quotes">Quotes</Link>
       </nav>
       <SessionNav />

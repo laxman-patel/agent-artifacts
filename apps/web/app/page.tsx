@@ -13,7 +13,7 @@ type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean
 
 const navItems = [
   { label: "docs", href: "#how", active: true },
-  { label: "pricing", href: "#final-cta" },
+  { label: "pricing", href: "/pricing" },
   { label: "github", href: "https://github.com" }
 ];
 
@@ -544,6 +544,7 @@ export default function HomePage() {
           <Link href="#how" className="transition-colors hover:text-foreground/70">How it works</Link>
           <Link href="#features" className="transition-colors hover:text-foreground/70">Features</Link>
           <Link href="#create" className="transition-colors hover:text-foreground/70">Create</Link>
+          <Link href="/pricing" className="transition-colors hover:text-foreground/70">Pricing</Link>
         </div>
         <div className="font-mono">© 2026 Artifacts · built for humans and agents</div>
       </footer>

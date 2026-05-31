@@ -245,7 +245,7 @@ function FeatureCard({
   return (
     <div className={cn("group rounded-[10px] border border-border p-1 transition-colors hover:border-foreground/[0.14]", className)}>
       <div className="flex h-full flex-col gap-3 rounded-md border border-foreground/[0.1] px-5 py-4 transition-colors group-hover:border-foreground/[0.14] group-hover:bg-foreground/[0.015]">
-        <Icon className="size-5 text-foreground/40 transition-colors group-hover:text-foreground/60" aria-hidden />
+        <Icon className="size-5 text-[oklch(0.56_0_0)] transition-colors group-hover:text-[oklch(0.68_0_0)]" aria-hidden />
         <div className="space-y-1.5">
           <h3 className="text-sm font-semibold text-foreground/90">{title}</h3>
           <p className="max-w-[52ch] text-sm leading-relaxed text-foreground/45">{description}</p>
@@ -567,7 +567,7 @@ export default function HomePage() {
           <Link href={githubUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground/70">GitHub</Link>
         </div>
         <div className="font-mono">
-          © 2026 Artifacts · built by{" "}
+          © 2026 Artifacts · by{" "}
           <Link href="https://laxman.me" target="_blank" rel="noopener noreferrer" className="text-foreground/50 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
             Laxman Patel
           </Link>

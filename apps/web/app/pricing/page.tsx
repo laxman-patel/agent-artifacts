@@ -268,7 +268,7 @@ function PricingFooter() {
         <Link href={githubUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground/70">GitHub</Link>
       </div>
       <div className="font-mono">
-        © 2026 Artifacts · built by{" "}
+        © 2026 Artifacts · by{" "}
         <Link href="https://laxman.me" target="_blank" rel="noopener noreferrer" className="text-foreground/50 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
           Laxman Patel
         </Link>

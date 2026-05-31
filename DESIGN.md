@@ -65,8 +65,10 @@ components:
   button-signin:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.sm}"
+    borderColor: "oklch(0.985 0 0 / 0.3)"
+    rounded: "0"
     padding: "0.5rem 1rem"
+    shadow: "inset 0 0 0 1px oklch(1 0 0 / 0.42), 0 1px 0 oklch(1 0 0 / 0.18), 0 8px 18px oklch(0.08 0 0 / 0.18)"
   card-double-border:
     backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
@@ -82,6 +84,30 @@ components:
     textColor: "{colors.shader-front}"
     rounded: "0"
     padding: "0"
+  auth-card:
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.foreground}"
+    rounded: "0"
+    padding: "1.5rem"
+  oauth-primary:
+    backgroundColor: "oklch(0.96 0 0)"
+    textColor: "{colors.primary-foreground}"
+    borderColor: "oklch(0.985 0 0 / 0.22)"
+    rounded: "0"
+    padding: "0.75rem 1rem"
+    shadow: "inset 0 0 0 1px oklch(1 0 0 / 0.38), 0 1px 0 oklch(1 0 0 / 0.16)"
+  oauth-disabled:
+    backgroundColor: "oklch(0.1871 0 0 / 0.9)"
+    textColor: "oklch(0.985 0 0 / 0.35)"
+    borderColor: "oklch(0.985 0 0 / 0.09)"
+    rounded: "0"
+    padding: "0.75rem 1rem"
+  status-chip:
+    backgroundColor: "{colors.background}"
+    textColor: "#FF570A"
+    borderColor: "color-mix(in oklch, #FF570A 35%, transparent)"
+    rounded: "0"
+    padding: "0.25rem 0.5rem"
 ---
 
 # Design System: Artifacts
@@ -181,6 +207,9 @@ Artifacts is flat by default. Depth comes from borders, tonal layering, clipped 
 - **Shape:** Small radius, usually `0.125rem` to `0.375rem`.
 - **Primary:** Sign-in uses a light control surface on the dark nav, with dark text and compact padding.
 - **Command CTA:** The setup command should look like a terminal affordance: mono text, thin border, dark fill, restrained hatch/pattern only if it does not read as a gradient.
+- **OAuth Primary:** Google sign-in uses the same light control surface as the marketing primary CTA: square corners, dark text, provider glyph on the left, and the small orange arrow on the right.
+- **OAuth Button Anatomy:** Use a full-width `grid-cols-[auto_1fr_auto]` layout with `gap: 0.75rem`, `padding: 0.75rem 1rem`, `font-pixel`, `14px`, and `tracking: -0.035em`. The provider glyph stays left, the label stays text-left, and only active buttons get the orange arrow.
+- **OAuth Disabled:** Future providers may appear as disabled controls with low-contrast card fill, subdued text, and a tiny mono status chip such as `Coming soon` anchored to the button's top-right edge.
 - **Hover / Focus:** Use color opacity shifts, border shifts, or a clear focus outline. Avoid scale theatrics.
 
 ### Chips
@@ -206,6 +235,17 @@ Artifacts is flat by default. Depth comes from borders, tonal layering, clipped 
 - **Style:** Minimal top rail, small labels, active underline or top/bottom rule.
 - **Links:** Lowercase labels are acceptable for the landing nav: docs, pricing, github.
 - **Logo:** Use the actual white logo unboxed, close to the wordmark. Do not redraw it.
+- **Marketing Auth CTA:** The right-side light CTA reads `Start for free` when signed out and links to `/login`. When a session exists, it reads `Dashboard` and links to `/dashboard`. Keep the same button geometry and orange arrow so the rail does not shift visually between states.
+
+### Auth / Sign-in Surface
+
+- **Chrome:** The sign-in page uses the same marketing nav, section rails, and footer as the landing page.
+- **Composition:** Center one compact auth card in the bounded content section. Do not split the page into an image panel and a form panel.
+- **Card:** Use a flat Site Black surface with a one-pixel border and compact `1.5rem` padding. The card should feel like an access control panel, not a browser window.
+- **Heading:** `Sign in` stays on one line in Geist Pixel. The logo sits after the words as a tiny asterisk-like mark, not as a standalone decorative icon.
+- **Copy:** Keep it brief. `Continue to Artifacts.` is enough unless an error state needs explanation.
+- **Actions:** Google is the only active provider today. GitHub may be shown as disabled with a small `Coming soon` chip at the top-right of the button.
+- **Background:** Keep the auth background dark and quiet. Do not add orange dither, split imagery, or decorative shader motion unless a future direction explicitly reintroduces it.
 
 ### Demo Video Frame
 
@@ -233,6 +273,7 @@ Artifacts is flat by default. Depth comes from borders, tonal layering, clipped 
 - Keep artifact previews restrained, with subtle inner accents only.
 - Respect reduced motion. Pause marquees and shader motion where appropriate.
 - Keep the dither animation monochrome, pixelated, and embedded in the page canvas.
+- Keep sign-in focused: one compact card, one-line heading, minimal copy, and provider buttons only.
 
 ### Don't
 
@@ -245,3 +286,4 @@ Artifacts is flat by default. Depth comes from borders, tonal layering, clipped 
 - Do not create nested boxes unless each layer has a clear role.
 - Do not turn quotes into endorsement boxes or imply unverified endorsement.
 - Do not create oversized SaaS metric blocks or repeated icon-card grids beyond the current restrained feature pattern.
+- Do not use Mac-style window chrome, split image panels, or decorative orange shader fields on the sign-in page without a new explicit design direction.

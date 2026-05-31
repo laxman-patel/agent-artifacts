@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { SessionNav } from "./session-nav";
 
 // Shared app header for app pages. Marketing routes ship their own header +
-// footer, so this returns null there and dashboard/login/share/settings keep
-// their product chrome.
+// footer, so this returns null there and dashboard/share/settings keep their
+// product chrome.
 export function SiteHeader() {
   const pathname = usePathname();
-  if (pathname === "/" || pathname === "/pricing") return null;
+  if (pathname === "/" || pathname === "/pricing" || pathname === "/login") return null;
 
   return (
     <header className="site-header">

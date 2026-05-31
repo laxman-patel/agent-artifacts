@@ -1,5 +1,7 @@
 :root {
   color-scheme: dark;
+  --artifact-orange: #FF570A;
+  --artifact-orange-ink: oklch(0.16 0.025 45);
   background: #090909;
   color: oklch(0.965 0.008 100);
   font-family:
@@ -33,7 +35,7 @@ body {
 }
 
 .eyebrow {
-  color: #a78bfa;
+  color: var(--artifact-orange);
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -82,9 +84,9 @@ li {
 }
 
 li span {
-  background: #8b5cf6;
+  background: var(--artifact-orange);
   border-radius: 999px;
-  color: white;
+  color: var(--artifact-orange-ink);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.3rem 0.6rem;
@@ -162,7 +164,7 @@ li span {
 .link-button {
   background: transparent;
   border: none;
-  color: #dbeafe;
+  color: var(--artifact-orange);
   cursor: pointer;
   font: inherit;
   padding: 0;
@@ -228,8 +230,8 @@ li span {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #a855f7, #6366f1);
-  color: white;
+  background: var(--artifact-orange);
+  color: var(--artifact-orange-ink);
 }
 
 .ghost-button {
@@ -322,7 +324,7 @@ li span {
 }
 
 .row-actions a {
-  color: #c4b5fd;
+  color: color-mix(in oklch, var(--artifact-orange) 72%, white);
   font-size: 0.9rem;
   text-decoration: none;
 }
@@ -420,14 +422,14 @@ li span {
 }
 
 .prose a {
-  color: #a78bfa;
+  color: color-mix(in oklch, var(--artifact-orange) 72%, white);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
 .prose a:hover {
-  color: #c4b5fd;
+  color: color-mix(in oklch, var(--artifact-orange) 58%, white);
 }
 
 .prose code {
@@ -456,7 +458,7 @@ li span {
 }
 
 .prose blockquote {
-  border-left: 3px solid #7c3aed;
+  border-left: 3px solid var(--artifact-orange);
   color: #a1a1aa;
   margin: 1.5rem 0;
   padding: 0.5rem 0 0.5rem 1.25rem;
@@ -517,7 +519,7 @@ li span {
 }
 
 .prose input[type="checkbox"] {
-  accent-color: #8b5cf6;
+  accent-color: var(--artifact-orange);
   margin-right: 0.5rem;
 }
 /* ─────────────────────────────────────────────────────────────────────── */

@@ -5,9 +5,16 @@ import "./styles.css";
 import "./tailwind.css";
 
 export const metadata: Metadata = {
-  title: "Artifacts: Agent-native artifact hosting",
+  title: {
+    default: "Artifacts | Agent-native artifact hosting",
+    template: "Artifacts | %s"
+  },
   description:
-    "Publish HTML reports, Markdown specs, JSX prototypes, and agent-built tools with permanent URLs, immutable versions, access control, and MCP automation."
+    "Publish HTML reports, Markdown specs, JSX prototypes, and agent-built tools with permanent URLs, immutable versions, access control, and MCP automation.",
+  icons: {
+    icon: [{ url: "/brand/artifacts-logo.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/brand/artifacts-logo.svg", type: "image/svg+xml" }]
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -1,17 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
+import { LockKeyhole, PackageCheck, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { PricingDitherShader } from "../components/pricing-dither-shader";
 
 const logoPath = "/brand/artifacts-logo.svg";
 
-const navItems = [
-  { label: "docs", href: "/#how" },
+const navItems: { label: string; href: string; active?: boolean }[] = [
   { label: "pricing", href: "/pricing", active: true },
-  { label: "github", href: "https://github.com" }
+  { label: "docs", href: "/#how" },
+  { label: "support", href: "mailto:support@agent-artifacts.com" }
 ];
+
+const githubUrl = "https://github.com/laxman-patel/agent-artifacts";
+
+function GithubIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.9c-2.78.62-3.37-1.21-3.37-1.21-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.85.09-.67.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.35 9.35 0 0 1 12 6.97c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.95.68 1.92v2.8c0 .27.18.59.69.49A10.15 10.15 0 0 0 22 12.25C22 6.59 17.52 2 12 2Z" />
+    </svg>
+  );
+}
+
+type CtaIcon = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 
 const plans = [
   {
@@ -21,6 +34,7 @@ const plans = [
     cadence: "No card needed",
     summary: "Public artifact links for trying the workflow.",
     cta: "Start free",
+    ctaIcon: PackageCheck,
     href: "/login?next=%2Fdashboard",
     featured: false,
     features: [
@@ -38,6 +52,7 @@ const plans = [
     cadence: "/month",
     summary: "Private sharing and higher limits for one builder.",
     cta: "Upgrade to Pro",
+    ctaIcon: LockKeyhole,
     href: "/login?next=%2Fpricing",
     featured: true,
     features: [
@@ -60,6 +75,7 @@ const plans = [
     cadence: "/month",
     summary: "A shared workspace for artifacts that belong to the team.",
     cta: "Start Team",
+    ctaIcon: Users,
     href: "/login?next=%2Fpricing",
     featured: false,
     features: [
@@ -74,7 +90,7 @@ const plans = [
 ] as const;
 
 export const metadata: Metadata = {
-  title: "Pricing: Artifacts",
+  title: "Pricing",
   description:
     "Artifacts pricing starts with a free Builder plan, then adds Pro for private sharing and Team for shared workspaces."
 };
@@ -129,7 +145,7 @@ function PricingNav() {
               className={cn(
                 "flex items-center border-r border-border px-[1.375rem] text-xs font-medium uppercase tracking-wider transition-colors last:border-r-0",
                 item.active
-                  ? "border-b-2 border-b-foreground/60 bg-background text-foreground"
+                  ? "border-b-2 border-b-[#FF570A] bg-background text-foreground"
                   : "text-foreground/40 hover:bg-foreground/[0.03] hover:text-foreground/70"
               )}
             >
@@ -137,12 +153,21 @@ function PricingNav() {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center px-3 sm:px-6">
+        <div className="flex items-stretch">
           <Link
-            href="/login"
-            className="rounded-sm bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            href={githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open Artifacts on GitHub"
+            className="flex h-full items-center justify-center px-4 text-foreground/42 transition-colors hover:bg-foreground/[0.03] hover:text-foreground/72"
           >
-            Sign in
+            <GithubIcon className="size-[18px]" />
+          </Link>
+          <Link href="/login" className="group flex h-full items-center px-4 sm:pr-8" aria-label="Start using Artifacts for free">
+            <span className="inline-grid grid-cols-[auto_auto] items-center gap-2 rounded-none border border-foreground/30 bg-[oklch(0.96_0_0)] px-3 py-1.5 font-pixel text-[13px] font-normal uppercase leading-none tracking-[-0.035em] text-primary-foreground shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.42),0_1px_0_oklch(1_0_0_/_0.18),0_8px_18px_oklch(0.08_0_0_/_0.18)] transition-colors group-hover:bg-[oklch(0.92_0_0)]">
+              <span className="leading-none">Start for free</span>
+              <span className="font-pixel text-[15px] leading-none text-[#FF570A]" aria-hidden>↗</span>
+            </span>
           </Link>
         </div>
       </div>
@@ -151,12 +176,14 @@ function PricingNav() {
 }
 
 function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
+  const Icon = plan.ctaIcon as CtaIcon;
+
   return (
     <article
       className={cn(
         "relative flex min-h-[36rem] flex-col overflow-hidden rounded-[10px] border bg-card px-5 py-6",
         plan.featured
-          ? "relative -translate-y-1 border-foreground/35 bg-foreground/[0.035] shadow-[0_18px_48px_oklch(0.08_0_0_/_0.28)] ring-1 ring-foreground/10"
+          ? "relative -translate-y-1 border-[#FF570A]/35 bg-foreground/[0.035] shadow-[0_18px_48px_oklch(0.08_0_0_/_0.28)] ring-1 ring-[#FF570A]/10"
           : "border-foreground/[0.08]"
       )}
     >
@@ -203,7 +230,7 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
                 >
                   <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-foreground/30">{meter.label}</div>
                   <div className="mt-2 font-pixel text-[1.15rem] leading-none tracking-[-0.04em] text-foreground/88">{meter.price}</div>
-                  <div className="mt-1.5 text-[10px] leading-4 text-foreground/38">per {meter.unit}</div>
+                  <div className="mt-1.5 text-[10px] leading-4 text-foreground/38">/ {meter.unit}</div>
                 </div>
               ))}
             </div>
@@ -211,16 +238,18 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
         ) : null}
 
         <div className="mt-auto pt-8">
-          <Link
-            href={plan.href}
-            className={cn(
-              "inline-flex w-full items-center justify-center rounded-sm px-4 py-2.5 text-sm font-medium transition-colors",
-              plan.featured
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "border border-foreground/[0.12] text-foreground/72 hover:border-foreground/[0.22] hover:bg-foreground/[0.03] hover:text-foreground"
-            )}
-          >
-            {plan.cta}
+          <Link href={plan.href} className="group flex w-full justify-center" aria-label={plan.cta}>
+            <span
+              className={cn(
+                "inline-grid w-full grid-cols-[auto_auto] items-center justify-center gap-2 border border-foreground/20 px-4 py-2 font-pixel text-[13px] font-normal leading-none tracking-[-0.035em] shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.18)] transition-colors",
+                plan.featured
+                  ? "bg-[oklch(0.96_0_0)] text-primary-foreground group-hover:bg-[oklch(0.92_0_0)]"
+                  : "bg-transparent text-foreground/62 group-hover:border-foreground/30 group-hover:bg-[oklch(0.96_0_0)] group-hover:text-primary-foreground"
+              )}
+            >
+              <span className="leading-none">{plan.cta}</span>
+              <Icon className="size-3.5 text-[#FF570A]" aria-hidden />
+            </span>
           </Link>
         </div>
       </div>
@@ -233,12 +262,17 @@ function PricingFooter() {
     <footer className="relative mx-auto flex w-[calc(100%-1rem)] max-w-[76rem] flex-col gap-4 border-x border-t border-border px-5 py-8 text-xs text-foreground/35 sm:w-[calc(100%-2rem)] sm:px-8 md:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)] lg:flex-row lg:items-center lg:justify-between xl:w-full">
       <div className="flex flex-wrap items-center gap-4">
         <img src={logoPath} alt="Artifacts" className="size-[18px] opacity-75" />
-        <Link href="/" className="transition-colors hover:text-foreground/70">Home</Link>
-        <Link href="/#how" className="transition-colors hover:text-foreground/70">How it works</Link>
-        <Link href="/#features" className="transition-colors hover:text-foreground/70">Features</Link>
         <Link href="/pricing" className="transition-colors hover:text-foreground/70">Pricing</Link>
+        <Link href="/#how" className="transition-colors hover:text-foreground/70">Docs</Link>
+        <Link href="mailto:support@agent-artifacts.com" className="transition-colors hover:text-foreground/70">Support</Link>
+        <Link href={githubUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground/70">GitHub</Link>
       </div>
-      <div className="font-mono">© 2026 Artifacts · built for humans and agents</div>
+      <div className="font-mono">
+        © 2026 Artifacts · built by{" "}
+        <Link href="https://laxman.me" target="_blank" rel="noopener noreferrer" className="text-foreground/50 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
+          Laxman Patel
+        </Link>
+      </div>
     </footer>
   );
 }

@@ -73,10 +73,11 @@
   --ring: oklch(0.708 0 0);
   --radius: 0.45rem;
 
-  /* A legacy product accent kept for app surfaces outside this landing page. */
-  --brand: oklch(0.88 0.21 130);
-  --brand-foreground: oklch(0.2 0.05 145);
-  --brand-muted: oklch(0.88 0.21 130 / 0.12);
+  /* Shared accent: use sparingly for active marks, links, and primary action hints. */
+  --artifact-orange: #FF570A;
+  --brand: #FF570A;
+  --brand-foreground: oklch(0.16 0.025 45);
+  --brand-muted: color-mix(in oklch, #FF570A 12%, transparent);
 }
 
 .dark {
@@ -126,6 +127,7 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-muted: var(--brand-muted);
+  --color-artifact-orange: var(--artifact-orange);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;

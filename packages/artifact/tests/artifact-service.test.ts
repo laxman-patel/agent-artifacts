@@ -37,7 +37,11 @@ function createTestHarness() {
   const repository = new MemoryArtifactRepository(roleResolver);
   const storage = new MemoryArtifactStorage();
   const access = createArtifactAccess(roleResolver);
-  const service = new ArtifactService(repository, storage, APP_URL, access);
+  const workspaceAccess = {
+    authorize: async () => ({ allowed: true as const, effectiveRole: "owner" as const }),
+    assertAuthorized: async () => undefined
+  };
+  const service = new ArtifactService(repository, storage, APP_URL, access, workspaceAccess);
 
   return { repository, roleResolver, storage, service };
 }
@@ -383,7 +387,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
   constructor(private readonly roleResolver?: MemoryArtifactRoleResolver) {}
 
   readonly owners = new Map([["laxman", { userId: "user_1", username: "laxman" }]]);
-  readonly defaultProject = { id: "project_default", slug: "default" };
+  readonly defaultProject = { id: "project_default", slug: "default", workspaceId: "workspace_laxman", ownerUserId: "user_1" };
   readonly artifacts = new Map<string, ArtifactRecord>();
   readonly versions = new Map<string, ArtifactVersionRecord[]>();
   readonly auditEvents: PersistAuditEventInput[] = [];
@@ -393,8 +397,22 @@ class MemoryArtifactRepository implements ArtifactRepository {
     return this.owners.get(username.toLowerCase());
   }
 
-  async getProjectByOwnerSlug(username: string, projectSlug: string): Promise<{ id: string; slug: string } | undefined> {
+  async getProjectByOwnerSlug(
+    username: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string; ownerUserId: string } | undefined> {
     if (username.toLowerCase() !== "laxman" || projectSlug !== "default") {
+      return undefined;
+    }
+
+    return this.defaultProject;
+  }
+
+  async getProjectByWorkspaceSlug(
+    workspaceId: string,
+    projectSlug: string
+  ): Promise<{ id: string; slug: string; workspaceId: string; ownerUserId: string } | undefined> {
+    if (workspaceId !== this.defaultProject.workspaceId || projectSlug !== "default") {
       return undefined;
     }
 
@@ -430,6 +448,22 @@ class MemoryArtifactRepository implements ArtifactRepository {
     );
   }
 
+  async listArtifactsForWorkspace(workspaceId: string): Promise<ArtifactRecord[]> {
+    return [...this.artifacts.values()].filter(
+      (artifact) => artifact.workspaceId === workspaceId && artifact.state === "active"
+    );
+  }
+
+  async getArtifactByWorkspaceProjectSlug(
+    workspaceId: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord | undefined> {
+    return [...this.artifacts.values()].find(
+      (artifact) => artifact.workspaceId === workspaceId && artifact.projectSlug === projectSlug && artifact.slug === slug
+    );
+  }
+
   async getVersion(artifactId: string, versionNumber?: number): Promise<ArtifactVersionRecord | undefined> {
     const versions = this.versions.get(artifactId) ?? [];
     return versionNumber === undefined
@@ -450,6 +484,8 @@ class MemoryArtifactRepository implements ArtifactRepository {
       ownerUsername: "laxman",
       projectId: input.artifact.projectId,
       projectSlug: this.defaultProject.slug,
+      workspaceId: this.defaultProject.workspaceId,
+      workspaceSlug: "laxman",
       slug: input.artifact.slug,
       title: input.artifact.title,
       description: input.artifact.description ?? null,

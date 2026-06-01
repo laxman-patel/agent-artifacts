@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
-import { projects, userProfiles } from "@agent-artifacts/db";
-import type { Principal } from "@agent-artifacts/shared";
-import { ArtifactForbiddenError, buildProjectUrl, normalizeSlug, slugSchema } from "@agent-artifacts/shared";
+import { projects, workspaceMembers, workspaces } from "@agent-artifacts/db";
+import type { Principal, WorkspaceKind, WorkspaceRole } from "@agent-artifacts/shared";
+import { ArtifactForbiddenError, buildWorkspaceProjectUrl, normalizeSlug, slugSchema } from "@agent-artifacts/shared";
 import type { ArtifactAccess } from "@agent-artifacts/access";
 import { z } from "zod";
-import { getOwnerByUsername, getProjectIdByOwnerSlug } from "./drizzle-owner-lookup.js";
 
 export class ProjectNotFoundError extends Error {
   constructor() {
@@ -24,10 +23,22 @@ export const createProjectInputSchema = z.object({
 
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>;
 
+export const createWorkspaceProjectInputSchema = z.object({
+  slug: z.string().min(1),
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).optional()
+});
+
+export type CreateWorkspaceProjectInput = z.infer<typeof createWorkspaceProjectInputSchema>;
+
 export interface ProjectRecord {
   id: string;
   ownerUserId: string;
   ownerUsername: string;
+  workspaceId: string;
+  workspaceSlug: string;
+  workspaceName: string;
+  workspaceKind: WorkspaceKind;
   slug: string;
   title: string;
   description: string | null;
@@ -39,22 +50,36 @@ export interface ProjectSummary {
   projectId: string;
   ownerUserId: string;
   ownerUsername: string;
+  workspaceId: string;
+  workspaceSlug: string;
   normalizedSlug: string;
   title: string;
   url: string;
 }
 
+export interface ProjectWorkspaceRecord {
+  id: string;
+  slug: string;
+  name: string;
+  kind: WorkspaceKind;
+  personalUserId: string | null;
+}
+
 export interface ProjectRepository {
-  getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined>;
-  projectSlugExists(ownerUserId: string, normalizedSlug: string): Promise<boolean>;
-  getProjectByOwnerSlug(username: string, projectSlug: string): Promise<ProjectRecord | undefined>;
+  getWorkspaceBySlug(slug: string): Promise<ProjectWorkspaceRecord | undefined>;
+  getWorkspaceById(workspaceId: string): Promise<ProjectWorkspaceRecord | undefined>;
+  projectSlugExists(workspaceId: string, normalizedSlug: string): Promise<boolean>;
+  getProjectByWorkspaceSlug(workspaceSlug: string, projectSlug: string): Promise<ProjectRecord | undefined>;
+  getProjectByWorkspaceIdSlug(workspaceId: string, projectSlug: string): Promise<ProjectRecord | undefined>;
   createProject(input: PersistCreateProjectInput): Promise<void>;
-  listProjectsForOwner(ownerUserId: string): Promise<ProjectRecord[]>;
+  listProjectsForWorkspace(workspaceId: string): Promise<ProjectRecord[]>;
+  listProjectsForUserMemberships(userId: string): Promise<ProjectRecord[]>;
 }
 
 export interface PersistCreateProjectInput {
   id: string;
   ownerUserId: string;
+  workspaceId: string;
   slug: string;
   title: string;
   description?: string;
@@ -83,55 +108,48 @@ export class ProjectService {
     ownerUsername: string,
     slug: string,
     principal: Principal
-  ): Promise<{ available: boolean; ownerUserId: string; normalizedSlug: string }> {
+  ): Promise<{ available: boolean; ownerUserId: string; workspaceId: string; normalizedSlug: string }> {
     const normalizedSlug = validateProjectSlug(slug);
-    const owner = await this.requireOwner(ownerUsername);
-    await this.access.assertAuthorized({
-      principal,
-      action: "artifact.create",
-      context: { kind: "namespace", ownerUserId: owner.userId }
-    });
-    const available = !(await this.repository.projectSlugExists(owner.userId, normalizedSlug));
+    const workspace = await this.requireWorkspaceBySlug(ownerUsername);
+    await this.assertCreateAccess(workspace, principal);
+    const available = !(await this.repository.projectSlugExists(workspace.id, normalizedSlug));
 
-    return { available, ownerUserId: owner.userId, normalizedSlug };
+    return { available, ownerUserId: this.ownerUserId(workspace, principal), workspaceId: workspace.id, normalizedSlug };
+  }
+
+  async checkWorkspaceProjectSlugAvailability(
+    workspaceId: string,
+    slug: string,
+    principal: Principal
+  ): Promise<{ available: boolean; normalizedSlug: string }> {
+    const workspace = await this.requireWorkspaceById(workspaceId);
+    await this.assertCreateAccess(workspace, principal);
+    const normalizedSlug = validateProjectSlug(slug);
+    const available = !(await this.repository.projectSlugExists(workspace.id, normalizedSlug));
+    return { available, normalizedSlug };
   }
 
   async createProject(input: CreateProjectInput, principal: Principal): Promise<ProjectSummary> {
     const parsed = createProjectInputSchema.parse(input);
-    const owner = await this.requireOwner(parsed.ownerUsername);
-    await this.access.assertAuthorized({
-      principal,
-      action: "artifact.create",
-      context: { kind: "namespace", ownerUserId: owner.userId }
-    });
-
-    const normalizedSlug = validateProjectSlug(parsed.slug);
-    const available = !(await this.repository.projectSlugExists(owner.userId, normalizedSlug));
-    if (!available) {
-      throw new ProjectSlugUnavailableError(normalizedSlug);
-    }
-
-    const projectId = randomUUID();
-    await this.repository.createProject({
-      id: projectId,
-      ownerUserId: owner.userId,
-      slug: normalizedSlug,
-      title: parsed.title,
-      description: parsed.description
-    });
-
-    return {
-      projectId,
-      ownerUserId: owner.userId,
-      ownerUsername: owner.username,
-      normalizedSlug,
-      title: parsed.title,
-      url: buildProjectUrl(this.appUrl, owner.username, normalizedSlug)
-    };
+    const workspace = await this.requireWorkspaceBySlug(parsed.ownerUsername);
+    await this.assertCreateAccess(workspace, principal);
+    return this.createProjectInWorkspace(workspace, parsed, principal);
   }
 
-  async getProjectByPath(username: string, projectSlug: string, principal: Principal): Promise<ProjectRecord> {
-    const project = await this.repository.getProjectByOwnerSlug(username, validateProjectSlug(projectSlug));
+  async createWorkspaceProject(
+    workspaceId: string,
+    _workspaceSlug: string,
+    input: CreateWorkspaceProjectInput,
+    principal: Principal
+  ): Promise<ProjectSummary & { workspaceId: string; url: string }> {
+    const workspace = await this.requireWorkspaceById(workspaceId);
+    await this.assertCreateAccess(workspace, principal);
+    const project = await this.createProjectInWorkspace(workspace, createWorkspaceProjectInputSchema.parse(input), principal);
+    return { ...project, workspaceId: workspace.id };
+  }
+
+  async getProjectByPath(workspaceSlug: string, projectSlug: string, principal: Principal): Promise<ProjectRecord> {
+    const project = await this.repository.getProjectByWorkspaceSlug(workspaceSlug, validateProjectSlug(projectSlug));
     if (!project) {
       throw new ProjectNotFoundError();
     }
@@ -139,14 +157,37 @@ export class ProjectService {
     await this.access.assertAuthorized({
       principal,
       action: "project.view",
-      context: { kind: "namespace", ownerUserId: project.ownerUserId }
+      context: this.namespaceContext(project)
     });
 
     return project;
   }
 
-  async getProjectByPathRaw(username: string, projectSlug: string): Promise<ProjectRecord> {
-    const project = await this.repository.getProjectByOwnerSlug(username, validateProjectSlug(projectSlug));
+  async getWorkspaceProjectByPath(
+    workspaceId: string,
+    projectSlug: string,
+    principal: Principal
+  ): Promise<ProjectRecord> {
+    const project = await this.repository.getProjectByWorkspaceIdSlug(workspaceId, validateProjectSlug(projectSlug));
+    if (!project) {
+      throw new ProjectNotFoundError();
+    }
+
+    await this.access.assertAuthorized({ principal, action: "project.view", context: this.namespaceContext(project) });
+    return project;
+  }
+
+  async getProjectByPathRaw(workspaceSlug: string, projectSlug: string): Promise<ProjectRecord> {
+    const project = await this.repository.getProjectByWorkspaceSlug(workspaceSlug, validateProjectSlug(projectSlug));
+    if (!project) {
+      throw new ProjectNotFoundError();
+    }
+
+    return project;
+  }
+
+  async getWorkspaceProjectByPathRaw(workspaceId: string, projectSlug: string): Promise<ProjectRecord> {
+    const project = await this.repository.getProjectByWorkspaceIdSlug(workspaceId, validateProjectSlug(projectSlug));
     if (!project) {
       throw new ProjectNotFoundError();
     }
@@ -156,46 +197,157 @@ export class ProjectService {
 
   async listOwnedProjects(principal: Principal): Promise<ProjectRecord[]> {
     if (principal.type !== "user") {
-      throw new ArtifactForbiddenError("Only signed-in users can list owned projects.");
+      throw new ArtifactForbiddenError("Only signed-in users can list workspace projects.");
     }
 
-    return this.repository.listProjectsForOwner(principal.id);
+    return this.repository.listProjectsForUserMemberships(principal.id);
   }
 
-  private async requireOwner(ownerUsername: string): Promise<{ userId: string; username: string }> {
-    const owner = await this.repository.getOwnerByUsername(ownerUsername);
-    if (!owner) {
-      throw new ProjectNotFoundError();
+  async listWorkspaceProjects(workspaceId: string, principal: Principal): Promise<ProjectRecord[]> {
+    const workspace = await this.requireWorkspaceById(workspaceId);
+    await this.access.assertAuthorized({
+      principal,
+      action: "project.view",
+      context: { kind: "namespace", ownerUserId: this.ownerUserId(workspace, principal), workspaceId: workspace.id }
+    });
+    return this.repository.listProjectsForWorkspace(workspaceId);
+  }
+
+  private async createProjectInWorkspace(
+    workspace: ProjectWorkspaceRecord,
+    input: CreateWorkspaceProjectInput,
+    principal: Principal
+  ): Promise<ProjectSummary> {
+    if (principal.type !== "user") {
+      throw new ArtifactForbiddenError("Only signed-in users can create projects.");
     }
 
-    return owner;
+    const normalizedSlug = validateProjectSlug(input.slug);
+    const available = !(await this.repository.projectSlugExists(workspace.id, normalizedSlug));
+    if (!available) {
+      throw new ProjectSlugUnavailableError(normalizedSlug);
+    }
+
+    const projectId = randomUUID();
+    await this.repository.createProject({
+      id: projectId,
+      ownerUserId: principal.id,
+      workspaceId: workspace.id,
+      slug: normalizedSlug,
+      title: input.title,
+      description: input.description
+    });
+
+    return {
+      projectId,
+      ownerUserId: principal.id,
+      ownerUsername: workspace.slug,
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+      normalizedSlug,
+      title: input.title,
+      url: buildWorkspaceProjectUrl(this.appUrl, workspace.slug, normalizedSlug)
+    };
+  }
+
+  private namespaceContext(project: Pick<ProjectRecord, "ownerUserId" | "workspaceId">) {
+    return { kind: "namespace" as const, ownerUserId: project.ownerUserId, workspaceId: project.workspaceId };
+  }
+
+  private async assertCreateAccess(workspace: ProjectWorkspaceRecord, principal: Principal): Promise<void> {
+    await this.access.assertAuthorized({
+      principal,
+      action: "artifact.create",
+      context: { kind: "namespace", ownerUserId: this.ownerUserId(workspace, principal), workspaceId: workspace.id }
+    });
+  }
+
+  private ownerUserId(workspace: ProjectWorkspaceRecord, principal: Principal): string {
+    if (workspace.kind === "personal" && workspace.personalUserId) return workspace.personalUserId;
+    if (principal.type === "user") return principal.id;
+    return workspace.personalUserId ?? workspace.id;
+  }
+
+  private async requireWorkspaceBySlug(slug: string): Promise<ProjectWorkspaceRecord> {
+    const workspace = await this.repository.getWorkspaceBySlug(slug.trim().toLowerCase());
+    if (!workspace) {
+      throw new ProjectNotFoundError();
+    }
+    return workspace;
+  }
+
+  private async requireWorkspaceById(workspaceId: string): Promise<ProjectWorkspaceRecord> {
+    const workspace = await this.repository.getWorkspaceById(workspaceId);
+    if (!workspace) {
+      throw new ProjectNotFoundError();
+    }
+    return workspace;
   }
 }
 
 export class DrizzleProjectRepository implements ProjectRepository {
   constructor(private readonly db: Database) {}
 
-  async getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined> {
-    return getOwnerByUsername(this.db, username);
+  async getWorkspaceBySlug(slug: string): Promise<ProjectWorkspaceRecord | undefined> {
+    const [workspace] = await this.db
+      .select({
+        id: workspaces.id,
+        slug: workspaces.slug,
+        name: workspaces.name,
+        kind: workspaces.kind,
+        personalUserId: workspaces.personalUserId
+      })
+      .from(workspaces)
+      .where(and(sql`lower(${workspaces.slug}) = ${slug.trim().toLowerCase()}`, eq(workspaces.state, "active")))
+      .limit(1);
+
+    return workspace;
   }
 
-  async projectSlugExists(ownerUserId: string, normalizedSlug: string): Promise<boolean> {
+  async getWorkspaceById(workspaceId: string): Promise<ProjectWorkspaceRecord | undefined> {
+    const [workspace] = await this.db
+      .select({
+        id: workspaces.id,
+        slug: workspaces.slug,
+        name: workspaces.name,
+        kind: workspaces.kind,
+        personalUserId: workspaces.personalUserId
+      })
+      .from(workspaces)
+      .where(and(eq(workspaces.id, workspaceId), eq(workspaces.state, "active")))
+      .limit(1);
+
+    return workspace;
+  }
+
+  async projectSlugExists(workspaceId: string, normalizedSlug: string): Promise<boolean> {
     const [project] = await this.db
       .select({ id: projects.id })
       .from(projects)
-      .where(and(eq(projects.ownerUserId, ownerUserId), sql`lower(${projects.slug}) = ${normalizedSlug}`))
+      .where(and(eq(projects.workspaceId, workspaceId), sql`lower(${projects.slug}) = ${normalizedSlug}`))
       .limit(1);
 
     return project !== undefined;
   }
 
-  async getProjectByOwnerSlug(username: string, projectSlug: string): Promise<ProjectRecord | undefined> {
-    const match = await getProjectIdByOwnerSlug(this.db, username, projectSlug);
-    if (!match) {
-      return undefined;
-    }
+  async getProjectByWorkspaceSlug(workspaceSlug: string, projectSlug: string): Promise<ProjectRecord | undefined> {
+    const [project] = await this.projectQuery()
+      .where(
+        and(
+          sql`lower(${workspaces.slug}) = ${workspaceSlug.trim().toLowerCase()}`,
+          sql`lower(${projects.slug}) = ${validateProjectSlug(projectSlug)}`,
+          eq(workspaces.state, "active")
+        )
+      )
+      .limit(1);
+    return project;
+  }
 
-    const [project] = await this.projectQuery().where(eq(projects.id, match.id)).limit(1);
+  async getProjectByWorkspaceIdSlug(workspaceId: string, projectSlug: string): Promise<ProjectRecord | undefined> {
+    const [project] = await this.projectQuery()
+      .where(and(eq(projects.workspaceId, workspaceId), sql`lower(${projects.slug}) = ${validateProjectSlug(projectSlug)}`))
+      .limit(1);
+
     return project;
   }
 
@@ -204,6 +356,7 @@ export class DrizzleProjectRepository implements ProjectRepository {
     await this.db.insert(projects).values({
       id: input.id,
       ownerUserId: input.ownerUserId,
+      workspaceId: input.workspaceId,
       slug: input.slug,
       title: input.title,
       description: input.description ?? null,
@@ -212,9 +365,16 @@ export class DrizzleProjectRepository implements ProjectRepository {
     });
   }
 
-  async listProjectsForOwner(ownerUserId: string): Promise<ProjectRecord[]> {
+  async listProjectsForWorkspace(workspaceId: string): Promise<ProjectRecord[]> {
     return this.projectQuery()
-      .where(eq(projects.ownerUserId, ownerUserId))
+      .where(and(eq(projects.workspaceId, workspaceId), eq(workspaces.state, "active")))
+      .orderBy(desc(projects.updatedAt));
+  }
+
+  async listProjectsForUserMemberships(userId: string): Promise<ProjectRecord[]> {
+    return this.projectQuery()
+      .innerJoin(workspaceMembers, eq(workspaceMembers.workspaceId, projects.workspaceId))
+      .where(and(eq(workspaceMembers.userId, userId), eq(workspaces.state, "active")))
       .orderBy(desc(projects.updatedAt));
   }
 
@@ -223,7 +383,11 @@ export class DrizzleProjectRepository implements ProjectRepository {
       .select({
         id: projects.id,
         ownerUserId: projects.ownerUserId,
-        ownerUsername: userProfiles.username,
+        ownerUsername: workspaces.slug,
+        workspaceId: projects.workspaceId,
+        workspaceSlug: workspaces.slug,
+        workspaceName: workspaces.name,
+        workspaceKind: workspaces.kind,
         slug: projects.slug,
         title: projects.title,
         description: projects.description,
@@ -231,6 +395,6 @@ export class DrizzleProjectRepository implements ProjectRepository {
         updatedAt: projects.updatedAt
       })
       .from(projects)
-      .innerJoin(userProfiles, eq(userProfiles.userId, projects.ownerUserId));
+      .innerJoin(workspaces, eq(workspaces.id, projects.workspaceId));
   }
 }

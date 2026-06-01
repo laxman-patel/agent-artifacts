@@ -1,7 +1,7 @@
-import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
-import { projects, userProfiles, users } from "@agent-artifacts/db";
+import { userProfiles, users, workspaces } from "@agent-artifacts/db";
+import { ensurePersonalWorkspace } from "@agent-artifacts/workspace";
 import { usernameSchema } from "@agent-artifacts/shared";
 import { z } from "zod";
 
@@ -98,7 +98,13 @@ export class ProfileService {
       .where(sql`lower(${userProfiles.username}) = ${normalizedUsername}`)
       .limit(1);
 
-    if (usernameTaken) {
+    const [workspaceTaken] = await this.db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(sql`lower(${workspaces.slug}) = ${normalizedUsername}`)
+      .limit(1);
+
+    if (usernameTaken || workspaceTaken) {
       throw new UsernameTakenError();
     }
 
@@ -112,14 +118,10 @@ export class ProfileService {
         updatedAt: now
       });
 
-      await tx.insert(projects).values({
-        id: randomUUID(),
-        ownerUserId: userId,
-        slug: "default",
-        title: "Default",
-        description: null,
-        createdAt: now,
-        updatedAt: now
+      await ensurePersonalWorkspace(tx, {
+        userId,
+        username: normalizedUsername,
+        displayName: userRow.name ?? null
       });
     });
 

@@ -3,6 +3,8 @@ import { Pool } from "pg";
 import * as schema from "./schema.js";
 
 export type Database = ReturnType<typeof createDb>;
+export type DbTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+export type DbExecutor = Database | DbTransaction;
 
 export interface DbConfig {
   connectionString: string;

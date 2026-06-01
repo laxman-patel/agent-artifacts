@@ -6,6 +6,7 @@
     { "path": "./packages/db" },
     { "path": "./packages/policy" },
     { "path": "./packages/storage" },
+    { "path": "./packages/workspace" },
     { "path": "./packages/artifact" },
     { "path": "./packages/auth" },
     { "path": "./apps/api" },

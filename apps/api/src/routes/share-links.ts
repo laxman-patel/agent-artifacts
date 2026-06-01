@@ -91,7 +91,7 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
       const principal = await requireHumanPrincipal(c);
       const artifactId = c.req.query("artifactId");
       const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
-      const events = await getAuditService().listAuditEvents(principal.id, { artifactId, limit });
+      const events = await getAuditService().listAuditEvents({ ownerUserId: principal.id, artifactId, limit });
 
       return { events };
     })

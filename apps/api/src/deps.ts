@@ -13,6 +13,18 @@ import { createAuth, type BetterAuthHandle } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, type Database } from "@agent-artifacts/db";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
+import {
+  createDrizzleInvitationService,
+  createDrizzleMembershipService,
+  createDrizzleWorkspaceService,
+  createWorkspaceAccess,
+  DrizzleWorkspaceRepository,
+  DrizzleWorkspaceRoleResolver,
+  type InvitationService,
+  type MembershipService,
+  type WorkspaceAccess,
+  type WorkspaceService
+} from "@agent-artifacts/workspace";
 import type { Principal } from "@agent-artifacts/shared";
 import { logger } from "./logger.js";
 
@@ -29,6 +41,10 @@ let projectServiceInstance: ProjectService | undefined;
 let profileServiceInstance: ProfileService | undefined;
 let shareLinkServiceInstance: ShareLinkService | undefined;
 let auditServiceInstance: AuditService | undefined;
+let workspaceAccessInstance: WorkspaceAccess | undefined;
+let workspaceServiceInstance: WorkspaceService | undefined;
+let membershipServiceInstance: MembershipService | undefined;
+let invitationServiceInstance: InvitationService | undefined;
 let dbInstance: Database | undefined;
 
 export function getDb() {
@@ -75,7 +91,8 @@ export function getArtifactService() {
       new DrizzleArtifactRepository(db, logger),
       storage,
       env.PUBLIC_APP_URL,
-      createArtifactAccess(roleResolver)
+      createArtifactAccess(roleResolver),
+      getWorkspaceAccess()
     );
   })();
 
@@ -106,4 +123,28 @@ export function getShareLinkService() {
 export function getAuditService() {
   auditServiceInstance ??= new AuditService(getDb());
   return auditServiceInstance;
+}
+
+export function getWorkspaceAccess() {
+  workspaceAccessInstance ??= (() => {
+    const repository = new DrizzleWorkspaceRepository(getDb());
+    return createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(repository));
+  })();
+
+  return workspaceAccessInstance;
+}
+
+export function getWorkspaceService() {
+  workspaceServiceInstance ??= createDrizzleWorkspaceService(getDb());
+  return workspaceServiceInstance;
+}
+
+export function getMembershipService() {
+  membershipServiceInstance ??= createDrizzleMembershipService(getDb());
+  return membershipServiceInstance;
+}
+
+export function getInvitationService() {
+  invitationServiceInstance ??= createDrizzleInvitationService(getDb(), loadServerEnv().PUBLIC_APP_URL);
+  return invitationServiceInstance;
 }

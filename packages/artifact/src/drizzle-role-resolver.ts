@@ -19,7 +19,7 @@ export class DrizzleArtifactRoleResolver implements ArtifactRoleResolver {
     ownerUserId: string,
     workspaceId?: string | null
   ): Promise<{ isOwnerAccount: boolean; role?: ArtifactRole }> {
-    if (actsForOwner(principal, ownerUserId)) {
+    if (!workspaceId && actsForOwner(principal, ownerUserId)) {
       return { isOwnerAccount: true, role: "owner" };
     }
 
@@ -35,7 +35,7 @@ export class DrizzleArtifactRoleResolver implements ArtifactRoleResolver {
     principal: Principal,
     artifact: ArtifactRoleContext
   ): Promise<{ role: ArtifactRole | undefined; isOwnerAccount: boolean }> {
-    if (actsForOwner(principal, artifact.ownerUserId)) {
+    if (!artifact.workspaceId && actsForOwner(principal, artifact.ownerUserId)) {
       return { role: "owner", isOwnerAccount: true };
     }
 

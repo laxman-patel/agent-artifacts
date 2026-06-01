@@ -114,7 +114,7 @@ export class ProjectService {
     await this.assertCreateAccess(workspace, principal);
     const available = !(await this.repository.projectSlugExists(workspace.id, normalizedSlug));
 
-    return { available, ownerUserId: this.ownerUserId(workspace, principal), workspaceId: workspace.id, normalizedSlug };
+    return { available, ownerUserId: this.namespaceOwnerUserId(workspace), workspaceId: workspace.id, normalizedSlug };
   }
 
   async checkWorkspaceProjectSlugAvailability(
@@ -208,7 +208,7 @@ export class ProjectService {
     await this.access.assertAuthorized({
       principal,
       action: "project.view",
-      context: { kind: "namespace", ownerUserId: this.ownerUserId(workspace, principal), workspaceId: workspace.id }
+      context: { kind: "namespace", ownerUserId: this.namespaceOwnerUserId(workspace), workspaceId: workspace.id }
     });
     return this.repository.listProjectsForWorkspace(workspaceId);
   }
@@ -258,13 +258,11 @@ export class ProjectService {
     await this.access.assertAuthorized({
       principal,
       action: "artifact.create",
-      context: { kind: "namespace", ownerUserId: this.ownerUserId(workspace, principal), workspaceId: workspace.id }
+      context: { kind: "namespace", ownerUserId: this.namespaceOwnerUserId(workspace), workspaceId: workspace.id }
     });
   }
 
-  private ownerUserId(workspace: ProjectWorkspaceRecord, principal: Principal): string {
-    if (workspace.kind === "personal" && workspace.personalUserId) return workspace.personalUserId;
-    if (principal.type === "user") return principal.id;
+  private namespaceOwnerUserId(workspace: ProjectWorkspaceRecord): string {
     return workspace.personalUserId ?? workspace.id;
   }
 

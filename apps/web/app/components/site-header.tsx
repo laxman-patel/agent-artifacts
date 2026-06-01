@@ -9,7 +9,7 @@ import { SessionNav } from "./session-nav";
 // product chrome.
 export function SiteHeader() {
   const pathname = usePathname();
-  if (pathname === "/" || pathname === "/pricing" || pathname === "/login") return null;
+  if (pathname === "/" || pathname === "/pricing" || pathname.startsWith("/login")) return null;
 
   return (
     <header className="site-header">

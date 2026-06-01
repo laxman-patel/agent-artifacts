@@ -44,7 +44,9 @@ export function LoginForm() {
   const nextPath = searchParams.get("next") ?? "/dashboard";
   const safeNextPath = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard";
   const oauthError = searchParams.get("error");
+  const initialUsername = searchParams.get("username") ?? "";
   const log = useLogger();
+  const [username, setUsername] = useState(initialUsername);
   const [error, setError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -55,12 +57,35 @@ export function LoginForm() {
 
   async function signInGoogle() {
     setError(null);
+    const normalizedUsername = username.trim().toLowerCase();
+
+    if (!/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/.test(normalizedUsername) || normalizedUsername.length < 3 || normalizedUsername.length > 32) {
+      setError("Use 3 to 32 lowercase letters, numbers, hyphens, or underscores.");
+      return;
+    }
+
     setIsSigningIn(true);
 
-    const callbackURL = `${window.location.origin}${safeNextPath}`;
-
     try {
-      await signInWithGoogle(callbackURL);
+      const availability = await fetch(`/api/profile/username-availability/${encodeURIComponent(normalizedUsername)}`);
+      const body = (await availability.json().catch(() => ({}))) as { available?: boolean; message?: string; issues?: { message: string }[] };
+
+      if (!availability.ok) {
+        setError(body.issues?.[0]?.message ?? body.message ?? "Could not check username.");
+        setIsSigningIn(false);
+        return;
+      }
+
+      if (!body.available) {
+        setError("That username is already taken.");
+        setIsSigningIn(false);
+        return;
+      }
+
+      const completeUrl = new URL("/login/complete", window.location.origin);
+      completeUrl.searchParams.set("username", normalizedUsername);
+      completeUrl.searchParams.set("next", safeNextPath);
+      await signInWithGoogle(completeUrl.toString());
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Google sign-in failed.");
       setIsSigningIn(false);
@@ -75,7 +100,24 @@ export function LoginForm() {
         <span>Sign in</span>
         <img src="/brand/artifacts-logo.svg" alt="" className="mt-1 size-3.5 opacity-90" />
       </h1>
-      <p className="mt-3 text-[13px] leading-6 text-foreground/50">Continue to Artifacts.</p>
+      <p className="mt-3 text-[13px] leading-6 text-foreground/50">Reserve your personal namespace.</p>
+
+      <label className="mt-6 block">
+        <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/34">Username</span>
+        <input
+          autoCapitalize="none"
+          autoComplete="username"
+          className="w-full border border-foreground/[0.14] bg-card px-3 py-2.5 font-mono text-[13px] text-foreground/85 outline-none transition-colors placeholder:text-foreground/25 focus:border-foreground/35"
+          maxLength={32}
+          minLength={3}
+          name="username"
+          onChange={(event) => setUsername(event.target.value)}
+          pattern="[a-z0-9][a-z0-9_-]*[a-z0-9]"
+          placeholder="laxman"
+          required
+          value={username}
+        />
+      </label>
 
       {visibleError ? (
         <p role="alert" className="mt-5 border border-[#FF570A]/30 bg-[#FF570A]/10 px-3 py-2 text-[13px] leading-5 text-foreground/78">
@@ -83,7 +125,7 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <div className="mt-7 space-y-3">
+      <div className="mt-5 space-y-3">
         <button
           type="button"
           className="group inline-grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 border border-foreground/22 bg-[oklch(0.96_0_0)] px-4 py-3 text-left font-pixel text-[14px] font-normal leading-none tracking-[-0.035em] text-primary-foreground shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.38),0_1px_0_oklch(1_0_0_/_0.16)] transition-colors hover:bg-[oklch(0.92_0_0)] disabled:cursor-wait disabled:opacity-70"

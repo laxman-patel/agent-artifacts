@@ -72,6 +72,25 @@ export class ProfileService {
     };
   }
 
+  async checkUsernameAvailability(username: string): Promise<{ available: boolean; normalizedUsername: string }> {
+    const body = z.object({ username: usernameSchema }).parse({ username });
+    const normalizedUsername = body.username.trim().toLowerCase();
+
+    const [usernameTaken] = await this.db
+      .select({ userId: userProfiles.userId })
+      .from(userProfiles)
+      .where(sql`lower(${userProfiles.username}) = ${normalizedUsername}`)
+      .limit(1);
+
+    const [workspaceTaken] = await this.db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(sql`lower(${workspaces.slug}) = ${normalizedUsername}`)
+      .limit(1);
+
+    return { available: !usernameTaken && !workspaceTaken, normalizedUsername };
+  }
+
   async claimUsername(userId: string, username: string): Promise<{ username: string }> {
     const body = z.object({ username: usernameSchema }).parse({ username });
     const normalizedUsername = body.username.trim().toLowerCase();
@@ -92,19 +111,9 @@ export class ProfileService {
       throw new ProfileNotFoundError();
     }
 
-    const [usernameTaken] = await this.db
-      .select({ userId: userProfiles.userId })
-      .from(userProfiles)
-      .where(sql`lower(${userProfiles.username}) = ${normalizedUsername}`)
-      .limit(1);
+    const availability = await this.checkUsernameAvailability(normalizedUsername);
 
-    const [workspaceTaken] = await this.db
-      .select({ id: workspaces.id })
-      .from(workspaces)
-      .where(sql`lower(${workspaces.slug}) = ${normalizedUsername}`)
-      .limit(1);
-
-    if (usernameTaken || workspaceTaken) {
+    if (!availability.available) {
       throw new UsernameTakenError();
     }
 

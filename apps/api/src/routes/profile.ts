@@ -18,6 +18,10 @@ export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
     })
   );
 
+  app.get("/api/profile/username-availability/:username", (c) =>
+    handle(c, async () => getProfileService().checkUsernameAvailability(c.req.param("username")))
+  );
+
   app.post("/api/profile/username", (c) =>
     handle(c, async () => {
       const principal = await requireHumanPrincipal(c);

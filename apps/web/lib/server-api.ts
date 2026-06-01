@@ -20,23 +20,60 @@ type ArtifactRoute = { ownerUsername: string; projectSlug: string; slug: string 
 type OwnerRoute = { ownerUsername: string; slug: string };
 type ArtifactVersion = { id: string; versionNumber: number; changelog: string | null; createdAt: string };
 type ShareLinkSummary = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
-type AuditEvent = { id: string; artifactId: string | null; actorPrincipalType: string; actorPrincipalId: string; action: string; targetType: string; targetId: string; metadata: Record<string, unknown>; createdAt: string };
+type AuditEvent = { id: string; workspaceId?: string | null; artifactId: string | null; actorPrincipalType: string; actorPrincipalId: string; action: string; targetType: string; targetId: string; metadata: Record<string, unknown>; createdAt: string };
 
 export interface ProfileMeResponse {
   user: { id: string; email: string; name: string; image: string | null; emailVerified: boolean };
   profile: { username: string; displayName: string | null; createdAt: string; updatedAt: string } | null;
 }
 
+export type WorkspaceKind = "personal" | "team";
+export type WorkspaceRole = "owner" | "admin" | "member" | "viewer" | "billing_admin";
+export type InvitableWorkspaceRole = "admin" | "member" | "viewer" | "billing_admin";
+
+export interface WorkspaceSummary {
+  id: string;
+  slug: string;
+  name: string;
+  kind: WorkspaceKind;
+  personalUserId: string | null;
+  role: WorkspaceRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceMemberSummary {
+  id: string;
+  workspaceId: string;
+  userId: string;
+  email?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  role: WorkspaceRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceInvitationSummary {
+  id: string;
+  workspaceId: string;
+  email: string;
+  role: WorkspaceRole;
+  invitedByUserId: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
 export interface ProjectSummary {
-  id: string; ownerUsername: string; slug: string; title: string; description: string | null; updatedAt: string;
+  id: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; slug: string; title: string; description: string | null; updatedAt: string;
 }
 
 export interface ArtifactOwnerSummary {
-  id: string; ownerUsername: string; projectId: string; projectSlug: string; slug: string; title: string; type: string; updatedAt: string;
+  id: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; projectId: string; projectSlug: string; slug: string; title: string; type: string; updatedAt: string;
 }
 
 export interface ArtifactMeta {
-  id: string; ownerUserId: string; ownerUsername: string; projectId: string; projectSlug: string; slug: string;
+  id: string; ownerUserId: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; projectId: string; projectSlug: string; slug: string;
   title: string; description: string | null; type: "html" | "md" | "jsx"; publicView: boolean; publicEdit: boolean;
   latestVersionId: string | null; updatedAt: string;
 }
@@ -102,6 +139,14 @@ export function projectPath(project: OwnerRoute): string {
   return `/${project.ownerUsername}/${project.slug}`;
 }
 
+export function workspaceDashboardPath(workspace: { slug: string }): string {
+  return `/dashboard/${workspace.slug}`;
+}
+
+export function workspaceSettingsPath(workspace: { slug: string }): string {
+  return `/dashboard/${workspace.slug}/settings`;
+}
+
 const byPath = (username: string, projectSlug: string, slug?: string) =>
   `/api/by-path/${encodeURIComponent(username)}/${encodeURIComponent(projectSlug)}${slug ? `/${encodeURIComponent(slug)}` : ""}`;
 
@@ -111,6 +156,19 @@ const artifactApi = (artifactId: string, suffix: string) =>
 export const fetchProfileMe = (cookie: string) => apiCall<ProfileMeResponse>("/api/profile/me", { cookie });
 export const fetchOwnedProjects = (cookie: string) => apiCall<{ projects: ProjectSummary[] }>("/api/profile/projects", { cookie });
 export const fetchOwnedArtifacts = (cookie: string) => apiCall<{ artifacts: ArtifactOwnerSummary[] }>("/api/profile/artifacts", { cookie });
+export const fetchWorkspaces = (cookie: string) => apiCall<{ workspaces: WorkspaceSummary[] }>("/api/workspaces", { cookie });
+export const createWorkspace = (cookie: string, body: { slug: string; name: string }) =>
+  apiCall<{ workspace: WorkspaceSummary }>("/api/workspaces", { cookie, method: "POST", body });
+export const fetchWorkspaceMembers = (workspaceId: string, cookie: string) =>
+  apiCall<{ members: WorkspaceMemberSummary[] }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/members`, { cookie });
+export const fetchWorkspaceInvitations = (workspaceId: string, cookie: string) =>
+  apiCall<{ invitations: WorkspaceInvitationSummary[] }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/invitations`, { cookie });
+export const fetchWorkspaceProjects = (workspaceId: string, cookie: string) =>
+  apiCall<{ projects: ProjectSummary[] }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/projects`, { cookie });
+export const fetchWorkspaceArtifacts = (workspaceId: string, cookie: string) =>
+  apiCall<{ artifacts: ArtifactOwnerSummary[] }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/artifacts`, { cookie });
+export const fetchWorkspaceAuditEvents = (workspaceId: string, cookie: string, limit = 50) =>
+  apiCall<{ events: AuditEvent[] }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/audit-events`, { cookie, query: { limit } });
 export const fetchProjectByPath = (username: string, projectSlug: string, cookie?: string) =>
   apiCall<{ project: ProjectSummary; artifacts: ArtifactOwnerSummary[] }>(byPath(username, projectSlug), { cookie });
 export const fetchArtifactMeta = (username: string, projectSlug: string, slug: string, cookie?: string) =>

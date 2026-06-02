@@ -1,3 +1,7 @@
+# Agent-local skills and config
+.agent/
+.agents/
+
 # Dependencies
 node_modules/
 
@@ -17,9 +21,6 @@ build/
 .vercel/
 coverage/
 .firecrawl/
-
-# Agent skills (local only)
-.agents/
 
 # Logs
 *.log

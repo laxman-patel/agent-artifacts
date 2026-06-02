@@ -29,7 +29,8 @@ export { validateSlug } from "./slug.js";
 export {
   createProjectInputSchema, createWorkspaceProjectInputSchema, DrizzleProjectRepository, ProjectService,
   ProjectSlugUnavailableError, ProjectNotFoundError, validateProjectSlug,
-  type CreateProjectInput, type CreateWorkspaceProjectInput, type ProjectRecord, type ProjectSummary
+  type CreateProjectInput, type CreateWorkspaceProjectInput, type PersistCreateProjectInput, type ProjectRecord,
+  type ProjectRepository, type ProjectSummary, type ProjectWorkspaceRecord
 } from "./project.js";
 export { AuditService } from "./audit-service.js";
 export {

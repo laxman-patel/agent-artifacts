@@ -25,6 +25,7 @@ export function SessionNav() {
   if (!data?.user) {
     return (
       <nav className="top-nav">
+        <Link href="/pricing">Pricing</Link>
         <Link href="/login">Sign in</Link>
       </nav>
     );
@@ -32,8 +33,10 @@ export function SessionNav() {
 
   return (
     <nav className="top-nav">
+      <Link href="/pricing">Pricing</Link>
       <Link href="/dashboard">Dashboard</Link>
       <Link href="/settings/account">Account</Link>
+      <Link href="/settings/billing">Billing</Link>
       <button type="button" className="link-button" onClick={() => void signOut()}>
         Sign out
       </button>

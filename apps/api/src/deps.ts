@@ -10,6 +10,7 @@ import {
   ShareLinkService
 } from "@agent-artifacts/artifact";
 import { createAuth, type BetterAuthHandle } from "@agent-artifacts/auth";
+import { BillingService, DrizzleBillingRepository } from "@agent-artifacts/billing";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, type Database } from "@agent-artifacts/db";
 import { S3ArtifactStorage } from "@agent-artifacts/storage";
@@ -26,6 +27,8 @@ import {
   type WorkspaceService
 } from "@agent-artifacts/workspace";
 import type { Principal } from "@agent-artifacts/shared";
+import DodoPayments from "dodopayments";
+import { DodoBillingGateway, UnavailableBillingGateway } from "./billing/dodo-gateway.js";
 import { logger } from "./logger.js";
 
 export type AppVariables = {
@@ -45,6 +48,7 @@ let workspaceAccessInstance: WorkspaceAccess | undefined;
 let workspaceServiceInstance: WorkspaceService | undefined;
 let membershipServiceInstance: MembershipService | undefined;
 let invitationServiceInstance: InvitationService | undefined;
+let billingServiceInstance: BillingService | undefined;
 let dbInstance: Database | undefined;
 
 export function getDb() {
@@ -92,7 +96,8 @@ export function getArtifactService() {
       storage,
       env.PUBLIC_APP_URL,
       createArtifactAccess(roleResolver),
-      getWorkspaceAccess()
+      getWorkspaceAccess(),
+      getBillingService()
     );
   })();
 
@@ -104,7 +109,12 @@ export function getProjectService() {
     const env = loadServerEnv();
     const db = getDb();
     const roleResolver = new DrizzleArtifactRoleResolver(db);
-    return new ProjectService(new DrizzleProjectRepository(db), env.PUBLIC_APP_URL, createArtifactAccess(roleResolver));
+    return new ProjectService(
+      new DrizzleProjectRepository(db),
+      env.PUBLIC_APP_URL,
+      createArtifactAccess(roleResolver),
+      getBillingService()
+    );
   })();
 
   return projectServiceInstance;
@@ -147,4 +157,22 @@ export function getMembershipService() {
 export function getInvitationService() {
   invitationServiceInstance ??= createDrizzleInvitationService(getDb(), loadServerEnv().PUBLIC_APP_URL);
   return invitationServiceInstance;
+}
+
+export function getBillingService() {
+  billingServiceInstance ??= (() => {
+    const env = loadServerEnv();
+    const gateway = env.DODO_PAYMENTS_API_KEY
+      ? new DodoBillingGateway(
+          new DodoPayments({
+            bearerToken: env.DODO_PAYMENTS_API_KEY,
+            environment: env.DODO_PAYMENTS_ENVIRONMENT
+          })
+        )
+      : new UnavailableBillingGateway();
+
+    return new BillingService(new DrizzleBillingRepository(getDb()), gateway);
+  })();
+
+  return billingServiceInstance;
 }

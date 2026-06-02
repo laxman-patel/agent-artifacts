@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -93,6 +94,20 @@ export const artifactType = pgEnum("artifact_type", ["html", "md", "jsx"]);
 export const artifactState = pgEnum("artifact_state", ["active", "archived", "deleted"]);
 export const artifactRole = pgEnum("artifact_role", ["owner", "admin", "editor", "viewer"]);
 export const shareLinkRole = pgEnum("share_link_role", ["viewer", "editor"]);
+export const billingPlan = pgEnum("billing_plan", ["free", "builder", "studio"]);
+export const billingSubscriptionStatus = pgEnum("billing_subscription_status", [
+  "active",
+  "trialing",
+  "on_hold",
+  "cancelled",
+  "expired",
+  "failed"
+]);
+export const billingUsageMeter = pgEnum("billing_usage_meter", [
+  "artifact.storage_gb_days",
+  "artifact.delivery_gb",
+  "artifact.version_write"
+]);
 // Principal types. Currently produced by the auth layer:
 //   - "user"    — Better Auth session (cookie or bearer-resolved)
 //   - "service" — anonymous public-viewer fallback
@@ -355,6 +370,53 @@ export const auditEvents = pgTable(
     ownerIdx: index("audit_events_owner_idx").on(table.ownerUserId),
     workspaceIdx: index("audit_events_workspace_idx").on(table.workspaceId),
     artifactIdx: index("audit_events_artifact_idx").on(table.artifactId)
+  })
+);
+
+export const billingAccounts = pgTable(
+  "billing_accounts",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    planId: billingPlan("plan_id").default("free").notNull(),
+    status: billingSubscriptionStatus("status").default("active").notNull(),
+    dodoCustomerId: text("dodo_customer_id"),
+    dodoSubscriptionId: text("dodo_subscription_id"),
+    dodoProductId: text("dodo_product_id"),
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    customerIdx: index("billing_accounts_dodo_customer_idx").on(table.dodoCustomerId),
+    subscriptionUnique: uniqueIndex("billing_accounts_dodo_subscription_unique").on(table.dodoSubscriptionId)
+  })
+);
+
+export const billingWebhookEvents = pgTable("billing_webhook_events", {
+  id: text("id").primaryKey(),
+  eventType: text("event_type").notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }).defaultNow().notNull()
+});
+
+export const billingUsageEvents = pgTable(
+  "billing_usage_events",
+  {
+    id: text("id").primaryKey(),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    meter: billingUsageMeter("meter").notNull(),
+    quantity: numeric("quantity", { precision: 18, scale: 6 }).notNull(),
+    dodoEventId: text("dodo_event_id").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, string>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    ownerMeterIdx: index("billing_usage_events_owner_meter_idx").on(table.ownerUserId, table.meter),
+    dodoEventUnique: uniqueIndex("billing_usage_events_dodo_event_unique").on(table.dodoEventId)
   })
 );
 

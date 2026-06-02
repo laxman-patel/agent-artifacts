@@ -4,6 +4,7 @@ import type { ComponentType, ReactNode } from "react";
 import { LockKeyhole, PackageCheck, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { BillingCheckoutButton } from "../components/billing-actions";
 import { PricingDitherShader } from "../components/pricing-dither-shader";
 
 const logoPath = "/brand/artifacts-logo.svg";
@@ -36,6 +37,7 @@ const plans = [
     cta: "Start free",
     ctaIcon: PackageCheck,
     href: "/login?next=%2Fdashboard",
+    checkoutPlanId: null,
     featured: false,
     features: [
       "Public HTML, Markdown, and JSX artifacts",
@@ -54,6 +56,7 @@ const plans = [
     cta: "Upgrade to Pro",
     ctaIcon: LockKeyhole,
     href: "/login?next=%2Fpricing",
+    checkoutPlanId: "builder",
     featured: true,
     features: [
       "Everything in Builder is included",
@@ -77,6 +80,7 @@ const plans = [
     cta: "Start Team",
     ctaIcon: Users,
     href: "/login?next=%2Fpricing",
+    checkoutPlanId: "studio",
     featured: false,
     features: [
       "Everything in Pro is included",
@@ -238,19 +242,34 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
         ) : null}
 
         <div className="mt-auto pt-8">
-          <Link href={plan.href} className="group flex w-full justify-center" aria-label={plan.cta}>
-            <span
+          {plan.checkoutPlanId ? (
+            <BillingCheckoutButton
+              planId={plan.checkoutPlanId}
+              wrapperClassName="w-full"
               className={cn(
                 "inline-grid w-full grid-cols-[auto_auto] items-center justify-center gap-2 border border-foreground/20 px-4 py-2 font-pixel text-[13px] font-normal leading-none tracking-[-0.035em] shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.18)] transition-colors",
                 plan.featured
-                  ? "bg-[oklch(0.96_0_0)] text-primary-foreground group-hover:bg-[oklch(0.92_0_0)]"
-                  : "bg-transparent text-foreground/62 group-hover:border-foreground/30 group-hover:bg-[oklch(0.96_0_0)] group-hover:text-primary-foreground"
+                  ? "bg-[oklch(0.96_0_0)] text-primary-foreground hover:bg-[oklch(0.92_0_0)] disabled:cursor-wait disabled:opacity-70"
+                  : "bg-transparent text-foreground/62 hover:border-foreground/30 hover:bg-[oklch(0.96_0_0)] hover:text-primary-foreground disabled:cursor-wait disabled:opacity-70"
               )}
+              errorClassName="mt-2 text-center text-[12px] leading-5 text-red-300"
             >
               <span className="leading-none">{plan.cta}</span>
               <Icon className="size-3.5 text-[#FF570A]" aria-hidden />
-            </span>
-          </Link>
+            </BillingCheckoutButton>
+          ) : (
+            <Link href={plan.href} className="group flex w-full justify-center" aria-label={plan.cta}>
+              <span
+                className={cn(
+                  "inline-grid w-full grid-cols-[auto_auto] items-center justify-center gap-2 border border-foreground/20 px-4 py-2 font-pixel text-[13px] font-normal leading-none tracking-[-0.035em] shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.18)] transition-colors",
+                  "bg-transparent text-foreground/62 group-hover:border-foreground/30 group-hover:bg-[oklch(0.96_0_0)] group-hover:text-primary-foreground"
+                )}
+              >
+                <span className="leading-none">{plan.cta}</span>
+                <Icon className="size-3.5 text-[#FF570A]" aria-hidden />
+              </span>
+            </Link>
+          )}
         </div>
       </div>
     </article>

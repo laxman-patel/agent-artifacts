@@ -12,6 +12,7 @@ import {
   type ReplaceArtifactEmailAccessInput
 } from "../src/index.js";
 import { createArtifactAccess, MemoryArtifactRoleResolver } from "@agent-artifacts/access";
+import { EntitlementLimitError } from "@agent-artifacts/billing";
 import type { Principal } from "@agent-artifacts/shared";
 import type { ArtifactStorage, GetObjectOutput, PutObjectInput } from "@agent-artifacts/storage";
 
@@ -32,7 +33,7 @@ const agentPrincipal: Principal = {
   scopes: ["artifacts:create", "artifacts:update", "artifacts:read"]
 };
 
-function createTestHarness() {
+function createTestHarness(billingGuard?: MemoryBillingGuard) {
   const roleResolver = new MemoryArtifactRoleResolver();
   const repository = new MemoryArtifactRepository(roleResolver);
   const storage = new MemoryArtifactStorage();
@@ -41,9 +42,9 @@ function createTestHarness() {
     authorize: async () => ({ allowed: true as const, effectiveRole: "owner" as const }),
     assertAuthorized: async () => undefined
   };
-  const service = new ArtifactService(repository, storage, APP_URL, access, workspaceAccess);
+  const service = new ArtifactService(repository, storage, APP_URL, access, workspaceAccess, billingGuard);
 
-  return { repository, roleResolver, storage, service };
+  return { repository, roleResolver, storage, service, billingGuard };
 }
 
 describe("ArtifactService", () => {
@@ -69,6 +70,32 @@ describe("ArtifactService", () => {
     expect(storage.text(created.contentObjectKey)).toBe("# Hello");
     expect(repository.auditEvents).toHaveLength(1);
     expect(repository.auditEvents[0]?.action).toBe("artifact.created");
+  });
+
+  it("checks billing entitlements before private artifact writes", async () => {
+    const billingGuard = new MemoryBillingGuard();
+    billingGuard.rejectCreateArtifact = new EntitlementLimitError("Private artifacts require Builder or Studio.");
+    const { service, storage } = createTestHarness(billingGuard);
+
+    await expect(
+      service.createArtifact(
+        {
+          ownerUsername: "laxman",
+          projectSlug: "default",
+          slug: "private-demo",
+          type: "md",
+          title: "Private",
+          content: "# secret",
+          access: { publicView: false, publicEdit: false }
+        },
+        ownerPrincipal
+      )
+    ).rejects.toThrow("Private artifacts require Builder or Studio.");
+
+    expect(storage.objects.size).toBe(0);
+    expect(billingGuard.createArtifactChecks).toEqual([
+      { ownerUserId: "user_1", publicView: false, publicEdit: false, contentBytes: 8 }
+    ]);
   });
 
   it("denies create in another user's namespace", async () => {
@@ -133,6 +160,40 @@ describe("ArtifactService", () => {
         agentPrincipal
       )
     ).rejects.toBeInstanceOf(ArtifactConflictError);
+  });
+
+  it("records paid usage hooks for version writes and content delivery", async () => {
+    const billingGuard = new MemoryBillingGuard();
+    const { service } = createTestHarness(billingGuard);
+
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        projectSlug: "default",
+        slug: "metered",
+        type: "md",
+        title: "Metered",
+        content: "# one"
+      },
+      ownerPrincipal
+    );
+
+    await service.updateArtifact(
+      {
+        artifactId: created.artifactId,
+        content: "# two"
+      },
+      ownerPrincipal
+    );
+    await service.getArtifactContent(created.artifactId, ownerPrincipal);
+
+    expect(billingGuard.versionWrites).toEqual([
+      { ownerUserId: "user_1", artifactId: created.artifactId, versionNumber: 1, contentBytes: 5 },
+      { ownerUserId: "user_1", artifactId: created.artifactId, versionNumber: 2, contentBytes: 5 }
+    ]);
+    expect(billingGuard.deliveryEvents).toEqual([
+      { ownerUserId: "user_1", artifactId: created.artifactId, versionNumber: 2, contentBytes: 5 }
+    ]);
   });
 
   it("enforces scopes for agent mutations and email rules for restricted reads", async () => {
@@ -565,5 +626,38 @@ class MemoryArtifactRepository implements ArtifactRepository {
       createdByPrincipalId: input.createdByPrincipalId,
       createdAt: new Date()
     };
+  }
+}
+
+class MemoryBillingGuard {
+  rejectCreateArtifact?: Error;
+  rejectWriteVersion?: Error;
+  rejectAccess?: Error;
+  readonly createArtifactChecks: Array<{ ownerUserId: string; publicView: boolean; publicEdit: boolean; contentBytes: number }> = [];
+  readonly versionWrites: Array<{ ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }> = [];
+  readonly deliveryEvents: Array<{ ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }> = [];
+
+  async assertCanCreateArtifact(
+    ownerUserId: string,
+    input: { publicView: boolean; publicEdit: boolean; contentBytes: number }
+  ) {
+    this.createArtifactChecks.push({ ownerUserId, ...input });
+    if (this.rejectCreateArtifact) throw this.rejectCreateArtifact;
+  }
+
+  async assertCanWriteVersion() {
+    if (this.rejectWriteVersion) throw this.rejectWriteVersion;
+  }
+
+  async assertCanSetArtifactAccess() {
+    if (this.rejectAccess) throw this.rejectAccess;
+  }
+
+  async recordVersionWrite(input: { ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }) {
+    this.versionWrites.push(input);
+  }
+
+  async recordDelivery(input: { ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }) {
+    this.deliveryEvents.push(input);
   }
 }

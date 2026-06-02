@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@agent-artifacts/auth": "workspace:*",
+    "@agent-artifacts/billing": "workspace:*",
     "@agent-artifacts/config": "workspace:*",
     "@agent-artifacts/db": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",

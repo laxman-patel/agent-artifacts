@@ -24,9 +24,14 @@ export default async function AccountSettingsPage() {
           <h1>Profile</h1>
           <p className="subtle">Signed in as {user.email}</p>
         </div>
-        <Link className="ghost-button" href="/dashboard">
-          Dashboard
-        </Link>
+        <div className="row-actions">
+          <Link className="ghost-button" href="/dashboard">
+            Dashboard
+          </Link>
+          <Link className="ghost-button" href="/settings/billing">
+            Billing
+          </Link>
+        </div>
       </header>
 
       <section className="card flat stack">

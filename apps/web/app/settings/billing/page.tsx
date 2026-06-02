@@ -1,0 +1,96 @@
+import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { BillingPortalButton } from "../../components/billing-actions";
+import { cookieHeader, fetchBillingMe } from "../../../lib/server-api";
+
+export default async function BillingSettingsPage() {
+  const cookieStore = await cookies();
+  const header = cookieHeader(cookieStore);
+  const billing = await fetchBillingMe(header);
+
+  if (!billing.ok && (billing.status === 401 || billing.status === 403)) {
+    redirect("/login?next=/settings/billing");
+  }
+  if (!billing.ok) {
+    throw new Error(billing.message);
+  }
+
+  const { plan, account, usage } = billing.body;
+
+  return (
+    <main className="page-shell">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Billing</p>
+          <h1>{plan.name}</h1>
+          <p className="subtle">
+            {account ? `Subscription status: ${account.status}` : "Free plan with hard limits and no overage billing."}
+          </p>
+        </div>
+        <div className="row-actions">
+          <Link className="ghost-button" href="/pricing">
+            View plans
+          </Link>
+          {account ? <BillingPortalButton /> : null}
+        </div>
+      </header>
+
+      <section className="card flat stack">
+        <div>
+          <h2>Included usage</h2>
+          <p className="muted">These are enforced server-side across web, API, CLI, and MCP.</p>
+        </div>
+        <div className="usage-grid">
+          <UsageTile label="Projects" value={String(usage.projects)} limit={formatLimit(plan.entitlements.maxProjects)} />
+          <UsageTile label="Artifacts" value={String(usage.activeArtifacts)} limit={formatLimit(plan.entitlements.maxActiveArtifacts)} />
+          <UsageTile label="Storage" value={formatBytes(usage.storageBytes)} limit={formatBytes(plan.entitlements.includedStorageBytes)} />
+          <UsageTile
+            label="Version writes"
+            value={String(usage.versionWritesThisMonth)}
+            limit={String(plan.entitlements.includedVersionWrites)}
+          />
+          <UsageTile
+            label="Delivery"
+            value={formatBytes(usage.deliveryBytesThisMonth)}
+            limit={plan.entitlements.includedDeliveryBytes ? formatBytes(plan.entitlements.includedDeliveryBytes) : "Hard-capped by abuse controls"}
+          />
+          <UsageTile label="Max version size" value={formatBytes(plan.entitlements.maxContentBytes)} limit="Per version" />
+        </div>
+      </section>
+
+      <section className="card flat stack">
+        <div>
+          <h2>Feature access</h2>
+          <p className="muted">Upgrade prompts appear when a plan gate blocks a paid feature.</p>
+        </div>
+        <ul className="feature-list">
+          <li>{plan.entitlements.privateArtifacts ? "Private artifacts enabled" : "Private artifacts require Builder or Studio"}</li>
+          <li>{plan.entitlements.emailAllowlist ? "Email allowlists enabled" : "Email allowlists require Builder or Studio"}</li>
+          <li>{plan.entitlements.shareLinks ? "Share links enabled" : "Share links require Builder or Studio"}</li>
+          <li>{plan.entitlements.overageBilling ? "Overage billing enabled after included usage" : "No overage billing on Free"}</li>
+        </ul>
+      </section>
+    </main>
+  );
+}
+
+function UsageTile({ label, value, limit }: { label: string; value: string; limit: string }) {
+  return (
+    <div className="usage-tile">
+      <strong>{label}</strong>
+      <span>{value}</span>
+      <span className="muted small">Limit: {limit}</span>
+    </div>
+  );
+}
+
+function formatLimit(value: number | null): string {
+  return value === null ? "Unlimited" : String(value);
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GiB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(0)} MiB`;
+  return `${bytes} bytes`;
+}

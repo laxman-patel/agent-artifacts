@@ -217,6 +217,7 @@ export interface PersistCreateVersionInput {
     createdByPrincipalType: Principal["type"];
     createdByPrincipalId: string;
   };
+  expectedLatestVersionId?: string;
 }
 
 export interface PersistAuditEventInput {

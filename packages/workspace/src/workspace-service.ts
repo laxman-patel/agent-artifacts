@@ -52,8 +52,8 @@ export interface WorkspaceRepository {
   listMembershipsForUser(userId: string): Promise<Array<WorkspaceRecord & { role: WorkspaceRole }>>;
   listMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]>;
   getMembership(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | undefined>;
-  updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void>;
-  removeMember(workspaceId: string, userId: string): Promise<void>;
+  updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<boolean>;
+  removeMember(workspaceId: string, userId: string): Promise<boolean>;
 }
 
 export interface PersistCreateWorkspaceInput {
@@ -356,17 +356,72 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
     return member;
   }
 
-  async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void> {
-    await this.db
-      .update(workspaceMembers)
-      .set({ role, updatedAt: new Date() })
-      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)));
+  async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<boolean> {
+    return this.withWorkspaceMemberMutationLock(workspaceId, (db) =>
+      this.updateMemberRoleWithExecutor(db, workspaceId, userId, role)
+    );
   }
 
-  async removeMember(workspaceId: string, userId: string): Promise<void> {
-    await this.db
+  async removeMember(workspaceId: string, userId: string): Promise<boolean> {
+    return this.withWorkspaceMemberMutationLock(workspaceId, (db) =>
+      this.removeMemberWithExecutor(db, workspaceId, userId)
+    );
+  }
+
+  private async updateMemberRoleWithExecutor(
+    db: DbExecutor,
+    workspaceId: string,
+    userId: string,
+    role: WorkspaceRole
+  ): Promise<boolean> {
+    const updated = await db
+      .update(workspaceMembers)
+      .set({ role, updatedAt: new Date() })
+      .where(and(
+        eq(workspaceMembers.workspaceId, workspaceId),
+        eq(workspaceMembers.userId, userId),
+        sql`${workspaceMembers.role} <> 'owner' OR ${role} = 'owner' OR EXISTS (
+          SELECT 1 FROM ${workspaceMembers} AS other_members
+          WHERE other_members.workspace_id = ${workspaceMembers.workspaceId}
+            AND other_members.user_id <> ${workspaceMembers.userId}
+            AND other_members.role = 'owner'
+        )`
+      ))
+      .returning({ id: workspaceMembers.id });
+
+    return updated.length > 0;
+  }
+
+  private async removeMemberWithExecutor(db: DbExecutor, workspaceId: string, userId: string): Promise<boolean> {
+    const removed = await db
       .delete(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)));
+      .where(and(
+        eq(workspaceMembers.workspaceId, workspaceId),
+        eq(workspaceMembers.userId, userId),
+        sql`${workspaceMembers.role} <> 'owner' OR EXISTS (
+          SELECT 1 FROM ${workspaceMembers} AS other_members
+          WHERE other_members.workspace_id = ${workspaceMembers.workspaceId}
+            AND other_members.user_id <> ${workspaceMembers.userId}
+            AND other_members.role = 'owner'
+        )`
+      ))
+      .returning({ id: workspaceMembers.id });
+
+    return removed.length > 0;
+  }
+
+  private async withWorkspaceMemberMutationLock<T>(
+    workspaceId: string,
+    operation: (db: DbExecutor) => Promise<T>
+  ): Promise<T> {
+    if ("transaction" in this.db) {
+      return this.db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${workspaceId})::bigint)`);
+        return operation(tx);
+      });
+    }
+
+    return operation(this.db);
   }
 
   private toRecord(workspace: typeof workspaces.$inferSelect): WorkspaceRecord {

@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export interface StorageConfig {
@@ -24,6 +24,7 @@ export interface ArtifactStorage {
   putObject(input: PutObjectInput): Promise<void>;
   getObject(key: string): Promise<GetObjectOutput>;
   getSignedReadUrl(key: string, expiresInSeconds: number): Promise<string>;
+  deleteObject?(key: string): Promise<void>;
 }
 
 const ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
@@ -100,6 +101,15 @@ export class S3ArtifactStorage implements ArtifactStorage {
         Key: key
       }),
       { expiresIn: expiresInSeconds }
+    );
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: this.config.bucket,
+        Key: key
+      })
     );
   }
 }

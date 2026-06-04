@@ -21,6 +21,7 @@ import type {
 class MemoryWorkspaceRepository implements WorkspaceRepository {
   private readonly workspaces = new Map<string, WorkspaceRecord>();
   private readonly members = new Map<string, WorkspaceMemberRecord>();
+  onAddMember?: () => Promise<void>;
 
   memberKey(workspaceId: string, userId: string): string {
     return `${workspaceId}:${userId}`;
@@ -82,6 +83,7 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
       createdAt: now,
       updatedAt: now
     });
+    await this.onAddMember?.();
   }
 
   async listMembershipsForUser(): Promise<Array<WorkspaceRecord & { role: "owner" }>> {
@@ -96,10 +98,10 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
     return this.members.get(this.memberKey(workspaceId, userId));
   }
 
-  async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void> {
+  async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<boolean> {
     const member = this.members.get(this.memberKey(workspaceId, userId));
     if (!member) {
-      return;
+      return false;
     }
 
     this.members.set(this.memberKey(workspaceId, userId), {
@@ -107,10 +109,11 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
       role,
       updatedAt: new Date()
     });
+    return true;
   }
 
-  async removeMember(workspaceId: string, userId: string): Promise<void> {
-    this.members.delete(this.memberKey(workspaceId, userId));
+  async removeMember(workspaceId: string, userId: string): Promise<boolean> {
+    return this.members.delete(this.memberKey(workspaceId, userId));
   }
 }
 
@@ -154,7 +157,7 @@ function createHarness() {
     updatedAt: new Date()
   });
 
-  const invitationRepository = new MemoryInvitationRepository();
+  const invitationRepository = new MemoryInvitationRepository(workspaceRepository);
   const roleResolver = new MemoryWorkspaceRoleResolver();
   roleResolver.setMembership(workspaceId, owner.id, "owner");
 
@@ -268,6 +271,25 @@ describe("InvitationService", () => {
         }
       }
     ]);
+  });
+
+  it("does not leave membership behind when invitation acceptance loses a state race", async () => {
+    const { service, invitationRepository, workspaceRepository } = createHarness();
+    const token = "race-token";
+
+    await invitationRepository.create({
+      id: "inv_race",
+      workspaceId,
+      email: "invitee@example.com",
+      role: "member",
+      tokenHash: hashInvitationToken(token),
+      invitedByUserId: owner.id,
+      expiresAt: new Date(Date.now() + 60_000)
+    });
+    invitationRepository.rejectNextAcceptPendingInvitation = true;
+
+    await expect(service.acceptInvitation(token, invitee)).rejects.toThrow(WorkspaceInvitationConflictError);
+    await expect(workspaceRepository.getMembership(workspaceId, invitee.id)).resolves.toBeUndefined();
   });
 
   it("rejects acceptance when the signed-in email does not match", async () => {

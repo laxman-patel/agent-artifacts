@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ArtifactConflictError,
   ArtifactForbiddenError,
+  DrizzleArtifactRoleResolver,
   ArtifactService,
   type ArtifactRecord,
   type ArtifactRepository,
@@ -160,6 +161,53 @@ describe("ArtifactService", () => {
         agentPrincipal
       )
     ).rejects.toBeInstanceOf(ArtifactConflictError);
+  });
+
+  it("removes newly written source content when version persistence fails", async () => {
+    const { repository, storage, service } = createTestHarness();
+
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        projectSlug: "default",
+        slug: "cleanup-demo",
+        type: "md",
+        title: "Cleanup",
+        content: "# one"
+      },
+      ownerPrincipal
+    );
+    repository.rejectNextCreateVersion = new ArtifactConflictError("The artifact was updated by another writer.");
+
+    await expect(
+      service.updateArtifact(
+        {
+          artifactId: created.artifactId,
+          content: "# two"
+        },
+        ownerPrincipal
+      )
+    ).rejects.toBeInstanceOf(ArtifactConflictError);
+
+    expect(storage.objects.size).toBe(1);
+  });
+
+  it("treats owner agents as owner principals for workspace-scoped artifacts", async () => {
+    const resolver = new DrizzleArtifactRoleResolver({
+      select() {
+        throw new Error("workspace membership should not be consulted for owner-account principals");
+      }
+    } as never);
+
+    await expect(
+      resolver.resolveArtifact(agentPrincipal, {
+        id: "artifact_1",
+        ownerUserId: "user_1",
+        workspaceId: "workspace_laxman",
+        publicView: false,
+        publicEdit: false
+      })
+    ).resolves.toEqual({ role: "owner", isOwnerAccount: true });
   });
 
   it("records paid usage hooks for version writes and content delivery", async () => {
@@ -434,6 +482,10 @@ class MemoryArtifactStorage implements ArtifactStorage {
     return `memory://${key}`;
   }
 
+  async deleteObject(key: string): Promise<void> {
+    this.objects.delete(key);
+  }
+
   text(key: string): string {
     const object = this.objects.get(key);
     if (!object) {
@@ -453,6 +505,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
   readonly versions = new Map<string, ArtifactVersionRecord[]>();
   readonly auditEvents: PersistAuditEventInput[] = [];
   readonly artifactEmailViewers = new Map<string, Set<string>>();
+  rejectNextCreateVersion?: Error;
 
   async getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined> {
     return this.owners.get(username.toLowerCase());
@@ -565,6 +618,12 @@ class MemoryArtifactRepository implements ArtifactRepository {
   }
 
   async createVersion(input: PersistCreateVersionInput): Promise<void> {
+    if (this.rejectNextCreateVersion) {
+      const error = this.rejectNextCreateVersion;
+      this.rejectNextCreateVersion = undefined;
+      throw error;
+    }
+
     const artifact = this.artifacts.get(input.version.artifactId);
     if (!artifact) {
       throw new Error("Missing artifact");

@@ -1,84 +1,224 @@
 "use client";
 
 import { useLogger } from "@logtail/next/hooks";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useId, useState } from "react";
 import { signInWithGoogle } from "../../lib/auth-client";
+import { AuthOAuthButtons } from "./auth-oauth-buttons";
+import { UsernameField, isValidUsername, normalizeUsernameInput } from "./username-field";
 
-function GoogleGlyph() {
+export type AuthMode = "signin" | "signup";
+
+function parseAuthMode(value: string | null): AuthMode {
+  return value === "signup" ? "signup" : "signin";
+}
+
+function AuthHeading({ title }: { title: string }) {
+  const titleId = useId();
   return (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M21.6 12.23c0-.74-.07-1.45-.19-2.13H12v4.03h5.38a4.6 4.6 0 0 1-1.99 3.02v2.52h3.24c1.9-1.75 2.97-4.32 2.97-7.44Z"
-      />
-      <path
-        fill="currentColor"
-        d="M12 22c2.7 0 4.97-.9 6.63-2.43l-3.24-2.52c-.9.6-2.04.96-3.39.96-2.6 0-4.8-1.76-5.59-4.12H3.06v2.6A10 10 0 0 0 12 22Z"
-        opacity="0.74"
-      />
-      <path
-        fill="currentColor"
-        d="M6.41 13.89a6.02 6.02 0 0 1 0-3.78v-2.6H3.06a10 10 0 0 0 0 8.98l3.35-2.6Z"
-        opacity="0.56"
-      />
-      <path
-        fill="currentColor"
-        d="M12 5.99c1.47 0 2.79.51 3.83 1.5l2.87-2.87A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.94 5.51l3.35 2.6C7.2 7.75 9.4 5.99 12 5.99Z"
-        opacity="0.9"
-      />
-    </svg>
+    <h1 id={titleId} className="!m-0 flex items-start gap-2 whitespace-nowrap font-pixel !text-[2.35rem] !font-normal !leading-none tracking-[-0.045em] text-foreground/95">
+      <span>{title}</span>
+      <img src="/brand/artifacts-logo.svg" alt="" className="mt-1 size-3.5 opacity-90" />
+    </h1>
   );
 }
 
-function GithubGlyph() {
+function AuthError({ message }: { message: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true">
-      <path d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.9c-2.78.62-3.37-1.21-3.37-1.21-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.85.09-.67.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.35 9.35 0 0 1 12 6.97c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.95.68 1.92v2.8c0 .27.18.59.69.49A10.15 10.15 0 0 0 22 12.25C22 6.59 17.52 2 12 2Z" />
-    </svg>
+    <p role="alert" className="mt-5 border border-[#FF570A]/30 bg-[#FF570A]/10 px-3 py-2 text-[13px] leading-5 text-foreground/78">
+      {message}
+    </p>
+  );
+}
+
+type AuthTabsProps = {
+  mode: AuthMode;
+  onModeChange: (mode: AuthMode) => void;
+};
+
+function AuthTabs({ mode, onModeChange }: AuthTabsProps) {
+  const signInId = useId();
+  const signUpId = useId();
+
+  return (
+    <div
+      role="tablist"
+      aria-label="Authentication"
+      className="mb-6 grid grid-cols-2 border-b border-foreground/[0.14]"
+    >
+      <button
+        type="button"
+        role="tab"
+        id={signInId}
+        aria-selected={mode === "signin"}
+        aria-controls="auth-signin-panel"
+        className={`border-b px-2 py-2.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
+          mode === "signin"
+            ? "-mb-px border-foreground/80 text-foreground/90"
+            : "border-transparent text-foreground/38 hover:text-foreground/55"
+        }`}
+        onClick={() => onModeChange("signin")}
+      >
+        Sign in
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id={signUpId}
+        aria-selected={mode === "signup"}
+        aria-controls="auth-signup-panel"
+        className={`border-b px-2 py-2.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
+          mode === "signup"
+            ? "-mb-px border-foreground/80 text-foreground/90"
+            : "border-transparent text-foreground/38 hover:text-foreground/55"
+        }`}
+        onClick={() => onModeChange("signup")}
+      >
+        Sign up
+      </button>
+    </div>
   );
 }
 
 export function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard";
   const safeNextPath = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard";
   const oauthError = searchParams.get("error");
   const initialUsername = searchParams.get("username") ?? "";
+  const mode = parseAuthMode(searchParams.get("mode"));
   const log = useLogger();
   const [username, setUsername] = useState(initialUsername);
   const [error, setError] = useState<string | null>(null);
-  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasUsername, setHasUsername] = useState(false);
+
+  const setMode = useCallback(
+    (nextMode: AuthMode) => {
+      setError(null);
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextMode === "signup") {
+        params.set("mode", "signup");
+      } else {
+        params.delete("mode");
+      }
+      const query = params.toString();
+      router.replace(query ? `/login?${query}` : "/login", { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   useEffect(() => {
     if (!oauthError) return;
     log.warn("oauth_login_error", { error: oauthError });
   }, [log, oauthError]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSession() {
+      const response = await fetch("/api/profile/me", { credentials: "include" });
+      if (cancelled) return;
+
+      if (!response.ok) {
+        setIsAuthenticated(false);
+        setHasUsername(false);
+        setSessionReady(true);
+        return;
+      }
+
+      const body = (await response.json()) as { profile?: { username: string } | null };
+      const profileUsername = body.profile?.username;
+      setIsAuthenticated(true);
+      setHasUsername(Boolean(profileUsername));
+
+      if (profileUsername) {
+        router.replace(safeNextPath);
+        return;
+      }
+
+      setSessionReady(true);
+    }
+
+    void loadSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, safeNextPath]);
+
+  useEffect(() => {
+    if (!sessionReady || !isAuthenticated || hasUsername || mode === "signup") return;
+    setMode("signup");
+  }, [sessionReady, isAuthenticated, hasUsername, mode, setMode]);
+
+  async function checkUsernameAvailable(normalizedUsername: string): Promise<boolean> {
+    const availability = await fetch(`/api/profile/username-availability/${encodeURIComponent(normalizedUsername)}`);
+    const body = (await availability.json().catch(() => ({}))) as { available?: boolean; message?: string; issues?: { message: string }[] };
+
+    if (!availability.ok) {
+      setError(body.issues?.[0]?.message ?? body.message ?? "Could not check username.");
+      return false;
+    }
+
+    if (!body.available) {
+      setError("That username is already taken.");
+      return false;
+    }
+
+    return true;
+  }
+
+  async function claimUsernameForSession(normalizedUsername: string): Promise<boolean> {
+    const claimResponse = await fetch("/api/profile/username", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username: normalizedUsername })
+    });
+
+    if (claimResponse.ok) {
+      router.replace(safeNextPath);
+      return true;
+    }
+
+    const claimBody = (await claimResponse.json().catch(() => ({}))) as { message?: string; issues?: { message: string }[] };
+    setError(claimBody.issues?.[0]?.message ?? claimBody.message ?? "Could not claim that username.");
+    return false;
+  }
+
   async function signInGoogle() {
     setError(null);
-    const normalizedUsername = username.trim().toLowerCase();
+    setIsBusy(true);
 
-    if (!/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/.test(normalizedUsername) || normalizedUsername.length < 3 || normalizedUsername.length > 32) {
+    try {
+      const completeUrl = new URL("/login/complete", window.location.origin);
+      completeUrl.searchParams.set("next", safeNextPath);
+      await signInWithGoogle(completeUrl.toString());
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Google sign-in failed.");
+      setIsBusy(false);
+    }
+  }
+
+  async function signUpGoogle() {
+    setError(null);
+    const normalizedUsername = normalizeUsernameInput(username);
+
+    if (!isValidUsername(normalizedUsername)) {
       setError("Use 3 to 32 lowercase letters, numbers, hyphens, or underscores.");
       return;
     }
 
-    setIsSigningIn(true);
+    setIsBusy(true);
 
     try {
-      const availability = await fetch(`/api/profile/username-availability/${encodeURIComponent(normalizedUsername)}`);
-      const body = (await availability.json().catch(() => ({}))) as { available?: boolean; message?: string; issues?: { message: string }[] };
-
-      if (!availability.ok) {
-        setError(body.issues?.[0]?.message ?? body.message ?? "Could not check username.");
-        setIsSigningIn(false);
-        return;
-      }
-
-      if (!body.available) {
-        setError("That username is already taken.");
-        setIsSigningIn(false);
+      const available = await checkUsernameAvailable(normalizedUsername);
+      if (!available) {
+        setIsBusy(false);
         return;
       }
 
@@ -87,77 +227,124 @@ export function LoginForm() {
       completeUrl.searchParams.set("next", safeNextPath);
       await signInWithGoogle(completeUrl.toString());
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Google sign-in failed.");
-      setIsSigningIn(false);
+      setError(caught instanceof Error ? caught.message : "Google sign-up failed.");
+      setIsBusy(false);
+    }
+  }
+
+  async function finishSignupClaim() {
+    setError(null);
+    const normalizedUsername = normalizeUsernameInput(username);
+
+    if (!isValidUsername(normalizedUsername)) {
+      setError("Use 3 to 32 lowercase letters, numbers, hyphens, or underscores.");
+      return;
+    }
+
+    setIsBusy(true);
+
+    try {
+      const available = await checkUsernameAvailable(normalizedUsername);
+      if (!available) {
+        setIsBusy(false);
+        return;
+      }
+
+      await claimUsernameForSession(normalizedUsername);
+    } finally {
+      setIsBusy(false);
     }
   }
 
   const visibleError = error ?? (oauthError ? "Google sign-in did not complete. Try again." : null);
+  const showSignupClaimOnly = sessionReady && isAuthenticated && !hasUsername;
+
+  if (!sessionReady && isAuthenticated) {
+    return (
+      <section className="relative z-10 w-full max-w-[22rem] border border-border bg-background p-6 shadow-[0_18px_48px_oklch(0.08_0_0_/_0.28)]" aria-busy="true">
+        <AuthHeading title={mode === "signup" ? "Sign up" : "Sign in"} />
+        <p className="mt-3 text-[13px] leading-6 text-foreground/50">Checking your session…</p>
+      </section>
+    );
+  }
 
   return (
-    <section aria-labelledby="signin-title" className="relative z-10 w-full max-w-[22rem] border border-border bg-background p-6 shadow-[0_18px_48px_oklch(0.08_0_0_/_0.28)]">
-      <h1 id="signin-title" className="!m-0 flex items-start gap-2 whitespace-nowrap font-pixel !text-[2.35rem] !font-normal !leading-none tracking-[-0.045em] text-foreground/95">
-        <span>Sign in</span>
-        <img src="/brand/artifacts-logo.svg" alt="" className="mt-1 size-3.5 opacity-90" />
-      </h1>
-      <p className="mt-3 text-[13px] leading-6 text-foreground/50">Reserve your personal namespace.</p>
+    <section className="relative z-10 w-full max-w-[22rem] border border-border bg-background p-6 shadow-[0_18px_48px_oklch(0.08_0_0_/_0.28)]">
+      <AuthTabs mode={mode} onModeChange={setMode} />
 
-      <label className="mt-6 block">
-        <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/34">Username</span>
-        <input
-          autoCapitalize="none"
-          autoComplete="username"
-          className="w-full border border-foreground/[0.14] bg-card px-3 py-2.5 font-mono text-[13px] text-foreground/85 outline-none transition-colors placeholder:text-foreground/25 focus:border-foreground/35"
-          maxLength={32}
-          minLength={3}
-          name="username"
-          onChange={(event) => setUsername(event.target.value)}
-          pattern="[a-z0-9][a-z0-9_-]*[a-z0-9]"
-          placeholder="laxman"
-          required
-          value={username}
-        />
-      </label>
+      {mode === "signin" ? (
+        <div role="tabpanel" id="auth-signin-panel" aria-labelledby="signin-tab">
+          <AuthHeading title="Sign in" />
+          <p className="mt-3 text-[13px] leading-6 text-foreground/50">Continue to Artifacts.</p>
 
-      {visibleError ? (
-        <p role="alert" className="mt-5 border border-[#FF570A]/30 bg-[#FF570A]/10 px-3 py-2 text-[13px] leading-5 text-foreground/78">
-          {visibleError}
-        </p>
-      ) : null}
+          {visibleError ? <AuthError message={visibleError} /> : null}
 
-      <div className="mt-5 space-y-3">
-        <button
-          type="button"
-          className="group inline-grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 border border-foreground/22 bg-[oklch(0.96_0_0)] px-4 py-3 text-left font-pixel text-[14px] font-normal leading-none tracking-[-0.035em] text-primary-foreground shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.38),0_1px_0_oklch(1_0_0_/_0.16)] transition-colors hover:bg-[oklch(0.92_0_0)] disabled:cursor-wait disabled:opacity-70"
-          onClick={() => void signInGoogle()}
-          disabled={isSigningIn}
-        >
-          <GoogleGlyph />
-          <span>{isSigningIn ? "Opening Google" : "Continue with Google"}</span>
-          <span className="text-[#FF570A] transition-transform group-hover:translate-x-0.5" aria-hidden>
-            ↗
-          </span>
-        </button>
+          <div className="mt-5">
+            <AuthOAuthButtons
+              googleBusy={isBusy}
+              googleLabel={isBusy ? "Opening Google" : "Continue with Google"}
+              onGoogleClick={() => void signInGoogle()}
+            />
+          </div>
 
-        <div className="relative pt-2">
-          <span
-            id="github-coming-soon"
-            className="absolute right-2 top-0 z-10 border border-[#FF570A]/35 bg-background px-2 py-1 font-mono text-[9px] uppercase leading-none tracking-[0.14em] text-[#FF570A] shadow-[0_6px_18px_oklch(0.08_0_0_/_0.28)]"
-            role="tooltip"
-          >
-            Coming soon
-          </span>
-          <button
-            type="button"
-            className="inline-grid w-full cursor-not-allowed grid-cols-[auto_1fr] items-center gap-3 border border-foreground/[0.09] bg-card/90 px-4 py-3 text-left font-pixel text-[14px] font-normal leading-none tracking-[-0.035em] text-foreground/35"
-            disabled
-            aria-describedby="github-coming-soon"
-          >
-            <GithubGlyph />
-            <span>Continue with GitHub</span>
-          </button>
+          <p className="mt-6 text-center text-[13px] leading-6 text-foreground/45">
+            Don&apos;t have an account yet?{" "}
+            <button
+              type="button"
+              className="text-foreground/78 underline decoration-foreground/25 underline-offset-[0.2em] transition-colors hover:text-foreground/95"
+              onClick={() => setMode("signup")}
+            >
+              Sign up
+            </button>
+          </p>
         </div>
-      </div>
+      ) : (
+        <div role="tabpanel" id="auth-signup-panel" aria-labelledby="signup-tab">
+          <AuthHeading title="Sign up" />
+          <p className="mt-3 text-[13px] leading-6 text-foreground/50">
+            {showSignupClaimOnly ? "Claim your namespace to finish signup." : "Reserve your personal namespace, then continue with Google."}
+          </p>
+
+          <div className="mt-6">
+            <UsernameField username={username} onUsernameChange={setUsername} />
+          </div>
+
+          {visibleError ? <AuthError message={visibleError} /> : null}
+
+          <div className="mt-5">
+            {showSignupClaimOnly ? (
+              <button
+                type="button"
+                className="inline-grid w-full grid-cols-[1fr_auto] items-center gap-3 border border-foreground/22 bg-[oklch(0.96_0_0)] px-4 py-3 text-left font-pixel text-[14px] font-normal leading-none tracking-[-0.035em] text-primary-foreground shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.38),0_1px_0_oklch(1_0_0_/_0.16)] transition-colors hover:bg-[oklch(0.92_0_0)] disabled:cursor-wait disabled:opacity-70"
+                onClick={() => void finishSignupClaim()}
+                disabled={isBusy}
+              >
+                <span>{isBusy ? "Claiming namespace" : "Claim namespace"}</span>
+                <span className="text-[#FF570A]" aria-hidden>
+                  ↗
+                </span>
+              </button>
+            ) : (
+              <AuthOAuthButtons
+                googleBusy={isBusy}
+                googleLabel={isBusy ? "Opening Google" : "Continue with Google"}
+                onGoogleClick={() => void signUpGoogle()}
+              />
+            )}
+          </div>
+
+          <p className="mt-6 text-center text-[13px] leading-6 text-foreground/45">
+            Already have an account?{" "}
+            <button
+              type="button"
+              className="text-foreground/78 underline decoration-foreground/25 underline-offset-[0.2em] transition-colors hover:text-foreground/95"
+              onClick={() => setMode("signin")}
+            >
+              Sign in
+            </button>
+          </p>
+        </div>
+      )}
     </section>
   );
 }

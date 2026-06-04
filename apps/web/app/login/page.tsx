@@ -5,8 +5,8 @@ import { MarketingFooter, MarketingNav, SectionShell } from "../components/marke
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
-  title: "Sign in",
-  description: "Sign in to Artifacts with Google to open your dashboard and private artifacts."
+  title: "Sign in or sign up",
+  description: "Sign in or create an Artifacts account with Google. Claim your namespace once at signup."
 };
 
 function LoginPanelFallback() {

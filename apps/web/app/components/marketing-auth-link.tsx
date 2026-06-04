@@ -6,7 +6,7 @@ import { useArtifactSession } from "../../lib/auth-client";
 export function MarketingAuthLink() {
   const { data } = useArtifactSession();
   const isAuthenticated = Boolean(data?.user);
-  const href = isAuthenticated ? "/dashboard" : "/login";
+  const href = isAuthenticated ? "/dashboard" : "/login?mode=signup";
   const label = isAuthenticated ? "Dashboard" : "Start for free";
 
   return (

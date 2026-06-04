@@ -108,7 +108,9 @@ export class MembershipService {
     const members = await this.workspaceRepository.listMembers(workspaceId);
     assertAtLeastOneOwnerRemains(members, memberUserId, parsed.role);
 
-    await this.workspaceRepository.updateMemberRole(workspaceId, memberUserId, parsed.role);
+    if (!(await this.workspaceRepository.updateMemberRole(workspaceId, memberUserId, parsed.role))) {
+      throw new WorkspaceMemberConflictError("The workspace must have at least one owner.");
+    }
     await this.recordAudit(workspaceId, principal, "workspace.member_role_changed", "workspace_member", memberUserId, {
       previousRole: membership.role,
       role: parsed.role
@@ -146,7 +148,9 @@ export class MembershipService {
     const members = await this.workspaceRepository.listMembers(workspaceId);
     assertAtLeastOneOwnerRemains(members, memberUserId);
 
-    await this.workspaceRepository.removeMember(workspaceId, memberUserId);
+    if (!(await this.workspaceRepository.removeMember(workspaceId, memberUserId))) {
+      throw new WorkspaceMemberConflictError("The workspace must have at least one owner.");
+    }
     await this.recordAudit(workspaceId, principal, "workspace.member_removed", "workspace_member", memberUserId, {
       previousRole: membership.role
     });

@@ -3,6 +3,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
 import { artifactPermissions, artifacts, artifactVersions, auditEvents, projects, workspaces } from "@agent-artifacts/db";
 import {
+  ArtifactConflictError,
   type ArtifactRecord,
   type ArtifactRepository,
   type ArtifactVersionRecord,
@@ -146,16 +147,34 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
   }
 
   async createVersion(input: PersistCreateVersionInput): Promise<void> {
-    await this.db.transaction(async (tx) => {
-      await tx.insert(artifactVersions).values(input.version);
-      await tx
-        .update(artifacts)
-        .set({
-          latestVersionId: input.version.id,
-          updatedAt: new Date()
-        })
-        .where(eq(artifacts.id, input.version.artifactId));
-    });
+    try {
+      await this.db.transaction(async (tx) => {
+        const conditions = [eq(artifacts.id, input.version.artifactId)];
+        if (input.expectedLatestVersionId) {
+          conditions.push(eq(artifacts.latestVersionId, input.expectedLatestVersionId));
+        }
+
+        const updated = await tx
+          .update(artifacts)
+          .set({
+            latestVersionId: input.version.id,
+            updatedAt: new Date()
+          })
+          .where(and(...conditions))
+          .returning({ id: artifacts.id });
+
+        if (updated.length === 0) {
+          throw new ArtifactConflictError("The artifact was updated by another writer.");
+        }
+
+        await tx.insert(artifactVersions).values(input.version);
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ArtifactConflictError("The artifact was updated by another writer.");
+      }
+      throw error;
+    }
   }
 
   async createAuditEvent(input: PersistAuditEventInput): Promise<void> {
@@ -276,4 +295,13 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
       .set({ state: "deleted", archivedAt: now, updatedAt: now })
       .where(eq(artifacts.id, artifactId));
   }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+  while (typeof current === "object" && current !== null) {
+    if ("code" in current && current.code === "23505") return true;
+    current = "cause" in current ? current.cause : undefined;
+  }
+  return false;
 }

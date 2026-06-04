@@ -118,6 +118,35 @@ describe("BillingService", () => {
     });
   });
 
+  it("processes concurrent duplicate subscription webhooks only once", async () => {
+    const repository = new MemoryBillingRepository();
+    const service = new BillingService(repository, new MemoryBillingGateway());
+    const event = {
+      eventId: "evt_duplicate",
+      type: "subscription.active",
+      data: {
+        subscription_id: "sub_duplicate",
+        product_id: "prod_builder",
+        customer: { customer_id: "cus_duplicate", email: "owner@example.com" },
+        metadata: { user_id: "user_1" },
+        next_billing_date: "2026-06-28T00:00:00.000Z"
+      }
+    };
+
+    const first = service.handleDodoSubscriptionEvent(event, {
+      builderProductId: "prod_builder",
+      studioProductId: "prod_studio"
+    });
+    const second = service.handleDodoSubscriptionEvent(event, {
+      builderProductId: "prod_builder",
+      studioProductId: "prod_studio"
+    });
+
+    await Promise.all([first, second]);
+
+    expect(repository.upsertAccountCalls).toBe(1);
+  });
+
   it("rejects subscription webhooks for unknown Dodo products instead of granting Builder", async () => {
     const repository = new MemoryBillingRepository();
     const service = new BillingService(repository, new MemoryBillingGateway());
@@ -266,6 +295,10 @@ class MemoryBillingRepository implements BillingRepository {
   readonly accounts = new Map<string, { userId: string; planId: BillingPlanId; status: string; dodoCustomerId: string | null; dodoSubscriptionId?: string }>();
   readonly processedEvents = new Set<string>();
   readonly usage = new Map<string, Awaited<ReturnType<BillingRepository["getUsage"]>>>();
+  deferProcessedWebhookChecks = false;
+  upsertAccountCalls = 0;
+  private readonly releaseProcessedWebhookCheckFns: Array<() => void> = [];
+  private processedWebhookWaiter: (() => void) | undefined;
 
   async getAccount(userId: string) {
     return this.accounts.get(userId);
@@ -280,15 +313,49 @@ class MemoryBillingRepository implements BillingRepository {
   }
 
   async upsertAccount(account: { userId: string; planId: BillingPlanId; status: string; dodoCustomerId: string | null; dodoSubscriptionId?: string }) {
+    this.upsertAccountCalls += 1;
     this.accounts.set(account.userId, account);
   }
 
   async hasProcessedWebhook(eventId: string) {
-    return this.processedEvents.has(eventId);
+    const alreadyProcessed = this.processedEvents.has(eventId);
+    if (this.deferProcessedWebhookChecks) {
+      await new Promise<void>((resolve) => {
+        this.releaseProcessedWebhookCheckFns.push(resolve);
+        this.processedWebhookWaiter?.();
+      });
+    }
+    return alreadyProcessed;
   }
 
   async markWebhookProcessed(eventId: string) {
     this.processedEvents.add(eventId);
+  }
+
+  async upsertAccountForWebhook(eventId: string, _eventType: string, account: { userId: string; planId: BillingPlanId; status: string; dodoCustomerId: string | null; dodoSubscriptionId?: string }) {
+    if (this.processedEvents.has(eventId)) {
+      return false;
+    }
+
+    this.processedEvents.add(eventId);
+    await this.upsertAccount(account);
+    return true;
+  }
+
+  releaseProcessedWebhookChecks(): void {
+    this.deferProcessedWebhookChecks = false;
+    for (const release of this.releaseProcessedWebhookCheckFns.splice(0)) {
+      release();
+    }
+  }
+
+  async waitForProcessedWebhookChecks(count: number): Promise<void> {
+    while (this.releaseProcessedWebhookCheckFns.length < count) {
+      await new Promise<void>((resolve) => {
+        this.processedWebhookWaiter = resolve;
+      });
+      this.processedWebhookWaiter = undefined;
+    }
   }
 
   async getUsage(userId: string) {

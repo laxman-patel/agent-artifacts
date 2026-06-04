@@ -242,8 +242,10 @@ Artifacts is flat by default. Depth comes from borders, tonal layering, clipped 
 - **Chrome:** The sign-in page uses the same marketing nav, section rails, and footer as the landing page.
 - **Composition:** Center one compact auth card in the bounded content section. Do not split the page into an image panel and a form panel.
 - **Card:** Use a flat Site Black surface with a one-pixel border and compact `1.5rem` padding. The card should feel like an access control panel, not a browser window.
-- **Heading:** `Sign in` stays on one line in Geist Pixel. The logo sits after the words as a tiny asterisk-like mark, not as a standalone decorative icon.
-- **Copy:** Keep it brief. `Continue to Artifacts.` is enough unless an error state needs explanation.
+- **Tabs:** A two-column tab rail sits above the panel: `Sign in` and `Sign up`. Active tab uses a bottom rule at full foreground opacity; inactive tabs stay muted. Switch modes with `?mode=signup` (default is sign-in).
+- **Heading:** `Sign in` or `Sign up` stays on one line in Geist Pixel. The logo sits after the words as a tiny asterisk-like mark, not as a standalone decorative icon.
+- **Copy:** Sign-in uses `Continue to Artifacts.` Sign-up explains namespace reservation and one-time username claim. Footer links swap modes: `Don't have an account yet? Sign up` and `Already have an account? Sign in`.
+- **Username:** Only on sign-up. Mono input, reserved once per account at signup (not from account settings later).
 - **Actions:** Google is the only active provider today. GitHub may be shown as disabled with a small `Coming soon` chip at the top-right of the button.
 - **Background:** Keep the auth background dark and quiet. Do not add orange dither, split imagery, or decorative shader motion unless a future direction explicitly reintroduces it.
 

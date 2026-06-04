@@ -8,6 +8,16 @@ function safeNextPath(value: string | null): string {
   return "/dashboard";
 }
 
+function signupLoginUrl(nextPath: string, username: string, error: string): string {
+  const params = new URLSearchParams({
+    mode: "signup",
+    next: nextPath,
+    error
+  });
+  if (username) params.set("username", username);
+  return `/login?${params.toString()}`;
+}
+
 export function LoginCompleteClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,7 +42,9 @@ export function LoginCompleteClient() {
       }
 
       if (!username) {
-        router.replace(`/login?next=${encodeURIComponent(nextPath)}&error=${encodeURIComponent("Choose a username to continue.")}`);
+        router.replace(
+          signupLoginUrl(nextPath, "", "Sign up and choose a username to continue.")
+        );
         return;
       }
 
@@ -51,15 +63,13 @@ export function LoginCompleteClient() {
       const claimBody = (await claimResponse.json().catch(() => ({}))) as { message?: string; issues?: { message: string }[] };
       const error = claimBody.issues?.[0]?.message ?? claimBody.message ?? "Could not claim that username.";
       if (!cancelled) setMessage(error);
-      router.replace(
-        `/login?next=${encodeURIComponent(nextPath)}&username=${encodeURIComponent(username)}&error=${encodeURIComponent(error)}`
-      );
+      router.replace(signupLoginUrl(nextPath, username, error));
     }
 
     void completeLogin().catch((error) => {
-      const message = error instanceof Error ? error.message : "Could not complete sign in.";
-      if (!cancelled) setMessage(message);
-      router.replace(`/login?next=${encodeURIComponent(nextPath)}&username=${encodeURIComponent(username)}&error=${encodeURIComponent(message)}`);
+      const detail = error instanceof Error ? error.message : "Could not complete sign up.";
+      if (!cancelled) setMessage(detail);
+      router.replace(signupLoginUrl(nextPath, username, detail));
     });
 
     return () => {
@@ -70,7 +80,7 @@ export function LoginCompleteClient() {
   return (
     <section className="relative z-10 w-full max-w-[22rem] border border-border bg-background p-6 shadow-[0_18px_48px_oklch(0.08_0_0_/_0.28)]">
       <h1 className="!m-0 flex items-start gap-2 whitespace-nowrap font-pixel !text-[2.35rem] !font-normal !leading-none tracking-[-0.045em] text-foreground/95">
-        <span>Sign in</span>
+        <span>Sign up</span>
         <img src="/brand/artifacts-logo.svg" alt="" className="mt-1 size-3.5 opacity-90" />
       </h1>
       <p className="mt-3 text-[13px] leading-6 text-foreground/50">{message}</p>

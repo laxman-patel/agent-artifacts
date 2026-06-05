@@ -52,20 +52,23 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
         <div>
           <p className="eyebrow">Team settings</p>
           <h1>{workspace.name}</h1>
-          <p className="subtle">/{workspace.slug} · {workspace.role}</p>
+          <p className="meta-line">/{workspace.slug} · {workspace.role}</p>
         </div>
         <Link className="ghost-button" href={workspaceDashboardPath(workspace)}>
-          Back to workspace
+          Workspace
         </Link>
       </header>
 
       <section className="card flat stack">
-        <div>
+        <div className="section-header">
           <h2>Members</h2>
+          <p className="muted small">Roles control workspace access across web, API, CLI, and MCP.</p>
+        </div>
+        <div>
           {!canManageMembers ? (
-            <p className="muted">You do not have permission to view team members.</p>
+            <p className="empty-state">You do not have permission to view team members.</p>
           ) : members.length === 0 ? (
-            <p className="muted">No members found.</p>
+            <p className="empty-state">No members found.</p>
           ) : (
             <ul className="member-list">
               {members.map((member) => (
@@ -94,8 +97,11 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
 
       {canManageMembers && invitations.length > 0 ? (
         <section className="card flat stack">
-          <div>
+          <div className="section-header">
             <h2>Pending invitations</h2>
+            <p className="muted small">Invitations expire automatically if they are not accepted.</p>
+          </div>
+          <div>
             <ul className="member-list">
               {invitations.map((invitation) => (
                 <li key={invitation.id}>
@@ -115,9 +121,11 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
 
       {canManageMembers ? (
         <section className="card flat stack">
-          <div>
+          <div className="section-header">
             <h2>Invite teammate</h2>
             <p className="muted">Send an email invitation to join this team workspace.</p>
+          </div>
+          <div>
             <WorkspaceInviteForm workspaceId={workspace.id} />
           </div>
         </section>
@@ -125,10 +133,13 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
 
       {canManageMembers ? (
         <section className="card flat stack">
-          <div>
+          <div className="section-header">
             <h2>Audit log</h2>
+            <p className="muted small">Recent workspace-level changes.</p>
+          </div>
+          <div>
             {auditEvents.length === 0 ? (
-              <p className="muted">No workspace audit events yet.</p>
+              <p className="empty-state">No workspace audit events yet.</p>
             ) : (
               <table className="audit-table">
                 <thead>

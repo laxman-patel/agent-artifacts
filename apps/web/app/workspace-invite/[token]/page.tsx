@@ -28,9 +28,13 @@ export default async function WorkspaceInvitePage(props: { params: Promise<{ tok
       </header>
 
       <section className="card flat stack">
+        <div className="section-header">
+          <h2>Invitation</h2>
+          <p className="muted small">Accepting adds this account to the workspace immediately.</p>
+        </div>
         <WorkspaceInviteAcceptForm token={token} />
         <Link className="ghost-button" href="/dashboard">
-          Back to dashboard
+          Dashboard
         </Link>
       </section>
     </main>

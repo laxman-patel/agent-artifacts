@@ -74,7 +74,7 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
 
       {newLink && (
         <div className="new-share-link">
-          <p className="small muted">Share this URL — it won&#39;t be shown again.</p>
+          <p className="small muted">Share this URL. It won&#39;t be shown again.</p>
           <input className="share-link-input" readOnly type="text" value={newLink} onClick={(e) => (e.target as HTMLInputElement).select()} />
         </div>
       )}

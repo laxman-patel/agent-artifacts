@@ -40,14 +40,17 @@ export function CliLoginAuthorize({ port, state }: CliLoginAuthorizeProps) {
 
   return (
     <main className="shell narrow">
-      <section className="card">
-        <h1>Authorize CLI</h1>
+      <section className="card stack">
+        <div className="section-header">
+          <p className="eyebrow">CLI</p>
+          <h1>Authorize CLI</h1>
+        </div>
         <p>
           The artifacts CLI on your machine is requesting access to your account. Only continue if you
           just ran <code>artifacts login</code>.
         </p>
         {error ? <p className="error">{error}</p> : null}
-        <button type="button" className="button primary" disabled={authorizing} onClick={() => void authorizeCli()}>
+        <button type="button" className="primary-button" disabled={authorizing} onClick={() => void authorizeCli()}>
           {authorizing ? "Authorizing…" : "Authorize CLI"}
         </button>
       </section>

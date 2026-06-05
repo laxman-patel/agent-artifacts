@@ -42,37 +42,41 @@ export default async function ArtifactHistoryPage(props: {
         <div>
           <p className="eyebrow">History</p>
           <h1>{meta.title}</h1>
-          <p className="subtle">{base}</p>
+          <p className="meta-line">{base}</p>
         </div>
         <Link className="ghost-button" href={base}>
-          Latest version
+          Artifact
         </Link>
       </header>
 
       <section className="card flat">
-        <ol className="version-list">
-          {versions.body.versions.map((version, index) => {
-            const previous = versions.body.versions[index + 1];
+        {versions.body.versions.length === 0 ? (
+          <p className="empty-state">No versions have been written yet.</p>
+        ) : (
+          <ol className="version-list">
+            {versions.body.versions.map((version, index) => {
+              const previous = versions.body.versions[index + 1];
 
-            return (
-              <li key={version.id}>
-                <div>
-                  <strong>Version {version.versionNumber}</strong>
-                  <p className="muted small">{new Date(version.createdAt).toLocaleString()}</p>
-                  {version.changelog ? <p>{version.changelog}</p> : null}
-                </div>
-                <div className="row-actions">
-                  <Link href={`${base}?version=${version.versionNumber}`}>View</Link>
-                  {previous ? (
-                    <Link href={`${base}/diff/${previous.versionNumber}/${version.versionNumber}`}>
-                      Diff vs v{previous.versionNumber}
-                    </Link>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+              return (
+                <li key={version.id}>
+                  <div>
+                    <strong>Version {version.versionNumber}</strong>
+                    <p className="meta-line small">{new Date(version.createdAt).toLocaleString()}</p>
+                    {version.changelog ? <p className="muted">{version.changelog}</p> : null}
+                  </div>
+                  <div className="row-actions">
+                    <Link href={`${base}?version=${version.versionNumber}`}>View</Link>
+                    {previous ? (
+                      <Link href={`${base}/diff/${previous.versionNumber}/${version.versionNumber}`}>
+                        Diff vs v{previous.versionNumber}
+                      </Link>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </section>
     </main>
   );

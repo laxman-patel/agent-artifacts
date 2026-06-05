@@ -32,7 +32,7 @@ export default async function UserProjectsPage(props: { params: Promise<{ userna
         <div>
           <p className="eyebrow">Projects</p>
           <h1>@{params.username}</h1>
-          <p className="subtle">Projects group artifacts under a namespace.</p>
+          <p className="subtle">Projects group artifacts under durable URL namespaces.</p>
         </div>
         <Link className="ghost-button" href="/dashboard">
           Dashboard
@@ -41,15 +41,20 @@ export default async function UserProjectsPage(props: { params: Promise<{ userna
 
       <section className="card flat">
         {projects.length === 0 ? (
-          <p className="muted">No projects yet. Create one via the API or MCP.</p>
+          <p className="empty-state">No projects yet. Create one via the API or MCP.</p>
         ) : (
           <ul className="artifact-list">
             {projects.map((project) => (
               <li key={project.id}>
-                <Link href={projectPath(project)}>
-                  <strong>{project.title}</strong>
-                </Link>
-                <p className="muted small">{projectPath(project)}</p>
+                <div>
+                  <Link href={projectPath(project)}>
+                    <strong>{project.title}</strong>
+                  </Link>
+                  <p className="meta-line small">
+                    <span>{projectPath(project)}</span>
+                    <span>updated {new Date(project.updatedAt).toLocaleDateString()}</span>
+                  </p>
+                </div>
               </li>
             ))}
           </ul>

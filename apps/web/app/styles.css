@@ -358,6 +358,53 @@ input[type="checkbox"] {
   margin-bottom: 1rem;
 }
 
+.section-header {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.section-header h2 {
+  font-size: 1rem;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.section-header p {
+  margin: 0;
+}
+
+.meta-line {
+  align-items: center;
+  color: var(--artifact-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-family: var(--font-geist-mono), "SF Mono", ui-monospace, monospace;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0;
+}
+
+.chip {
+  border: 1px solid var(--artifact-border);
+  border-radius: 0.125rem;
+  color: var(--artifact-muted);
+  display: inline-flex;
+  font-family: var(--font-geist-mono), "SF Mono", ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  padding: 0.18rem 0.4rem;
+  text-transform: uppercase;
+}
+
+.empty-state {
+  background: var(--artifact-bg);
+  border: 1px solid var(--artifact-border);
+  border-radius: 0.375rem;
+  color: var(--artifact-muted);
+  margin: 0;
+  padding: 1rem;
+}
+
 .pill.success {
   border: 1px solid color-mix(in oklch, var(--artifact-emerald) 38%, var(--artifact-border));
   border-radius: 0.125rem;

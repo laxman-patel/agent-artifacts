@@ -69,19 +69,19 @@ export default async function WorkspaceDashboardPage(props: { params: Promise<{ 
         <div>
           <p className="eyebrow">{workspace.kind === "personal" ? "Personal workspace" : "Team workspace"}</p>
           <h1>{workspaceLabel(workspace)}</h1>
-          <p className="subtle">/{workspace.slug} · {workspace.role}</p>
+          <p className="meta-line">/{workspace.slug} · {workspace.role}</p>
         </div>
         <div className="row-actions">
           <Link className="ghost-button" href="/workspaces/new">
-            New workspace
+            New team
           </Link>
           {workspace.kind === "team" ? (
             <Link className="ghost-button" href={workspaceSettingsPath(workspace)}>
-              Team settings
+              Settings
             </Link>
           ) : (
             <Link className="ghost-button" href="/settings/account">
-              Account settings
+              Account
             </Link>
           )}
         </div>
@@ -107,12 +107,13 @@ export default async function WorkspaceDashboardPage(props: { params: Promise<{ 
       ) : null}
 
       <section className="card flat stack">
-        <div>
+        <div className="section-header">
           <p className="eyebrow">Recent artifacts</p>
           <h2>Artifact stream</h2>
+          <p className="muted small">Open the artifact first; inspect versions and access only when needed.</p>
         </div>
         {recentArtifacts.length === 0 ? (
-          <p className="muted">No artifacts yet. Publish one with the CLI or MCP using workspace /{workspace.slug}.</p>
+          <p className="empty-state">No artifacts yet. Publish one with the CLI or MCP using workspace /{workspace.slug}.</p>
         ) : (
           <ul className="artifact-list">
             {recentArtifacts.map((artifact) => (
@@ -121,12 +122,15 @@ export default async function WorkspaceDashboardPage(props: { params: Promise<{ 
                   <Link href={artifactPath(artifact)}>
                     <strong>{artifact.title}</strong>
                   </Link>
-                  <p className="muted small">
-                    {artifact.type} · {artifactPath(artifact)}
+                  <p className="meta-line small">
+                    <span className="chip">{artifact.type}</span>
+                    <span>{artifactPath(artifact)}</span>
+                    <span>updated {new Date(artifact.updatedAt).toLocaleDateString()}</span>
                   </p>
                 </div>
                 <div className="row-actions">
-                  <Link href={`${artifactPath(artifact)}/history`}>History</Link>
+                  <Link href={artifactPath(artifact)}>Open</Link>
+                  <Link href={`${artifactPath(artifact)}/history`}>Versions</Link>
                   <Link href={`${artifactPath(artifact)}/settings`}>Access</Link>
                 </div>
               </li>
@@ -136,12 +140,13 @@ export default async function WorkspaceDashboardPage(props: { params: Promise<{ 
       </section>
 
       <section className="card flat stack">
-        <div>
+        <div className="section-header">
           <p className="eyebrow">Projects</p>
           <h2>Project namespaces</h2>
+          <p className="muted small">Artifacts stay grouped by durable URL namespaces.</p>
         </div>
         {projects.length === 0 ? (
-          <p className="muted">No projects in this workspace yet.</p>
+          <p className="empty-state">No projects in this workspace yet.</p>
         ) : (
           <ul className="artifact-list">
             {projects.map((project) => {
@@ -152,8 +157,10 @@ export default async function WorkspaceDashboardPage(props: { params: Promise<{ 
                     <Link href={projectPath(project)}>
                       <strong>{project.title}</strong>
                     </Link>
-                    <p className="muted small">
-                      {projectPath(project)} · {projectArtifacts.length} artifact{projectArtifacts.length === 1 ? "" : "s"}
+                    <p className="meta-line small">
+                      <span>{projectPath(project)}</span>
+                      <span>{projectArtifacts.length} artifact{projectArtifacts.length === 1 ? "" : "s"}</span>
+                      <span>updated {new Date(project.updatedAt).toLocaleDateString()}</span>
                     </p>
                   </div>
                 </li>

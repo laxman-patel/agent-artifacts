@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useArtifactSession } from "../../lib/auth-client";
 
 async function signOut() {
@@ -13,10 +14,15 @@ async function signOut() {
 
 export function SessionNav() {
   const { data, isPending } = useArtifactSession();
+  const [mounted, setMounted] = useState(false);
 
-  if (isPending) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || isPending) {
     return (
-      <nav className="top-nav">
+      <nav className="top-nav" aria-busy="true">
         <span className="muted">Loading session…</span>
       </nav>
     );

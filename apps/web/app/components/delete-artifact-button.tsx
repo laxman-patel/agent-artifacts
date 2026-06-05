@@ -62,7 +62,11 @@ export function DeleteArtifactButton({ artifactId, artifactTitle }: Props) {
         value={confirmText}
       />
       <div className="row-actions">
-        <button className="ghost-button" disabled={deleting} onClick={() => { setConfirming(false); setError(null); setConfirmText(""); }} type="button">
+        <button className="ghost-button" disabled={deleting} onClick={() => {
+          setConfirming(false);
+          setError(null);
+          setConfirmText("");
+        }} type="button">
           Cancel
         </button>
         <button

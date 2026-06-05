@@ -42,29 +42,35 @@ export default async function ArtifactAuditPage(props: {
         <div>
           <p className="eyebrow">Audit</p>
           <h1>{meta.title}</h1>
-          <p className="subtle">{base}</p>
+          <p className="meta-line">{base}</p>
         </div>
         <div className="row-actions wrap">
           <Link className="ghost-button" href={`${base}/settings`}>
-            Access settings
+            Access
           </Link>
           <Link className="ghost-button" href={base}>
-            Back to artifact
+            Artifact
           </Link>
         </div>
       </header>
 
       <section className="card flat">
-        <ol className="audit-list">
-          {audit.body.events.map((event) => (
-            <li key={event.id}>
-              <strong>{event.action}</strong>
-              <p className="muted small">
-                {event.actorPrincipalType}:{event.actorPrincipalId} · {new Date(event.createdAt).toLocaleString()}
-              </p>
-            </li>
-          ))}
-        </ol>
+        {audit.body.events.length === 0 ? (
+          <p className="empty-state">No audit events for this artifact yet.</p>
+        ) : (
+          <ol className="audit-list">
+            {audit.body.events.map((event) => (
+              <li key={event.id}>
+                <div>
+                  <strong>{event.action}</strong>
+                  <p className="meta-line small">
+                    {event.actorPrincipalType}:{event.actorPrincipalId} · {new Date(event.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
     </main>
   );

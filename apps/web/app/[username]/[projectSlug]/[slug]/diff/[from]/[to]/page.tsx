@@ -55,10 +55,10 @@ export default async function ArtifactDiffPage(props: {
               (v{fromVersion} → v{toVersion})
             </span>
           </h1>
-          <p className="subtle">{base}</p>
+          <p className="meta-line">{base}</p>
         </div>
         <Link className="ghost-button" href={`${base}/history`}>
-          Back to history
+          Versions
         </Link>
       </header>
 

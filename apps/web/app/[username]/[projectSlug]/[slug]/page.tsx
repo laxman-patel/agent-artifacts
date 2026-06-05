@@ -43,28 +43,43 @@ export default async function ArtifactPage(props: {
 
   const { content, contentType } = contentResult.body;
   const base = artifactPath(meta);
+  const activeVersion = searchParams.version ?? "latest";
 
   return (
-    <main className="page-shell wide">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">
-            {meta.type.toUpperCase()} · v{searchParams.version ?? "latest"}
-          </p>
+    <main className="artifact-render-shell">
+      <details className="artifact-inspector">
+        <summary aria-label="Open artifact details">i</summary>
+        <div className="artifact-inspector-panel">
+          <p className="eyebrow">Artifact</p>
           <h1>{meta.title}</h1>
-          <p className="subtle">{base}</p>
+          <dl className="artifact-meta-grid">
+            <div>
+              <dt>Path</dt>
+              <dd>{base}</dd>
+            </div>
+            <div>
+              <dt>Type</dt>
+              <dd>{meta.type}</dd>
+            </div>
+            <div>
+              <dt>Version</dt>
+              <dd>v{activeVersion}</dd>
+            </div>
+            <div>
+              <dt>Rendered as</dt>
+              <dd>{contentType}</dd>
+            </div>
+          </dl>
+          <nav className="artifact-inspector-menu" aria-label="Artifact controls">
+            <Link href={base}>Latest</Link>
+            <Link href={`${base}/history`}>Versions</Link>
+            <Link href={`${base}/settings`}>Access</Link>
+            <Link href={`${base}/audit`}>Audit</Link>
+          </nav>
         </div>
-        <div className="row-actions wrap">
-          <Link className="ghost-button" href={`${base}/history`}>
-            History
-          </Link>
-          <Link className="ghost-button" href={`${base}/settings`}>
-            Access
-          </Link>
-        </div>
-      </header>
+      </details>
 
-      <section className="card flat viewer-card">
+      <section className="artifact-render-stage" aria-label={`${meta.title} artifact preview`}>
         {meta.type === "html" && (
           <iframe className="artifact-frame" referrerPolicy="no-referrer" sandbox="allow-scripts" srcDoc={wrapHtmlWithCsp(content)} title="HTML artifact preview" />
         )}
@@ -74,7 +89,6 @@ export default async function ArtifactPage(props: {
         {meta.type === "jsx" && (
           <JsxViewer content={content} />
         )}
-        <p className="muted small">Rendered as {contentType}</p>
       </section>
     </main>
   );

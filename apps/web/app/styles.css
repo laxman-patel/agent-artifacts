@@ -570,10 +570,124 @@ input[type="checkbox"] {
   overflow: hidden;
 }
 
+.artifact-render-shell {
+  min-height: calc(100vh - 49px);
+  position: relative;
+}
+
+.artifact-render-stage {
+  background: var(--artifact-bg);
+  min-height: calc(100vh - 49px);
+  overflow: auto;
+}
+
 .artifact-frame {
   border: none;
-  min-height: 420px;
+  display: block;
+  min-height: calc(100vh - 49px);
   width: 100%;
+}
+
+.artifact-inspector {
+  position: fixed;
+  right: clamp(0.75rem, 2vw, 1.25rem);
+  top: calc(49px + 0.75rem);
+  z-index: 30;
+}
+
+.artifact-inspector summary {
+  align-items: center;
+  background: var(--artifact-card);
+  border: 1px solid var(--artifact-border);
+  border-radius: 999px;
+  color: var(--artifact-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-geist-mono), "SF Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  height: 2rem;
+  justify-content: center;
+  list-style: none;
+  width: 2rem;
+}
+
+.artifact-inspector summary::-webkit-details-marker {
+  display: none;
+}
+
+.artifact-inspector summary:hover {
+  border-color: var(--artifact-border-strong);
+}
+
+.artifact-inspector[open] summary {
+  background: var(--artifact-control);
+  color: var(--artifact-control-ink);
+}
+
+.artifact-inspector-panel {
+  background: var(--artifact-card);
+  border: 1px solid var(--artifact-border);
+  border-radius: 0.625rem;
+  box-shadow: 0 18px 48px oklch(0.08 0 0 / 0.22);
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  max-width: min(21rem, calc(100vw - 1.5rem));
+  padding: 1rem;
+  width: 21rem;
+}
+
+.artifact-inspector-panel h1 {
+  font-size: 1rem;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.artifact-meta-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.artifact-meta-grid div {
+  border-top: 1px solid var(--artifact-border);
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.75rem;
+}
+
+.artifact-meta-grid dt {
+  color: var(--artifact-muted);
+  font-family: var(--font-geist-mono), "SF Mono", ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.artifact-meta-grid dd {
+  font-family: var(--font-geist-mono), "SF Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.artifact-inspector-menu {
+  border-top: 1px solid var(--artifact-border);
+  display: grid;
+  gap: 0.35rem;
+  padding-top: 0.75rem;
+}
+
+.artifact-inspector-menu a {
+  color: var(--artifact-foreground);
+  font-size: 0.8125rem;
+  padding: 0.35rem 0;
+  text-decoration: none;
+}
+
+.artifact-inspector-menu a:hover {
+  color: color-mix(in oklch, var(--artifact-cyan) 72%, var(--artifact-foreground));
 }
 
 .source-view {

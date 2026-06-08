@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { artifactPath, type ArtifactOwnerSummary } from "../../../lib/server-api";
+import { artifactPath } from "../../../lib/paths";
+import type { ArtifactOwnerSummary } from "../../../lib/server-api";
 import { artifactKind } from "./artifact-kind";
 import { ArtifactThumbnail } from "./artifact-thumbnail";
 
@@ -39,7 +42,12 @@ function ArtifactTile({
     >
       <div className="rounded-[11px] border border-border p-1 transition-colors group-focus-visible:border-foreground/45">
         <div className="artifact-preview relative aspect-[4/3] overflow-hidden rounded-md border">
-          <ArtifactThumbnail artifactId={artifact.id} type={artifact.type} content={previewContent} />
+          <ArtifactThumbnail
+            artifactId={artifact.id}
+            cacheKey={`${artifact.id}:${artifact.updatedAt}`}
+            type={artifact.type}
+            content={previewContent}
+          />
           <div className="pointer-events-none absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-[0.3rem] border border-border bg-[var(--wb-content)]/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-foreground/70 backdrop-blur-sm">
             <kind.Icon className="size-2.5" style={{ color: kind.accent }} aria-hidden />
             {kind.label}

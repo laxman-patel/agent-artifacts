@@ -14,22 +14,26 @@ const BASE_WIDTH: Record<string, number> = { html: 1180, md: 860 };
 // Cap the source we hand to a thumbnail. A preview never needs the whole file,
 // and oversized Markdown/JSX would render far more DOM than a tile shows.
 const PREVIEW_CHARS = 24_000;
+const thumbnailContentCache = new Map<string, string>();
 
 type Status = "pending" | "loading" | "ready" | "empty" | "error";
 
 export function ArtifactThumbnail({
   artifactId,
+  cacheKey = artifactId,
   type,
   content
 }: {
   artifactId: string;
+  cacheKey?: string;
   type: string;
   content?: string;
 }) {
+  const initialContent = content ?? thumbnailContentCache.get(cacheKey) ?? null;
   const [boxRef, bounds] = useMeasure();
   const [node, setNode] = useState<HTMLDivElement | null>(null);
-  const [loaded, setLoaded] = useState<string | null>(content ?? null);
-  const [status, setStatus] = useState<Status>(content !== undefined ? "ready" : "pending");
+  const [loaded, setLoaded] = useState<string | null>(initialContent);
+  const [status, setStatus] = useState<Status>(initialContent !== null ? "ready" : "pending");
   const fetchedRef = useRef(false);
 
   const setRefs = useCallback(
@@ -57,6 +61,7 @@ export function ArtifactThumbnail({
           })
           .then((text) => {
             const trimmed = text.trim();
+            if (trimmed.length > 0) thumbnailContentCache.set(cacheKey, trimmed);
             setLoaded(trimmed);
             setStatus(trimmed.length === 0 ? "empty" : "ready");
           })
@@ -70,7 +75,7 @@ export function ArtifactThumbnail({
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [artifactId, content, node]);
+  }, [artifactId, cacheKey, content, node]);
 
   const kind = artifactKind(type);
   // Fall back to an approximate tile size for the first paint so a preview is

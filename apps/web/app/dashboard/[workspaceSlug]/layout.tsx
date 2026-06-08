@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   cookieHeader,
+  fetchWorkspaceArtifacts,
   fetchProfileMe,
   fetchWorkspaceProjects,
   fetchWorkspaces
@@ -35,8 +36,9 @@ export default async function DashboardLayout(props: {
     notFound();
   }
 
-  const [projectsResult, profileResult] = await Promise.all([
+  const [projectsResult, artifactsResult, profileResult] = await Promise.all([
     fetchWorkspaceProjects(workspace.id, header),
+    fetchWorkspaceArtifacts(workspace.id, header),
     fetchProfileMe(header)
   ]);
 
@@ -44,13 +46,21 @@ export default async function DashboardLayout(props: {
     throw new Error(projectsResult.message ?? `Projects could not be loaded (HTTP ${projectsResult.status}).`);
   }
 
+  if (!artifactsResult.ok) {
+    throw new Error(artifactsResult.message ?? `Artifacts could not be loaded (HTTP ${artifactsResult.status}).`);
+  }
+
   const sortedProjects = [...projectsResult.body.projects].sort((a, b) => a.title.localeCompare(b.title));
+  const sortedArtifacts = artifactsResult.body.artifacts.sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
 
   return (
     <DashboardShell
       workspaces={workspacesResult.body.workspaces}
       workspace={workspace}
       projects={sortedProjects}
+      artifacts={sortedArtifacts}
       profile={profileResult.ok ? profileResult.body : null}
     >
       {props.children}

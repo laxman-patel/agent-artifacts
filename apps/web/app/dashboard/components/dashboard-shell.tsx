@@ -2,8 +2,9 @@
 
 import { PanelLeft } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import type { ProfileMeResponse, ProjectSummary, WorkspaceSummary } from "../../../lib/server-api";
+import type { ArtifactOwnerSummary, ProfileMeResponse, ProjectSummary, WorkspaceSummary } from "../../../lib/server-api";
 import { DashboardSidebar } from "./dashboard-sidebar";
+import { DashboardWorkspaceProvider } from "./dashboard-workspace-data";
 
 const STORAGE_KEY = "wb:sidebar-collapsed";
 
@@ -11,12 +12,14 @@ export function DashboardShell({
   workspaces,
   workspace,
   projects,
+  artifacts,
   profile,
   children
 }: {
   workspaces: WorkspaceSummary[];
   workspace: WorkspaceSummary;
   projects: ProjectSummary[];
+  artifacts: ArtifactOwnerSummary[];
   profile: ProfileMeResponse | null;
   children: ReactNode;
 }) {
@@ -93,7 +96,11 @@ export function DashboardShell({
         <PanelLeft className="size-4" />
       </button>
 
-      <div className="flex min-w-0 flex-1 flex-col bg-[var(--wb-content)]">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col bg-[var(--wb-content)]">
+        <DashboardWorkspaceProvider workspace={workspace} projects={projects} artifacts={artifacts}>
+          {children}
+        </DashboardWorkspaceProvider>
+      </div>
     </div>
   );
 }

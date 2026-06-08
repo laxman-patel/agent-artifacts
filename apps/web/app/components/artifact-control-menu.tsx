@@ -1,18 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
-import {
-  Activity,
-  ArrowLeft,
-  Check,
-  ChevronDown,
-  Copy,
-  History,
-  ShieldHalf
-} from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Copy } from "lucide-react";
 import { useDismiss } from "../../lib/use-dismiss";
+import { ArtifactControls } from "./artifact-controls";
 
 type ArtifactType = "html" | "md" | "jsx";
 
@@ -28,39 +20,18 @@ const TYPE_LABEL: Record<ArtifactType, string> = {
   jsx: "JSX"
 };
 
-function PanelLink({
-  href,
-  icon: Icon,
-  label,
-  hint
-}: {
-  href: string;
-  icon: typeof History;
-  label: string;
-  hint: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-foreground/75 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-    >
-      <Icon className="size-3.5 shrink-0 text-foreground/45" />
-      <span className="flex-1 text-[13px] leading-tight">{label}</span>
-      <span className="font-mono text-[10px] text-foreground/35">{hint}</span>
-    </Link>
-  );
-}
-
 export function ArtifactControlMenu({
   title,
   type,
   base,
+  artifactId,
   versionLabel,
   updatedAt
 }: {
   title: string;
   type: ArtifactType;
   base: string;
+  artifactId: string;
   versionLabel: string;
   updatedAt: string;
 }) {
@@ -148,9 +119,12 @@ export function ArtifactControlMenu({
 
         <div className="my-1 h-px bg-[var(--wb-line)]" />
 
-        <PanelLink href={`${base}/history`} icon={History} label="Version history" hint="versions" />
-        <PanelLink href={`${base}/settings`} icon={ShieldHalf} label="Access & sharing" hint="who" />
-        <PanelLink href={`${base}/audit`} icon={Activity} label="Activity" hint="log" />
+        <ArtifactControls
+          artifactId={artifactId}
+          base={base}
+          active={open}
+          onNavigate={() => setOpen(false)}
+        />
       </div>
     </div>
   );

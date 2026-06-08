@@ -53,6 +53,7 @@ export default async function ArtifactPage(props: {
         title={meta.title}
         type={meta.type}
         base={base}
+        artifactId={meta.id}
         versionLabel={versionLabel}
         updatedAt={meta.updatedAt}
       />

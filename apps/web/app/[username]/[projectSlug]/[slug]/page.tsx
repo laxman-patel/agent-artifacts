@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { artifactPath, cookieHeader, fetchArtifactContent, loadArtifactGate } from "../../../../lib/server-api";
 import { wrapHtmlWithCsp } from "../../../components/html-csp";
 import { MarkdownViewer } from "../../../components/markdown-viewer";
 import { JsxViewer } from "../../../components/jsx-viewer";
 import { RestrictedArtifactView } from "../../../components/restricted-artifact-view";
+import { ArtifactControlMenu } from "../../../components/artifact-control-menu";
+import "../../../workbench.css";
 
 export default async function ArtifactPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string }>;
@@ -34,62 +35,55 @@ export default async function ArtifactPage(props: {
 
   if (!contentResult.ok) {
     return (
-      <main className="shell narrow">
-        <h1>Cannot load content</h1>
-        <p className="muted">HTTP {contentResult.status}</p>
+      <main className="wb-stage flex min-h-dvh flex-col items-center justify-center gap-2 p-8 text-center">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/35">Render failed</p>
+        <h1 className="text-lg font-medium text-white/90">Cannot load this artifact</h1>
+        <p className="font-mono text-xs text-white/45">HTTP {contentResult.status}</p>
       </main>
     );
   }
 
-  const { content, contentType } = contentResult.body;
+  const { content } = contentResult.body;
   const base = artifactPath(meta);
-  const activeVersion = searchParams.version ?? "latest";
+  const versionLabel = searchParams.version ? `v${searchParams.version}` : "latest";
+  // Format on the server with a fixed locale so the string is identical at
+  // hydration regardless of the client's timezone or locale.
+  const updatedDate = new Date(meta.updatedAt);
+  const updatedLabel = Number.isNaN(updatedDate.getTime())
+    ? null
+    : updatedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
-    <main className="artifact-render-shell">
-      <details className="artifact-inspector">
-        <summary aria-label="Open artifact details">i</summary>
-        <div className="artifact-inspector-panel">
-          <p className="eyebrow">Artifact</p>
-          <h1>{meta.title}</h1>
-          <dl className="artifact-meta-grid">
-            <div>
-              <dt>Path</dt>
-              <dd>{base}</dd>
-            </div>
-            <div>
-              <dt>Type</dt>
-              <dd>{meta.type}</dd>
-            </div>
-            <div>
-              <dt>Version</dt>
-              <dd>v{activeVersion}</dd>
-            </div>
-            <div>
-              <dt>Rendered as</dt>
-              <dd>{contentType}</dd>
-            </div>
-          </dl>
-          <nav className="artifact-inspector-menu" aria-label="Artifact controls">
-            <Link href={base}>Latest</Link>
-            <Link href={`${base}/history`}>Versions</Link>
-            <Link href={`${base}/settings`}>Access</Link>
-            <Link href={`${base}/audit`}>Audit</Link>
-          </nav>
-        </div>
-      </details>
+    <main className="wb-stage relative flex h-dvh w-full flex-col">
+      <ArtifactControlMenu
+        title={meta.title}
+        type={meta.type}
+        base={base}
+        artifactId={meta.id}
+        versionLabel={versionLabel}
+        workspaceSlug={meta.workspaceSlug}
+        updatedLabel={updatedLabel}
+      />
 
-      <section className="artifact-render-stage" aria-label={`${meta.title} artifact preview`}>
+      <div className="wb-stage-body">
         {meta.type === "html" && (
-          <iframe className="artifact-frame" referrerPolicy="no-referrer" sandbox="allow-scripts" srcDoc={wrapHtmlWithCsp(content)} title="HTML artifact preview" />
+          <iframe
+            className="wb-stage-frame"
+            referrerPolicy="no-referrer"
+            sandbox="allow-scripts"
+            srcDoc={wrapHtmlWithCsp(content)}
+            title={meta.title}
+          />
         )}
+        {meta.type === "jsx" && <JsxViewer content={content} />}
         {meta.type === "md" && (
-          <MarkdownViewer content={content} />
+          <div className="wb-scroll absolute inset-0 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[820px] px-4 py-12 sm:py-16">
+              <MarkdownViewer content={content} />
+            </div>
+          </div>
         )}
-        {meta.type === "jsx" && (
-          <JsxViewer content={content} />
-        )}
-      </section>
+      </div>
     </main>
   );
 }

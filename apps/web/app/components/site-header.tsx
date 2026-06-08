@@ -4,12 +4,44 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SessionNav } from "./session-nav";
 
+// Top-level path segments that belong to app chrome rather than a user's
+// `/username` namespace. Used to tell an immersive artifact render
+// (`/user/project/slug`) apart from app routes that happen to be 3 deep.
+const RESERVED_TOP_LEVEL = new Set([
+  "dashboard",
+  "settings",
+  "pricing",
+  "login",
+  "workspaces",
+  "share",
+  "cli",
+  "workspace-invite",
+  "api"
+]);
+
+// The bare artifact render lives at `/username/project/slug`. Its sub-pages
+// (history, settings, diff, audit) are 4+ segments and keep normal chrome.
+function isImmersiveArtifactPath(pathname: string): boolean {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length !== 3) return false;
+  const [top] = segments;
+  return top !== undefined && !RESERVED_TOP_LEVEL.has(top);
+}
+
 // Shared app header for app pages. Marketing routes ship their own header +
-// footer, so this returns null there and dashboard/share/settings keep their
-// product chrome.
+// footer, the dashboard owns a sidebar shell, and the immersive artifact
+// render relies on its own floating control, so the header steps aside there.
 export function SiteHeader() {
   const pathname = usePathname();
-  if (pathname === "/" || pathname === "/pricing" || pathname.startsWith("/login")) return null;
+  if (
+    pathname === "/" ||
+    pathname === "/pricing" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/dashboard") ||
+    isImmersiveArtifactPath(pathname)
+  ) {
+    return null;
+  }
 
   return (
     <header className="site-header">

@@ -101,7 +101,7 @@ export default async function ArtifactSettingsPage(props: {
             Deleting hides this artifact from all reads and revokes all access. Audit history is preserved.
           </p>
         </div>
-        <DeleteArtifactButton artifactId={meta.id} artifactTitle={meta.title} />
+        <DeleteArtifactButton artifactId={meta.id} artifactTitle={meta.title} workspaceSlug={meta.workspaceSlug} />
       </section>
     </main>
   );

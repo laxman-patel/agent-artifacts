@@ -46,6 +46,12 @@ export default async function ArtifactPage(props: {
   const { content } = contentResult.body;
   const base = artifactPath(meta);
   const versionLabel = searchParams.version ? `v${searchParams.version}` : "latest";
+  // Format on the server with a fixed locale so the string is identical at
+  // hydration regardless of the client's timezone or locale.
+  const updatedDate = new Date(meta.updatedAt);
+  const updatedLabel = Number.isNaN(updatedDate.getTime())
+    ? null
+    : updatedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
     <main className="wb-stage relative flex h-dvh w-full flex-col">
@@ -55,7 +61,7 @@ export default async function ArtifactPage(props: {
         base={base}
         artifactId={meta.id}
         versionLabel={versionLabel}
-        updatedAt={meta.updatedAt}
+        updatedLabel={updatedLabel}
       />
 
       <div className="wb-stage-body">

@@ -26,14 +26,14 @@ export function ArtifactControlMenu({
   base,
   artifactId,
   versionLabel,
-  updatedAt
+  updatedLabel
 }: {
   title: string;
   type: ArtifactType;
   base: string;
   artifactId: string;
   versionLabel: string;
-  updatedAt: string;
+  updatedLabel: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -48,11 +48,6 @@ export function ArtifactControlMenu({
       window.setTimeout(() => setCopied(false), 1600);
     });
   }, [base]);
-
-  const updated = new Date(updatedAt);
-  const updatedText = Number.isNaN(updated.getTime())
-    ? null
-    : updated.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
   return (
     <div ref={ref} className="workbench dark fixed left-3 top-3 z-50 w-[min(340px,calc(100vw-1.5rem))]">
@@ -98,7 +93,7 @@ export function ArtifactControlMenu({
         inert={!open}
         role="region"
         aria-label="Artifact details"
-        className="wb-control-panel absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-xl border border-[var(--wb-line-strong)] bg-[var(--wb-tile-raised)] p-1.5 shadow-[0_18px_44px_oklch(0.08_0_0/0.55)]"
+        className="wb-control-panel wb-scroll absolute left-0 right-0 top-full mt-2 max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-xl border border-[var(--wb-line-strong)] bg-[var(--wb-tile-raised)] p-1.5 shadow-[0_18px_44px_oklch(0.08_0_0/0.55)]"
       >
         <div className="px-2 pb-2 pt-1.5">
           <div className="flex items-center gap-1.5">
@@ -112,8 +107,8 @@ export function ArtifactControlMenu({
               {copied ? <Check className="size-3.5 text-[var(--wb-accent-jsx)]" /> : <Copy className="size-3.5" />}
             </button>
           </div>
-          {updatedText ? (
-            <p className="mt-1.5 font-mono text-[10px] text-foreground/35">Updated {updatedText}</p>
+          {updatedLabel ? (
+            <p className="mt-1.5 font-mono text-[10px] text-foreground/35">Updated {updatedLabel}</p>
           ) : null}
         </div>
 
@@ -122,6 +117,7 @@ export function ArtifactControlMenu({
         <ArtifactControls
           artifactId={artifactId}
           base={base}
+          title={title}
           active={open}
           onNavigate={() => setOpen(false)}
         />

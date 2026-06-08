@@ -26,9 +26,55 @@
   --wb-accent-md: oklch(0.72 0.08 75);
   --wb-accent-jsx: oklch(0.7 0.08 155);
   --wb-accent-fallback: oklch(0.708 0 0);
+  --wb-accent-orange: #ff570a;
 
   color-scheme: dark;
   background: var(--wb-canvas);
+}
+
+.workbench :where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--wb-accent-orange) 70%, oklch(1 0 0 / 0.42));
+  outline-offset: 2px;
+}
+
+.workbench :where(.card.flat) {
+  border-color: var(--wb-line);
+  background: var(--wb-tile);
+}
+
+.workbench :where(.input, .textarea, select) {
+  border-color: var(--wb-line-strong);
+  background: var(--wb-canvas);
+}
+
+.workbench :where(.input, .textarea, select):focus {
+  border-color: color-mix(in oklch, var(--wb-accent-orange) 45%, var(--wb-line-strong));
+  outline: 2px solid color-mix(in oklch, var(--wb-accent-orange) 42%, transparent);
+  outline-offset: 2px;
+}
+
+.workbench :where(.primary-button) {
+  border-color: color-mix(in oklch, var(--wb-accent-orange) 44%, var(--wb-line-strong));
+  background: color-mix(in oklch, var(--wb-accent-orange) 16%, var(--wb-tile-raised));
+  color: color-mix(in oklch, var(--wb-accent-orange) 22%, oklch(0.985 0 0));
+  box-shadow: none;
+}
+
+.workbench :where(.primary-button:hover) {
+  border-color: color-mix(in oklch, var(--wb-accent-orange) 58%, var(--wb-line-strong));
+  background: color-mix(in oklch, var(--wb-accent-orange) 22%, var(--wb-tile-raised));
+  color: oklch(0.985 0 0);
+}
+
+.workbench :where(.ghost-button) {
+  border-color: var(--wb-line-strong);
+  color: oklch(0.985 0 0 / 0.72);
+}
+
+.workbench :where(.ghost-button:hover) {
+  border-color: color-mix(in oklch, var(--wb-accent-orange) 36%, var(--wb-line-strong));
+  background: color-mix(in oklch, var(--wb-accent-orange) 8%, transparent);
+  color: oklch(0.985 0 0 / 0.9);
 }
 
 /*
@@ -41,11 +87,11 @@
  */
 .workbench h1 {
   margin: 0;
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 1.75rem;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-family: var(--font-geist-pixel), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: -0.045em;
   color: inherit;
 }
 .workbench :is(ul, ol) {

@@ -16,20 +16,13 @@ export default async function AccountSettingsPage() {
   const { user, profile: profileRow } = profile.body;
 
   return (
-    <main className="page-shell">
-      <header className="page-header">
+    <main className="mx-auto w-full max-w-[980px] px-6 pb-24 pt-16 sm:px-10 lg:pt-12">
+      <header className="mb-8 border-b border-[var(--wb-line)] pb-6">
         <div>
-          <p className="eyebrow">Account</p>
-          <h1>Profile</h1>
-          <p className="subtle">Signed in as {user.email}</p>
-        </div>
-        <div className="row-actions">
-          <Link className="ghost-button" href="/dashboard">
-            Dashboard
-          </Link>
-          <Link className="ghost-button" href="/settings/billing">
-            Billing
-          </Link>
+          <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
+            Account settings
+          </h1>
+          <p className="mt-3 text-sm text-foreground/50">Signed in as {user.email}</p>
         </div>
       </header>
 

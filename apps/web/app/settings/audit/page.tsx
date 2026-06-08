@@ -15,12 +15,13 @@ export default async function GlobalAuditLogPage() {
   const eventsResult = await fetchAuditEvents(header, { limit: 100 });
 
   return (
-    <main className="page-shell">
-      <header className="page-header">
+    <main className="mx-auto w-full max-w-[1100px] px-6 pb-24 pt-16 sm:px-10 lg:pt-12">
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--wb-line)] pb-6">
         <div>
-          <p className="eyebrow">Settings</p>
-          <h1>Audit log</h1>
-          <p className="subtle">All activity on your account</p>
+          <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
+            Audit log
+          </h1>
+          <p className="mt-3 text-sm text-foreground/50">All activity on your account.</p>
         </div>
         <Link className="ghost-button" href="/settings/account">
           Account

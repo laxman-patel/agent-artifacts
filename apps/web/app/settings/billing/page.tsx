@@ -19,14 +19,16 @@ export default async function BillingSettingsPage() {
   const { plan, account, usage } = billing.body;
 
   return (
-    <main className="page-shell">
-      <header className="page-header">
+    <main className="mx-auto w-full max-w-[1100px] px-6 pb-24 pt-16 sm:px-10 lg:pt-12">
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--wb-line)] pb-6">
         <div>
-          <p className="eyebrow">Billing</p>
-          <h1>{plan.name}</h1>
-          <p className="subtle">
+          <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
+            Plan & billing
+          </h1>
+          <p className="mt-3 text-sm text-foreground/50">
             {account ? `Subscription status: ${account.status}` : "Free plan with hard limits and no overage billing."}
           </p>
+          <p className="mt-2 font-mono text-[12px] text-[var(--wb-accent-orange)]">{plan.name}</p>
         </div>
         <div className="row-actions">
           <Link className="ghost-button" href="/pricing">

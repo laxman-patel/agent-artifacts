@@ -7,7 +7,7 @@ import type { WorkspaceSummary } from "../../../lib/server-api";
 import { useDismiss } from "../../../lib/use-dismiss";
 
 function teamLabel(workspace: WorkspaceSummary): string {
-  return workspace.kind === "personal" ? "Personal team" : workspace.name;
+  return workspace.kind === "personal" ? "Personal library" : workspace.name;
 }
 
 function monogram(workspace: WorkspaceSummary): string {
@@ -22,7 +22,7 @@ function Monogram({ workspace, active }: { workspace: WorkspaceSummary; active?:
     <span
       aria-hidden
       data-active={active}
-      className="grid size-6 shrink-0 place-items-center rounded-[0.3rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile-raised)] font-pixel text-[11px] leading-none text-foreground/70 data-[active=true]:text-foreground"
+      className="grid size-6 shrink-0 place-items-center rounded-[0.3rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile-raised)] font-pixel text-[11px] leading-none text-foreground/70 data-[active=true]:border-[color-mix(in_oklch,var(--wb-accent-orange)_45%,var(--wb-line-strong))] data-[active=true]:text-[var(--wb-accent-orange)]"
     >
       {monogram(workspace)}
     </span>

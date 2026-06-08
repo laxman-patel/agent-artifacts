@@ -67,9 +67,7 @@ function ArtifactTile({
 }
 
 export function ArtifactBrowser({
-  kicker,
   title,
-  pathLabel,
   description,
   artifacts,
   scope,
@@ -77,9 +75,7 @@ export function ArtifactBrowser({
   emptyHint,
   previewContent
 }: {
-  kicker: string;
   title: string;
-  pathLabel: string;
   description?: string | null;
   artifacts: ArtifactOwnerSummary[];
   scope: "workspace" | "project";
@@ -92,13 +88,15 @@ export function ArtifactBrowser({
   return (
     <div className="mx-auto w-full max-w-[1600px] px-6 pb-24 pt-16 sm:px-10 lg:pt-12">
       <header className="mb-8 border-b border-[var(--wb-line)] pb-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/40">{kicker}</p>
-        <h1 className="mt-2">{title}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] text-foreground/45">
-          <span>{pathLabel}</span>
-          <span aria-hidden className="text-foreground/20">·</span>
-          <span className="tabular-nums">
-            {count} artifact{count === 1 ? "" : "s"}
+        <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
+          {title}
+        </h1>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] text-foreground/45">
+          <span className="tabular-nums text-[var(--wb-accent-orange)]">
+            {count}
+          </span>
+          <span>
+            artifact{count === 1 ? "" : "s"}
           </span>
         </div>
         {description ? <p className="mt-3 max-w-[65ch] text-sm leading-relaxed text-foreground/55">{description}</p> : null}

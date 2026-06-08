@@ -1,18 +1,17 @@
-import Link from "next/link";
 import { WorkspaceCreateForm } from "../../components/workspace-create-form";
 
 export default function NewTeamPage() {
   return (
-    <main className="page-shell">
-      <header className="page-header">
+    <main className="mx-auto w-full max-w-[920px] px-6 pb-24 pt-16 sm:px-10 lg:pt-12">
+      <header className="mb-8 border-b border-[var(--wb-line)] pb-6">
         <div>
-          <p className="eyebrow">New team</p>
-          <h1>Create team</h1>
-          <p className="subtle">Create a shared namespace for team projects and artifacts.</p>
+          <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
+            Create team
+          </h1>
+          <p className="mt-3 max-w-[60ch] text-sm leading-relaxed text-foreground/50">
+            Create a shared namespace for team projects and artifacts.
+          </p>
         </div>
-        <Link className="ghost-button" href="/dashboard">
-          Dashboard
-        </Link>
       </header>
 
       <section className="card flat stack">

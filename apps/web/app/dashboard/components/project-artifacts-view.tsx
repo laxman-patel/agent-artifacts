@@ -11,9 +11,7 @@ export function ProjectArtifactsView({ projectSlug }: { projectSlug: string }) {
   if (!project) {
     return (
       <ArtifactBrowser
-        kicker="Project"
         title="Project not found"
-        pathLabel={`/${projectSlug}`}
         artifacts={[]}
         scope="project"
         emptyTitle="Project not found"
@@ -26,9 +24,7 @@ export function ProjectArtifactsView({ projectSlug }: { projectSlug: string }) {
 
   return (
     <ArtifactBrowser
-      kicker="Project"
       title={project.title}
-      pathLabel={projectPath(project)}
       description={project.description}
       artifacts={projectArtifacts}
       scope="project"

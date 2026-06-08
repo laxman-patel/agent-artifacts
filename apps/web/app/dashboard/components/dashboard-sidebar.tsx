@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Hash, LayoutGrid, PanelLeftClose, type LucideIcon } from "lucide-react";
+import { Hash, LayoutGrid, type LucideIcon } from "lucide-react";
 import type { ProfileMeResponse, ProjectSummary, WorkspaceSummary } from "../../../lib/server-api";
 import { AccountMenu } from "./account-menu";
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -26,9 +26,9 @@ function SidebarLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       data-active={active}
-      className="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground/65 transition-colors hover:bg-foreground/[0.05] hover:text-foreground/90 data-[active=true]:bg-foreground/[0.08] data-[active=true]:text-foreground"
+      className="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground/65 transition-colors hover:bg-foreground/[0.05] hover:text-foreground/90 data-[active=true]:bg-[color-mix(in_oklch,var(--wb-accent-orange)_10%,transparent)] data-[active=true]:text-foreground"
     >
-      <Icon className="size-4 shrink-0 text-foreground/40 transition-colors group-hover:text-foreground/65 group-data-[active=true]:text-foreground/80" />
+      <Icon className="size-4 shrink-0 text-foreground/40 transition-colors group-hover:text-foreground/65 group-data-[active=true]:text-[var(--wb-accent-orange)]" />
       <span className="truncate">{label}</span>
     </Link>
   );
@@ -39,14 +39,12 @@ export function DashboardSidebar({
   workspace,
   projects,
   profile,
-  onCollapse,
   onNavigate
 }: {
   workspaces: WorkspaceSummary[];
   workspace: WorkspaceSummary;
   projects: ProjectSummary[];
   profile: ProfileMeResponse | null;
-  onCollapse: () => void;
   onNavigate: () => void;
 }) {
   const pathname = usePathname();
@@ -54,21 +52,13 @@ export function DashboardSidebar({
 
   return (
     <div className="flex h-full w-[16.5rem] flex-col">
-      <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[var(--wb-line)] px-3">
-        <Link href="/" aria-label="Artifacts home" className="flex items-center gap-2">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--wb-line)] px-3">
+        <div className="flex items-center gap-2" aria-label="Artifacts">
           <img src="/brand/artifacts-logo.svg" alt="" className="size-[17px]" />
           <span className="font-mono text-[12px] font-semibold uppercase leading-none tracking-[0.05em] text-foreground/90">
             Artifacts
           </span>
-        </Link>
-        <button
-          type="button"
-          onClick={onCollapse}
-          aria-label="Collapse sidebar"
-          className="hidden size-7 place-items-center rounded-md text-foreground/45 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/80 lg:grid"
-        >
-          <PanelLeftClose className="size-4" />
-        </button>
+        </div>
       </div>
 
       <nav className="wb-scroll flex-1 overflow-y-auto px-2 py-3" aria-label="Team">

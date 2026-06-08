@@ -36,7 +36,7 @@ export default async function ArtifactSettingsPage(props: {
       <main className="shell narrow">
         <h1>Admin access required</h1>
         <p className="muted">Only artifact admins can change access rules.</p>
-        <Link href={path}>Back to artifact</Link>
+        <Link className="ghost-button" href={path}>Artifact</Link>
       </main>
     );
   }
@@ -51,16 +51,20 @@ export default async function ArtifactSettingsPage(props: {
     <main className="page-shell">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Settings</p>
-          <h1>Access · {meta.title}</h1>
-          <p className="subtle">{base}</p>
+          <p className="eyebrow">Access</p>
+          <h1>{meta.title}</h1>
+          <p className="meta-line">{base}</p>
         </div>
         <Link className="ghost-button" href={base}>
-          Back to artifact
+          Artifact
         </Link>
       </header>
 
-      <section className="card flat">
+      <section className="card flat stack">
+        <div className="section-header">
+          <h2>Rules</h2>
+          <p className="muted small">Choose who can view or edit this artifact.</p>
+        </div>
         <AccessSettingsForm
           artifactId={meta.id}
           initialPublicEdit={access.body.publicEdit}
@@ -69,27 +73,34 @@ export default async function ArtifactSettingsPage(props: {
         />
       </section>
 
-      <section className="card flat">
-        <h2>Share links</h2>
-        <p className="muted small">Create revocable links granting access without requiring sign-in.</p>
+      <section className="card flat stack">
+        <div className="section-header">
+          <h2>Share links</h2>
+          <p className="muted small">Create revocable links that grant access without sign-in.</p>
+        </div>
         <ShareLinksManager
           artifactId={meta.id}
           initialLinks={shareLinksResult.ok ? shareLinksResult.body.shareLinks : []}
         />
       </section>
 
-      <section className="card flat">
-        <h2>Activity</h2>
+      <section className="card flat stack">
+        <div className="section-header">
+          <h2>Activity</h2>
+          <p className="muted small">Audit events stay attached to the artifact lifecycle.</p>
+        </div>
         <Link className="ghost-button" href={`${base}/audit`}>
           View audit log
         </Link>
       </section>
 
-      <section className="card flat danger-zone">
-        <h2>Danger zone</h2>
-        <p className="muted small">
-          Deleting hides this artifact from all reads and revokes all access. Audit history is preserved. Only the artifact owner can do this.
-        </p>
+      <section className="card flat danger-zone stack">
+        <div className="section-header">
+          <h2>Danger zone</h2>
+          <p className="muted small">
+            Deleting hides this artifact from all reads and revokes all access. Audit history is preserved.
+          </p>
+        </div>
         <DeleteArtifactButton artifactId={meta.id} artifactTitle={meta.title} workspaceSlug={meta.workspaceSlug} />
       </section>
     </main>

@@ -29,6 +29,7 @@ export {
   type CreateWorkspaceInvitationInput,
   type InvitationRepository,
   type InvitableWorkspaceRole,
+  type PersistAcceptInvitationInput,
   type PersistCreateInvitationInput,
   type ResentWorkspaceInvitation,
   type WorkspaceInvitationRecord,

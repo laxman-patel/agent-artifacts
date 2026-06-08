@@ -47,7 +47,7 @@ export default async function GlobalAuditLogPage() {
                 <tr key={event.id}>
                   <td className="small muted">{new Date(event.createdAt).toLocaleString()}</td>
                   <td className="small"><code>{event.action}</code></td>
-                  <td className="small muted">{event.artifactId ? event.artifactId.slice(0, 8) : "—"}</td>
+                  <td className="small muted">{event.artifactId ? event.artifactId.slice(0, 8) : "not linked"}</td>
                   <td className="small muted">{event.actorPrincipalType}:{event.actorPrincipalId.slice(0, 8)}</td>
                 </tr>
               ))}

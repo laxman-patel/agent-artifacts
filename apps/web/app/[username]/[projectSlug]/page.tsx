@@ -29,7 +29,7 @@ export default async function ProjectPage(props: {
         <div>
           <p className="eyebrow">Project</p>
           <h1>{project.title}</h1>
-          <p className="subtle">{base}</p>
+          <p className="meta-line">{base}</p>
           {project.description ? <p className="muted">{project.description}</p> : null}
         </div>
         <Link className="ghost-button" href={`/${params.username}`}>
@@ -39,7 +39,7 @@ export default async function ProjectPage(props: {
 
       <section className="card flat">
         {artifacts.length === 0 ? (
-          <p className="muted">No artifacts in this project yet.</p>
+          <p className="empty-state">No artifacts in this project yet.</p>
         ) : (
           <ul className="artifact-list">
             {artifacts.map((artifact) => (
@@ -48,12 +48,15 @@ export default async function ProjectPage(props: {
                   <Link href={artifactPath(artifact)}>
                     <strong>{artifact.title}</strong>
                   </Link>
-                  <p className="muted small">
-                    {artifact.type} · {artifactPath(artifact)}
+                  <p className="meta-line small">
+                    <span className="chip">{artifact.type}</span>
+                    <span>{artifactPath(artifact)}</span>
+                    <span>updated {new Date(artifact.updatedAt).toLocaleDateString()}</span>
                   </p>
                 </div>
                 <div className="row-actions">
-                  <Link href={`${artifactPath(artifact)}/history`}>History</Link>
+                  <Link href={artifactPath(artifact)}>Open</Link>
+                  <Link href={`${artifactPath(artifact)}/history`}>Versions</Link>
                   <Link href={`${artifactPath(artifact)}/settings`}>Access</Link>
                 </div>
               </li>

@@ -189,6 +189,7 @@ export interface BillingRepository {
   getAccountByDodoSubscriptionId(subscriptionId: string): Promise<BillingAccount | undefined>;
   getAccountByDodoCustomerId(customerId: string): Promise<BillingAccount | undefined>;
   upsertAccount(account: BillingAccount): Promise<void>;
+  upsertAccountForWebhook?(eventId: string, eventType: string, account: BillingAccount): Promise<boolean>;
   hasProcessedWebhook(eventId: string): Promise<boolean>;
   markWebhookProcessed(eventId: string, eventType?: string): Promise<void>;
   getUsage(userId: string): Promise<BillingUsageSnapshot>;
@@ -330,8 +331,6 @@ export class BillingService {
     },
     products: { builderProductId?: string; studioProductId?: string }
   ): Promise<void> {
-    if (await this.repository.hasProcessedWebhook(event.eventId)) return;
-
     const existingAccount = await this.findExistingDodoAccount({
       subscriptionId: event.data.subscription_id,
       customerId: event.data.customer?.customer_id
@@ -346,7 +345,7 @@ export class BillingService {
       throw new Error("Dodo subscription webhook could not be mapped to a paid plan.");
     }
     const status = statusForDodoEvent(event.type, event.data.cancel_at_next_billing_date);
-    await this.repository.upsertAccount({
+    const account = {
       userId,
       planId,
       status,
@@ -355,7 +354,15 @@ export class BillingService {
       dodoProductId: event.data.product_id ?? null,
       currentPeriodEnd: event.data.next_billing_date ? new Date(event.data.next_billing_date) : null,
       cancelAtPeriodEnd: event.data.cancel_at_next_billing_date ?? false
-    });
+    };
+
+    if (this.repository.upsertAccountForWebhook) {
+      await this.repository.upsertAccountForWebhook(event.eventId, event.type, account);
+      return;
+    }
+
+    if (await this.repository.hasProcessedWebhook(event.eventId)) return;
+    await this.repository.upsertAccount(account);
     await this.repository.markWebhookProcessed(event.eventId, event.type);
   }
 
@@ -637,6 +644,48 @@ export class DrizzleBillingRepository implements BillingRepository {
 
   async markWebhookProcessed(eventId: string, eventType = "unknown"): Promise<void> {
     await this.db.insert(billingWebhookEvents).values({ id: eventId, eventType }).onConflictDoNothing();
+  }
+
+  async upsertAccountForWebhook(eventId: string, eventType: string, account: BillingAccount): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const claimed = await tx
+        .insert(billingWebhookEvents)
+        .values({ id: eventId, eventType })
+        .onConflictDoNothing()
+        .returning({ id: billingWebhookEvents.id });
+
+      if (claimed.length === 0) {
+        return false;
+      }
+
+      await tx
+        .insert(billingAccounts)
+        .values({
+          userId: account.userId,
+          planId: account.planId,
+          status: account.status as BillingSubscriptionStatus,
+          dodoCustomerId: account.dodoCustomerId,
+          dodoSubscriptionId: account.dodoSubscriptionId,
+          dodoProductId: account.dodoProductId,
+          currentPeriodEnd: account.currentPeriodEnd,
+          cancelAtPeriodEnd: account.cancelAtPeriodEnd ?? false,
+          updatedAt: new Date()
+        })
+        .onConflictDoUpdate({
+          target: billingAccounts.userId,
+          set: {
+            planId: account.planId,
+            status: account.status as BillingSubscriptionStatus,
+            dodoCustomerId: account.dodoCustomerId,
+            dodoSubscriptionId: account.dodoSubscriptionId,
+            dodoProductId: account.dodoProductId,
+            currentPeriodEnd: account.currentPeriodEnd,
+            cancelAtPeriodEnd: account.cancelAtPeriodEnd ?? false,
+            updatedAt: new Date()
+          }
+        });
+      return true;
+    });
   }
 
   async getUsage(userId: string): Promise<BillingUsageSnapshot> {

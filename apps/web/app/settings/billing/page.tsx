@@ -37,7 +37,7 @@ export default async function BillingSettingsPage() {
       </header>
 
       <section className="card flat stack">
-        <div>
+        <div className="section-header">
           <h2>Included usage</h2>
           <p className="muted">These are enforced server-side across web, API, CLI, and MCP.</p>
         </div>
@@ -60,7 +60,7 @@ export default async function BillingSettingsPage() {
       </section>
 
       <section className="card flat stack">
-        <div>
+        <div className="section-header">
           <h2>Feature access</h2>
           <p className="muted">Upgrade prompts appear when a plan gate blocks a paid feature.</p>
         </div>

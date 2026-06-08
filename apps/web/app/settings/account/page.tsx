@@ -34,9 +34,11 @@ export default async function AccountSettingsPage() {
       </header>
 
       <section className="card flat stack">
-        <div>
+        <div className="section-header">
           <h2>Username namespace</h2>
           <p className="muted">Claimed once at signup. Unlocks URLs shaped like /you/slug.</p>
+        </div>
+        <div>
           {profileRow ? (
             <p className="pill success">
               Active username · <strong>{profileRow.username}</strong>

@@ -11,11 +11,15 @@ export default function NewWorkspacePage() {
           <p className="subtle">Create a shared namespace for team projects and artifacts.</p>
         </div>
         <Link className="ghost-button" href="/dashboard">
-          Back to dashboard
+          Dashboard
         </Link>
       </header>
 
       <section className="card flat stack">
+        <div className="section-header">
+          <h2>Workspace identity</h2>
+          <p className="muted small">The slug becomes the shared namespace for team artifacts.</p>
+        </div>
         <WorkspaceCreateForm />
       </section>
     </main>

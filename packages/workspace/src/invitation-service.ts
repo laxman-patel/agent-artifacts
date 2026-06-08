@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
-import { users, workspaceInvitations } from "@agent-artifacts/db";
+import { users, workspaceInvitations, workspaceMembers } from "@agent-artifacts/db";
 import type { Principal, WorkspaceRole } from "@agent-artifacts/shared";
 import {
   WorkspaceForbiddenError,
@@ -98,6 +98,17 @@ export interface PersistCreateInvitationInput {
   expiresAt: Date;
 }
 
+export interface PersistAcceptInvitationInput {
+  invitationId: string;
+  acceptedAt: Date;
+  member?: {
+    id: string;
+    workspaceId: string;
+    userId: string;
+    role: WorkspaceRole;
+  };
+}
+
 export interface InvitationRepository {
   getById(invitationId: string): Promise<WorkspaceInvitationRecord | undefined>;
   getByTokenHash(tokenHash: string): Promise<WorkspaceInvitationRecord | undefined>;
@@ -107,6 +118,7 @@ export interface InvitationRepository {
   ): Promise<WorkspaceInvitationRecord | undefined>;
   findUserIdByEmail(email: string): Promise<string | undefined>;
   create(input: PersistCreateInvitationInput): Promise<void>;
+  acceptPendingInvitation(input: PersistAcceptInvitationInput): Promise<boolean>;
   updateTokenAndExpiry(invitationId: string, tokenHash: string, expiresAt: Date): Promise<void>;
   markAccepted(invitationId: string, acceptedAt: Date): Promise<boolean>;
   markRevoked(invitationId: string, revokedAt: Date): Promise<boolean>;
@@ -258,20 +270,29 @@ export class InvitationService {
 
     const existingMembership = await this.workspaceRepository.getMembership(invitation.workspaceId, principal.id);
     if (existingMembership) {
-      if (!(await this.invitationRepository.markAccepted(invitation.id, new Date()))) {
+      if (
+        !(await this.invitationRepository.acceptPendingInvitation({
+          invitationId: invitation.id,
+          acceptedAt: new Date()
+        }))
+      ) {
         throw new WorkspaceInvitationConflictError("This invitation is no longer pending.");
       }
       return { workspaceId: invitation.workspaceId, role: existingMembership.role };
     }
 
-    await this.workspaceRepository.addMember({
-      id: randomUUID(),
-      workspaceId: invitation.workspaceId,
-      userId: principal.id,
-      role: invitation.role
-    });
-
-    if (!(await this.invitationRepository.markAccepted(invitation.id, new Date()))) {
+    if (
+      !(await this.invitationRepository.acceptPendingInvitation({
+        invitationId: invitation.id,
+        acceptedAt: new Date(),
+        member: {
+          id: randomUUID(),
+          workspaceId: invitation.workspaceId,
+          userId: principal.id,
+          role: invitation.role
+        }
+      }))
+    ) {
       throw new WorkspaceInvitationConflictError("This invitation is no longer pending.");
     }
     await this.recordAudit(
@@ -473,6 +494,38 @@ export class DrizzleInvitationRepository implements InvitationRepository {
     });
   }
 
+  async acceptPendingInvitation(input: PersistAcceptInvitationInput): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const accepted = await tx
+        .update(workspaceInvitations)
+        .set({ state: "accepted", acceptedAt: input.acceptedAt })
+        .where(and(
+          eq(workspaceInvitations.id, input.invitationId),
+          eq(workspaceInvitations.state, "pending"),
+          sql`${workspaceInvitations.expiresAt} > ${input.acceptedAt}`
+        ))
+        .returning({ id: workspaceInvitations.id });
+
+      if (accepted.length === 0) {
+        return false;
+      }
+
+      if (input.member) {
+        const now = new Date();
+        await tx.insert(workspaceMembers).values({
+          id: input.member.id,
+          workspaceId: input.member.workspaceId,
+          userId: input.member.userId,
+          role: input.member.role,
+          createdAt: now,
+          updatedAt: now
+        });
+      }
+
+      return true;
+    });
+  }
+
   async updateTokenAndExpiry(invitationId: string, tokenHash: string, expiresAt: Date): Promise<void> {
     await this.db
       .update(workspaceInvitations)
@@ -541,6 +594,9 @@ export class DrizzleInvitationRepository implements InvitationRepository {
 export class MemoryInvitationRepository implements InvitationRepository {
   private readonly invitations = new Map<string, WorkspaceInvitationRecord>();
   private readonly usersByEmail = new Map<string, string>();
+  rejectNextAcceptPendingInvitation = false;
+
+  constructor(private readonly memberRepository?: Pick<WorkspaceRepository, "addMember">) {}
 
   setUserEmail(userId: string, email: string): void {
     this.usersByEmail.set(normalizeInvitationEmail(email), userId);
@@ -584,6 +640,28 @@ export class MemoryInvitationRepository implements InvitationRepository {
       revokedAt: null,
       createdAt: new Date()
     });
+  }
+
+  async acceptPendingInvitation(input: PersistAcceptInvitationInput): Promise<boolean> {
+    if (this.rejectNextAcceptPendingInvitation) {
+      this.rejectNextAcceptPendingInvitation = false;
+      return false;
+    }
+
+    const invitation = this.invitations.get(input.invitationId);
+    if (!invitation || invitation.state !== "pending" || invitation.expiresAt <= input.acceptedAt) {
+      return false;
+    }
+
+    this.invitations.set(input.invitationId, {
+      ...invitation,
+      state: "accepted",
+      acceptedAt: input.acceptedAt
+    });
+    if (input.member) {
+      await this.memberRepository?.addMember(input.member);
+    }
+    return true;
   }
 
   async updateTokenAndExpiry(invitationId: string, tokenHash: string, expiresAt: Date): Promise<void> {

@@ -18,6 +18,9 @@ import type {
 class MemoryWorkspaceRepository implements WorkspaceRepository {
   private readonly workspaces = new Map<string, WorkspaceRecord>();
   private readonly members = new Map<string, WorkspaceMemberRecord>();
+  deferListMembers = false;
+  private readonly releaseListMemberFns: Array<() => void> = [];
+  private listMembersWaiter: (() => void) | undefined;
 
   memberKey(workspaceId: string, userId: string): string {
     return `${workspaceId}:${userId}`;
@@ -86,17 +89,28 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
   }
 
   async listMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]> {
-    return [...this.members.values()].filter((member) => member.workspaceId === workspaceId);
+    const members = [...this.members.values()].filter((member) => member.workspaceId === workspaceId);
+    if (this.deferListMembers) {
+      await new Promise<void>((resolve) => {
+        this.releaseListMemberFns.push(resolve);
+        this.listMembersWaiter?.();
+      });
+    }
+    return members;
   }
 
   async getMembership(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | undefined> {
     return this.members.get(this.memberKey(workspaceId, userId));
   }
 
-  async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void> {
+  async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<boolean> {
     const member = this.members.get(this.memberKey(workspaceId, userId));
     if (!member) {
       throw new WorkspaceMemberNotFoundError();
+    }
+
+    if (member.role === "owner" && role !== "owner" && !this.hasOtherOwner(workspaceId, userId)) {
+      return false;
     }
 
     this.members.set(this.memberKey(workspaceId, userId), {
@@ -104,10 +118,42 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
       role,
       updatedAt: new Date()
     });
+    return true;
   }
 
-  async removeMember(workspaceId: string, userId: string): Promise<void> {
+  async removeMember(workspaceId: string, userId: string): Promise<boolean> {
+    const member = this.members.get(this.memberKey(workspaceId, userId));
+    if (!member) {
+      return false;
+    }
+    if (member.role === "owner" && !this.hasOtherOwner(workspaceId, userId)) {
+      return false;
+    }
+
     this.members.delete(this.memberKey(workspaceId, userId));
+    return true;
+  }
+
+  async waitForListMembers(count: number): Promise<void> {
+    while (this.releaseListMemberFns.length < count) {
+      await new Promise<void>((resolve) => {
+        this.listMembersWaiter = resolve;
+      });
+      this.listMembersWaiter = undefined;
+    }
+  }
+
+  releaseListMembers(): void {
+    this.deferListMembers = false;
+    for (const release of this.releaseListMemberFns.splice(0)) {
+      release();
+    }
+  }
+
+  private hasOtherOwner(workspaceId: string, userId: string): boolean {
+    return [...this.members.values()].some(
+      (member) => member.workspaceId === workspaceId && member.userId !== userId && member.role === "owner"
+    );
   }
 }
 
@@ -307,6 +353,23 @@ describe("MembershipService", () => {
     await service.removeMember(workspaceId, owner.id, admin);
 
     expect(await workspaceRepository.getMembership(workspaceId, owner.id)).toBeUndefined();
+  });
+
+  it("keeps at least one owner when concurrent removals race", async () => {
+    const { service, workspaceRepository } = createHarness({ withCoOwner: true });
+    workspaceRepository.deferListMembers = true;
+
+    const removeOwner = service.removeMember(workspaceId, owner.id, owner);
+    const removeCoOwner = service.removeMember(workspaceId, "user_co_owner", owner);
+    await workspaceRepository.waitForListMembers(2);
+    workspaceRepository.releaseListMembers();
+
+    const results = await Promise.allSettled([removeOwner, removeCoOwner]);
+    const members = await workspaceRepository.listMembers(workspaceId);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(members.filter((memberRecord) => memberRecord.role === "owner")).toHaveLength(1);
   });
 
   it("denies role changes without manage_members permission", async () => {

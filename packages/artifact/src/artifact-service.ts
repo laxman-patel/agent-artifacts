@@ -85,89 +85,7 @@ export class ArtifactService {
         workspaceId: project.workspaceId
       }
     });
-    const normalizedSlug = validateSlug(parsed.slug);
-    const available = !(await this.repository.slugExistsInProject(project.id, normalizedSlug));
-    if (!available) {
-      throw new SlugUnavailableError(normalizedSlug);
-    }
-
-    const contentBytes = byteLength(parsed.content);
-    await this.billing?.assertCanCreateArtifact(project.ownerUserId, {
-      publicView: parsed.access.publicView,
-      publicEdit: parsed.access.publicEdit,
-      contentBytes
-    });
-
-    const artifactId = randomUUID();
-    const versionId = randomUUID();
-    const content = await this.writeContent({
-      ownerUserId: project.ownerUserId,
-      artifactId,
-      versionNumber: 1,
-      type: parsed.type,
-      content: parsed.content
-    });
-
-    await this.repository.createArtifact({
-      artifact: {
-        id: artifactId,
-        ownerUserId: project.ownerUserId,
-        projectId: project.id,
-        slug: normalizedSlug,
-        title: parsed.title,
-        description: parsed.description,
-        type: parsed.type,
-        latestVersionId: versionId,
-        createdByPrincipalType: principal.type,
-        createdByPrincipalId: principal.id,
-        publicView: parsed.access.publicView,
-        publicEdit: parsed.access.publicEdit
-      },
-      version: {
-        id: versionId,
-        artifactId,
-        versionNumber: 1,
-        contentObjectKey: content.contentObjectKey,
-        contentSha256: content.contentSha256,
-        contentBytes: content.contentBytes,
-        changelog: parsed.changelog,
-        createdByPrincipalType: principal.type,
-        createdByPrincipalId: principal.id
-      }
-    });
-
-    await this.audit(project.ownerUserId, artifactId, principal, "artifact.created", "artifact", artifactId, {
-      slug: normalizedSlug,
-      versionNumber: 1
-    }, project.workspaceId);
-    this.recordBillingMetering(
-      "recordVersionWrite",
-      this.billing?.recordVersionWrite?.({
-        ownerUserId: project.ownerUserId,
-        artifactId,
-        versionNumber: 1,
-        contentBytes: content.contentBytes
-      })
-    );
-
-    return {
-      artifactId,
-      versionId,
-      versionNumber: 1,
-      ownerUserId: project.ownerUserId,
-      ownerUsername: parsed.ownerUsername,
-      projectId: project.id,
-      projectSlug: project.slug,
-      normalizedSlug,
-      type: parsed.type,
-      title: parsed.title,
-      url: buildWorkspaceProjectArtifactUrl(this.appUrl, parsed.ownerUsername, project.slug, normalizedSlug),
-      contentObjectKey: content.contentObjectKey,
-      contentSha256: content.contentSha256,
-      contentBytes: content.contentBytes,
-      publicView: parsed.access.publicView,
-      publicEdit: parsed.access.publicEdit
-    };
+    return this.createArtifactInProject({ project, namespaceSlug: parsed.ownerUsername, artifact: parsed, principal });
   }
 
   async createWorkspaceArtifact(
@@ -183,65 +101,87 @@ export class ArtifactService {
       action: "workspace.create_content",
       context: { workspaceId }
     });
-    const normalizedSlug = validateSlug(parsed.slug);
-    const available = !(await this.repository.slugExistsInProject(project.id, normalizedSlug));
+    return this.createArtifactInProject({ project, namespaceSlug: workspaceSlug, artifact: parsed, principal });
+  }
+
+  private async createArtifactInProject(input: {
+    project: { id: string; slug: string; workspaceId: string; ownerUserId: string };
+    namespaceSlug: string;
+    artifact: {
+      slug: string;
+      type: ArtifactType;
+      title: string;
+      description?: string;
+      content: string;
+      changelog?: string;
+      access: { publicView: boolean; publicEdit: boolean };
+    };
+    principal: Principal;
+  }): Promise<ArtifactSummary> {
+    const normalizedSlug = validateSlug(input.artifact.slug);
+    const available = !(await this.repository.slugExistsInProject(input.project.id, normalizedSlug));
     if (!available) {
       throw new SlugUnavailableError(normalizedSlug);
     }
 
-    const contentBytes = byteLength(parsed.content);
-    await this.billing?.assertCanCreateArtifact(project.ownerUserId, {
-      publicView: parsed.access.publicView,
-      publicEdit: parsed.access.publicEdit,
+    const contentBytes = byteLength(input.artifact.content);
+    await this.billing?.assertCanCreateArtifact(input.project.ownerUserId, {
+      publicView: input.artifact.access.publicView,
+      publicEdit: input.artifact.access.publicEdit,
       contentBytes
     });
 
     const artifactId = randomUUID();
     const versionId = randomUUID();
     const content = await this.writeContent({
-      ownerUserId: project.ownerUserId,
+      ownerUserId: input.project.ownerUserId,
       artifactId,
       versionNumber: 1,
-      type: parsed.type,
-      content: parsed.content
+      type: input.artifact.type,
+      content: input.artifact.content
     });
 
-    await this.repository.createArtifact({
-      artifact: {
-        id: artifactId,
-        ownerUserId: project.ownerUserId,
-        projectId: project.id,
-        slug: normalizedSlug,
-        title: parsed.title,
-        description: parsed.description,
-        type: parsed.type,
-        latestVersionId: versionId,
-        createdByPrincipalType: principal.type,
-        createdByPrincipalId: principal.id,
-        publicView: parsed.access.publicView,
-        publicEdit: parsed.access.publicEdit
-      },
-      version: {
-        id: versionId,
-        artifactId,
-        versionNumber: 1,
-        contentObjectKey: content.contentObjectKey,
-        contentSha256: content.contentSha256,
-        contentBytes: content.contentBytes,
-        changelog: parsed.changelog,
-        createdByPrincipalType: principal.type,
-        createdByPrincipalId: principal.id
-      }
-    });
+    try {
+      await this.repository.createArtifact({
+        artifact: {
+          id: artifactId,
+          ownerUserId: input.project.ownerUserId,
+          projectId: input.project.id,
+          slug: normalizedSlug,
+          title: input.artifact.title,
+          description: input.artifact.description,
+          type: input.artifact.type,
+          latestVersionId: versionId,
+          createdByPrincipalType: input.principal.type,
+          createdByPrincipalId: input.principal.id,
+          publicView: input.artifact.access.publicView,
+          publicEdit: input.artifact.access.publicEdit
+        },
+        version: {
+          id: versionId,
+          artifactId,
+          versionNumber: 1,
+          contentObjectKey: content.contentObjectKey,
+          contentSha256: content.contentSha256,
+          contentBytes: content.contentBytes,
+          changelog: input.artifact.changelog,
+          createdByPrincipalType: input.principal.type,
+          createdByPrincipalId: input.principal.id
+        }
+      });
+    } catch (error) {
+      await this.deleteContent(content.contentObjectKey);
+      throw error;
+    }
 
-    await this.audit(project.ownerUserId, artifactId, principal, "artifact.created", "artifact", artifactId, {
+    await this.audit(input.project.ownerUserId, artifactId, input.principal, "artifact.created", "artifact", artifactId, {
       slug: normalizedSlug,
       versionNumber: 1
-    }, project.workspaceId);
+    }, input.project.workspaceId);
     this.recordBillingMetering(
       "recordVersionWrite",
       this.billing?.recordVersionWrite?.({
-        ownerUserId: project.ownerUserId,
+        ownerUserId: input.project.ownerUserId,
         artifactId,
         versionNumber: 1,
         contentBytes: content.contentBytes
@@ -252,19 +192,19 @@ export class ArtifactService {
       artifactId,
       versionId,
       versionNumber: 1,
-      ownerUserId: project.ownerUserId,
-      ownerUsername: workspaceSlug,
-      projectId: project.id,
-      projectSlug: project.slug,
+      ownerUserId: input.project.ownerUserId,
+      ownerUsername: input.namespaceSlug,
+      projectId: input.project.id,
+      projectSlug: input.project.slug,
       normalizedSlug,
-      type: parsed.type,
-      title: parsed.title,
-      url: buildWorkspaceProjectArtifactUrl(this.appUrl, workspaceSlug, project.slug, normalizedSlug),
+      type: input.artifact.type,
+      title: input.artifact.title,
+      url: buildWorkspaceProjectArtifactUrl(this.appUrl, input.namespaceSlug, input.project.slug, normalizedSlug),
       contentObjectKey: content.contentObjectKey,
       contentSha256: content.contentSha256,
       contentBytes: content.contentBytes,
-      publicView: parsed.access.publicView,
-      publicEdit: parsed.access.publicEdit
+      publicView: input.artifact.access.publicView,
+      publicEdit: input.artifact.access.publicEdit
     };
   }
 
@@ -296,20 +236,26 @@ export class ArtifactService {
       content: parsed.content
     });
 
-    await this.repository.createVersion({
-      version: {
-        id: versionId,
-        artifactId: artifact.id,
-        versionNumber: nextVersionNumber,
-        parentVersionId: latestVersion.id,
-        contentObjectKey: content.contentObjectKey,
-        contentSha256: content.contentSha256,
-        contentBytes: content.contentBytes,
-        changelog: parsed.changelog,
-        createdByPrincipalType: principal.type,
-        createdByPrincipalId: principal.id
-      }
-    });
+    try {
+      await this.repository.createVersion({
+        expectedLatestVersionId: latestVersion.id,
+        version: {
+          id: versionId,
+          artifactId: artifact.id,
+          versionNumber: nextVersionNumber,
+          parentVersionId: latestVersion.id,
+          contentObjectKey: content.contentObjectKey,
+          contentSha256: content.contentSha256,
+          contentBytes: content.contentBytes,
+          changelog: parsed.changelog,
+          createdByPrincipalType: principal.type,
+          createdByPrincipalId: principal.id
+        }
+      });
+    } catch (error) {
+      await this.deleteContent(content.contentObjectKey);
+      throw error;
+    }
 
     await this.audit(artifact.ownerUserId, artifact.id, principal, "artifact.updated", "artifact_version", versionId, {
       previousVersionNumber: latestVersion.versionNumber,
@@ -676,6 +622,12 @@ export class ArtifactService {
       contentSha256,
       contentBytes: encodedContent.byteLength
     };
+  }
+
+  private async deleteContent(contentObjectKey: string): Promise<void> {
+    await this.storage.deleteObject?.(contentObjectKey).catch((error: unknown) => {
+      console.error("Artifact content cleanup failed", error);
+    });
   }
 
   private recordBillingMetering(operation: string, promise: Promise<void> | undefined): void {

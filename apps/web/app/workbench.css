@@ -1,0 +1,122 @@
+/*
+ * Workbench surface — the authenticated dashboard shell, the Drive-style
+ * artifact grid, and the immersive artifact render with its floating control.
+ *
+ * Visual language follows DESIGN.md: a dark neutral canvas, thin rules, flat
+ * surfaces, tonal layering instead of shadow, and color used only as a quiet
+ * per-type notation. Tailwind utilities carry most of the layout; this file
+ * owns the few things utilities cannot express (tonal tokens, scaled preview
+ * frames, functional fade masks, skeletons, custom scrollbars).
+ */
+
+.workbench {
+  /* Tonal layers, darkest canvas → raised tile. Pure neutrals (chroma 0). */
+  --wb-canvas: oklch(0.145 0 0);
+  --wb-sidebar: oklch(0.165 0 0);
+  --wb-content: oklch(0.17 0 0);
+  --wb-tile: oklch(0.1871 0 0);
+  --wb-tile-raised: oklch(0.205 0 0);
+
+  /* Hairline rules. Borders are the primary structure here. */
+  --wb-line: oklch(1 0 0 / 0.09);
+  --wb-line-strong: oklch(1 0 0 / 0.16);
+
+  /* Per-type artifact accents (DESIGN.md). Used as quiet notation only. */
+  --wb-accent-html: oklch(0.72 0.08 215);
+  --wb-accent-md: oklch(0.72 0.08 75);
+  --wb-accent-jsx: oklch(0.7 0.08 155);
+
+  color-scheme: dark;
+  background: var(--wb-canvas);
+}
+
+/* ── Thin, quiet scrollbars for panels ───────────────────────────────── */
+.wb-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(1 0 0 / 0.16) transparent;
+}
+.wb-scroll::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.wb-scroll::-webkit-scrollbar-thumb {
+  background-color: oklch(1 0 0 / 0.14);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+.wb-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(1 0 0 / 0.24);
+}
+
+/* ── Skeleton (loading) — a single quiet sweep, never a spinner ──────── */
+.wb-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: oklch(1 0 0 / 0.04);
+}
+.wb-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(1 0 0 / 0.05),
+    transparent
+  );
+  animation: wb-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes wb-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ── Artifact preview thumbnail ──────────────────────────────────────── */
+/* Live HTML renders are mounted at a fixed logical width and scaled to fit
+ * the tile, so a tile reads like a shrunk page (Drive-style) without fluid
+ * reflow. The scale factor is measured and applied inline as --wb-scale. */
+.wb-thumb {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--wb-tile);
+}
+.wb-thumb-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  transform-origin: top left;
+  transform: scale(var(--wb-scale, 0.2));
+  pointer-events: none;
+  background: #fff;
+}
+
+/* Document / code previews: a clipped snippet that fades into the tile,
+ * a functional alpha reveal (not a color treatment) per DESIGN.md. */
+.wb-thumb-fade {
+  -webkit-mask-image: linear-gradient(180deg, #000 58%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 58%, transparent 100%);
+}
+
+/* ── Immersive artifact render ───────────────────────────────────────── */
+.wb-stage {
+  background: var(--wb-content);
+}
+.wb-stage-frame {
+  border: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-skeleton::after {
+    animation: none;
+  }
+}

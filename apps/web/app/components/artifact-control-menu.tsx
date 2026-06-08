@@ -55,11 +55,11 @@ export function ArtifactControlMenu({
     <div
       ref={ref}
       data-open={open}
-      className="workbench dark fixed left-2 top-2 z-50 w-[min(310px,calc(100vw-1rem))] opacity-[0.72] transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 data-[open=true]:opacity-100"
+      className="workbench dark fixed left-2 top-2 z-50 w-fit max-w-[calc(100vw-1rem)] opacity-[0.72] transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 data-[open=true]:opacity-100"
     >
       <div
         data-open={open}
-        className="flex items-center gap-1.5 rounded-[0.35rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile)]/88 p-0.5 pr-1 shadow-[0_8px_22px_oklch(0.08_0_0/0.42)] backdrop-blur-sm data-[open=true]:border-[color-mix(in_oklch,var(--wb-accent-orange)_36%,var(--wb-line-strong))]"
+        className="inline-flex max-w-full items-center gap-1.5 rounded-[0.35rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile)]/88 p-0.5 pr-1 shadow-[0_8px_22px_oklch(0.08_0_0/0.42)] backdrop-blur-sm data-[open=true]:border-[color-mix(in_oklch,var(--wb-accent-orange)_36%,var(--wb-line-strong))]"
       >
         <button
           type="button"
@@ -74,7 +74,7 @@ export function ArtifactControlMenu({
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-[0.25rem] px-1.5 py-1 text-left transition-colors hover:bg-foreground/[0.05]"
+          className="flex min-w-0 max-w-[min(235px,calc(100vw-4.5rem))] items-center gap-2 rounded-[0.25rem] px-1.5 py-1 text-left transition-colors hover:bg-foreground/[0.05]"
         >
           <span
             aria-hidden
@@ -99,7 +99,7 @@ export function ArtifactControlMenu({
           data-open="true"
           role="region"
           aria-label="Artifact details"
-          className="wb-control-panel wb-scroll absolute left-0 right-0 top-full mt-1.5 max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-[0.35rem] border border-[color-mix(in_oklch,var(--wb-accent-orange)_26%,var(--wb-line-strong))] bg-[var(--wb-tile-raised)]/96 p-2 shadow-[0_16px_38px_oklch(0.08_0_0/0.52)]"
+          className="wb-control-panel wb-scroll absolute left-0 top-full mt-1.5 w-[min(310px,calc(100vw-1rem))] max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-[0.35rem] border border-[color-mix(in_oklch,var(--wb-accent-orange)_26%,var(--wb-line-strong))] bg-[var(--wb-tile-raised)]/96 p-2 shadow-[0_16px_38px_oklch(0.08_0_0/0.52)]"
         >
           <section className="rounded-[0.25rem] border border-[var(--wb-line)] bg-foreground/[0.025] p-2">
             <div className="mb-2 flex items-center gap-2 text-foreground/88">

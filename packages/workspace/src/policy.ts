@@ -41,7 +41,7 @@ export function canPerformWorkspaceAction(input: {
   const { action, role } = input;
 
   if (role === undefined) {
-    return { allowed: false, reason: "Not a workspace member." };
+    return { allowed: false, reason: "Not a team member." };
   }
 
   if (role === "billing_admin") {

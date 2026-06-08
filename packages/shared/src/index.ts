@@ -90,7 +90,7 @@ export const RESERVED_USERNAMES = new Set<string>([
   "login", "logout", "signup", "signin", "signout", "auth",
   "dashboard", "settings", "account", "profile", "preferences",
   "share", "shares", "admin", "support", "help", "docs",
-  "about", "terms", "privacy", "legal", "security", "workspace-invite", "workspaces", "app", "w",
+  "about", "terms", "privacy", "legal", "security", "team-invite", "teams", "workspace-invite", "workspaces", "app", "w",
   // API/infra paths
   "api", "mcp", "static", "assets", "public", "_next",
   "www", "mail", "ftp", "root", "system",
@@ -137,14 +137,14 @@ export class WorkspaceForbiddenError extends Error {
 
 export class WorkspaceNotFoundError extends Error {
   constructor() {
-    super("Workspace was not found.");
+    super("Team was not found.");
     this.name = "WorkspaceNotFoundError";
   }
 }
 
 export class WorkspaceSlugUnavailableError extends Error {
   constructor(slug: string) {
-    super(`Workspace slug "${slug}" is not available.`);
+    super(`Team slug "${slug}" is not available.`);
     this.name = "WorkspaceSlugUnavailableError";
   }
 }

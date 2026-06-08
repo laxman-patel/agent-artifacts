@@ -24,7 +24,7 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
   }
 
   if (!workspacesResult.ok) {
-    throw new Error(workspacesResult.message ?? "Workspaces could not be loaded.");
+    throw new Error(workspacesResult.message ?? "Teams could not be loaded.");
   }
 
   const workspace = workspacesResult.body.workspaces.find(
@@ -55,14 +55,14 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
           <p className="meta-line">/{workspace.slug} · {workspace.role}</p>
         </div>
         <Link className="ghost-button" href={workspaceDashboardPath(workspace)}>
-          Workspace
+          Team
         </Link>
       </header>
 
       <section className="card flat stack">
         <div className="section-header">
           <h2>Members</h2>
-          <p className="muted small">Roles control workspace access across web, API, CLI, and MCP.</p>
+          <p className="muted small">Roles control team access across web, API, CLI, and MCP.</p>
         </div>
         <div>
           {!canManageMembers ? (
@@ -123,7 +123,7 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
         <section className="card flat stack">
           <div className="section-header">
             <h2>Invite teammate</h2>
-            <p className="muted">Send an email invitation to join this team workspace.</p>
+            <p className="muted">Send an email invitation to join this team.</p>
           </div>
           <div>
             <WorkspaceInviteForm workspaceId={workspace.id} />
@@ -135,11 +135,11 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
         <section className="card flat stack">
           <div className="section-header">
             <h2>Audit log</h2>
-            <p className="muted small">Recent workspace-level changes.</p>
+            <p className="muted small">Recent team-level changes.</p>
           </div>
           <div>
             {auditEvents.length === 0 ? (
-              <p className="empty-state">No workspace audit events yet.</p>
+              <p className="empty-state">No team audit events yet.</p>
             ) : (
               <table className="audit-table">
                 <thead>

@@ -105,7 +105,7 @@ export class WorkspaceService {
     principal: Principal
   ): Promise<WorkspaceRecord & { role: WorkspaceRole }> {
     if (principal.type !== "user") {
-      throw new WorkspaceForbiddenError("Only signed-in users can create workspaces.");
+      throw new WorkspaceForbiddenError("Only signed-in users can create teams.");
     }
 
     const parsed = createTeamWorkspaceInputSchema.parse(input);
@@ -185,7 +185,7 @@ export class WorkspaceService {
 
   async listWorkspacesForUser(principal: Principal): Promise<Array<WorkspaceRecord & { role: WorkspaceRole }>> {
     if (principal.type !== "user") {
-      throw new WorkspaceForbiddenError("Only signed-in users can list workspaces.");
+      throw new WorkspaceForbiddenError("Only signed-in users can list teams.");
     }
 
     return this.repository.listMembershipsForUser(principal.id);

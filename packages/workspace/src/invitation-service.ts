@@ -139,7 +139,7 @@ function defaultInvitationExpiry(now = new Date()): Date {
 }
 
 function buildAcceptUrl(appUrl: string, token: string): string {
-  return `${appUrl.replace(/\/+$/, "")}/workspace-invite/${token}`;
+  return `${appUrl.replace(/\/+$/, "")}/team-invite/${token}`;
 }
 
 function toSummary(record: WorkspaceInvitationRecord): WorkspaceInvitationSummary {
@@ -174,7 +174,7 @@ export class InvitationService {
     principal: Principal
   ): Promise<CreatedWorkspaceInvitation> {
     if (principal.type !== "user") {
-      throw new WorkspaceForbiddenError("Only signed-in users can invite workspace members.");
+      throw new WorkspaceForbiddenError("Only signed-in users can invite team members.");
     }
 
     const parsed = createWorkspaceInvitationInputSchema.parse({ email, role });
@@ -195,7 +195,7 @@ export class InvitationService {
     if (existingUserId) {
       const membership = await this.workspaceRepository.getMembership(workspaceId, existingUserId);
       if (membership) {
-        throw new WorkspaceInvitationConflictError("That user is already a workspace member.");
+        throw new WorkspaceInvitationConflictError("That user is already a team member.");
       }
     }
 
@@ -246,7 +246,7 @@ export class InvitationService {
     principal: Principal
   ): Promise<{ workspaceId: string; role: WorkspaceRole }> {
     if (principal.type !== "user") {
-      throw new WorkspaceForbiddenError("Only signed-in users can accept workspace invitations.");
+      throw new WorkspaceForbiddenError("Only signed-in users can accept team invitations.");
     }
 
     if (!principal.email) {

@@ -55,7 +55,7 @@ function assertAtLeastOneOwnerRemains(
       : countOwners(members.map((member) => (member.userId === targetUserId ? { ...member, role: nextRole } : member)));
 
   if (ownersAfterChange < 1) {
-    throw new WorkspaceMemberConflictError("The workspace must have at least one owner.");
+    throw new WorkspaceMemberConflictError("The team must have at least one owner.");
   }
 }
 
@@ -73,7 +73,7 @@ export class MembershipService {
     principal: Principal
   ): Promise<WorkspaceMemberRecord> {
     if (principal.type !== "user") {
-      throw new WorkspaceForbiddenError("Only signed-in users can change workspace member roles.");
+      throw new WorkspaceForbiddenError("Only signed-in users can change team member roles.");
     }
 
     const parsed = changeMemberRoleInputSchema.parse({ role: newRole });
@@ -93,7 +93,7 @@ export class MembershipService {
     }
 
     if (parsed.role === "owner" && decision.effectiveRole !== "owner") {
-      throw new WorkspaceForbiddenError("Only workspace owners can grant the owner role.");
+      throw new WorkspaceForbiddenError("Only team owners can grant the owner role.");
     }
 
     const membership = await this.workspaceRepository.getMembership(workspaceId, memberUserId);
@@ -109,7 +109,7 @@ export class MembershipService {
     assertAtLeastOneOwnerRemains(members, memberUserId, parsed.role);
 
     if (!(await this.workspaceRepository.updateMemberRole(workspaceId, memberUserId, parsed.role))) {
-      throw new WorkspaceMemberConflictError("The workspace must have at least one owner.");
+      throw new WorkspaceMemberConflictError("The team must have at least one owner.");
     }
     await this.recordAudit(workspaceId, principal, "workspace.member_role_changed", "workspace_member", memberUserId, {
       previousRole: membership.role,
@@ -126,7 +126,7 @@ export class MembershipService {
 
   async removeMember(workspaceId: string, memberUserId: string, principal: Principal): Promise<void> {
     if (principal.type !== "user") {
-      throw new WorkspaceForbiddenError("Only signed-in users can remove workspace members.");
+      throw new WorkspaceForbiddenError("Only signed-in users can remove team members.");
     }
 
     const workspace = await this.workspaceRepository.getById(workspaceId);
@@ -149,7 +149,7 @@ export class MembershipService {
     assertAtLeastOneOwnerRemains(members, memberUserId);
 
     if (!(await this.workspaceRepository.removeMember(workspaceId, memberUserId))) {
-      throw new WorkspaceMemberConflictError("The workspace must have at least one owner.");
+      throw new WorkspaceMemberConflictError("The team must have at least one owner.");
     }
     await this.recordAudit(workspaceId, principal, "workspace.member_removed", "workspace_member", memberUserId, {
       previousRole: membership.role

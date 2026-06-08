@@ -28,7 +28,7 @@ export function WorkspaceCreateForm() {
       };
 
       if (!response.ok || !body.workspace) {
-        setError(body.message ?? "Could not create workspace.");
+        setError(body.message ?? "Could not create team.");
         return;
       }
 
@@ -36,14 +36,14 @@ export function WorkspaceCreateForm() {
       router.refresh();
     } catch (error) {
       console.error(error);
-      setError(error instanceof Error ? `Could not create workspace: ${error.message}` : "Could not create workspace.");
+      setError(error instanceof Error ? `Could not create team: ${error.message}` : "Could not create team.");
     }
   }
 
   return (
     <form className="stack" onSubmit={(event) => void onSubmit(event)}>
       <label className="stack tight">
-        <span className="label">Workspace name</span>
+        <span className="label">Team name</span>
         <input
           autoComplete="organization"
           className="input"
@@ -55,7 +55,7 @@ export function WorkspaceCreateForm() {
         />
       </label>
       <label className="stack tight">
-        <span className="label">Workspace slug</span>
+        <span className="label">Team slug</span>
         <input
           autoCapitalize="none"
           autoComplete="off"
@@ -72,7 +72,7 @@ export function WorkspaceCreateForm() {
       </label>
       {error ? <p className="error">{error}</p> : null}
       <button className="primary-button" type="submit">
-        Create workspace
+        Create team
       </button>
     </form>
   );

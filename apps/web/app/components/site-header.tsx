@@ -12,9 +12,11 @@ const RESERVED_TOP_LEVEL = new Set([
   "settings",
   "pricing",
   "login",
+  "teams",
   "workspaces",
   "share",
   "cli",
+  "team-invite",
   "workspace-invite",
   "api"
 ]);

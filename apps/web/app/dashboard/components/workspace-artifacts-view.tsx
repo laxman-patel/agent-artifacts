@@ -4,8 +4,8 @@ import type { WorkspaceSummary } from "../../../lib/server-api";
 import { ArtifactBrowser } from "./artifact-browser";
 import { useDashboardWorkspace } from "./dashboard-workspace-data";
 
-function workspaceLabel(workspace: WorkspaceSummary): string {
-  return workspace.kind === "personal" ? "Personal" : workspace.name;
+function teamLabel(workspace: WorkspaceSummary): string {
+  return workspace.kind === "personal" ? "Personal team" : workspace.name;
 }
 
 export function WorkspaceArtifactsView() {
@@ -13,8 +13,8 @@ export function WorkspaceArtifactsView() {
 
   return (
     <ArtifactBrowser
-      kicker={workspace.kind === "personal" ? "Personal workspace" : "Team workspace"}
-      title={workspaceLabel(workspace)}
+      kicker={workspace.kind === "personal" ? "Personal team" : "Team"}
+      title={teamLabel(workspace)}
       pathLabel={`/${workspace.slug}`}
       artifacts={artifacts}
       scope="workspace"

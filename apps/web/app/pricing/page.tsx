@@ -76,7 +76,7 @@ const plans = [
     name: "Team",
     price: "$12",
     cadence: "/month",
-    summary: "A shared workspace for artifacts that belong to the team.",
+    summary: "A shared team home for artifacts that belong together.",
     cta: "Start Team",
     ctaIcon: Users,
     href: "/login?next=%2Fpricing",
@@ -85,7 +85,7 @@ const plans = [
     features: [
       "Everything in Pro is included",
       "3 seats included, $3 per extra seat",
-      "Workspace projects and member roles",
+      "Team projects and member roles",
       "50 GiB history and 250 GiB delivery",
       "10,000 version writes each month"
     ],
@@ -96,7 +96,7 @@ const plans = [
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Artifacts pricing starts with a free Builder plan, then adds Pro for private sharing and Team for shared workspaces."
+    "Artifacts pricing starts with a free Builder plan, then adds Pro for private sharing and Team for collaborative artifact hosting."
 };
 
 function SectionShell({
@@ -310,7 +310,7 @@ export default function PricingPage() {
             Simple pricing for artifact hosting
           </h1>
           <p className="mt-4 max-w-2xl text-[12px] leading-5 text-foreground/48 sm:text-[13px]">
-            Start free. Upgrade for privacy, higher limits, or a team workspace.
+            Start free. Upgrade for privacy, higher limits, or shared team publishing.
           </p>
         </div>
 

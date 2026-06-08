@@ -56,7 +56,7 @@ const features: { icon: IconComponent; title: string; description: string }[] = 
   {
     icon: Code2,
     title: "Team ownership",
-    description: "Move useful outputs from personal experiments into workspaces when they become shared context."
+    description: "Move useful outputs from personal experiments into teams when they become shared context."
   }
 ];
 
@@ -138,7 +138,7 @@ const workflow = [
   {
     step: "01",
     title: "Agent writes the output",
-    description: "A report, prototype, review surface, spec, or one-off tool lands in the workspace."
+    description: "A report, prototype, review surface, spec, or one-off tool lands in the team."
   },
   {
     step: "02",

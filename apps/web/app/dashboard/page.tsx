@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   }
 
   if (!workspacesResult.ok) {
-    throw new Error(workspacesResult.message ?? "Workspaces could not be loaded.");
+    throw new Error(workspacesResult.message ?? "Teams could not be loaded.");
   }
 
   const personal = workspacesResult.body.workspaces.find((workspace) => workspace.kind === "personal");

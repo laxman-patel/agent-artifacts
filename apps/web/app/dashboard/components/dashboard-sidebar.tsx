@@ -71,7 +71,7 @@ export function DashboardSidebar({
         </button>
       </div>
 
-      <nav className="wb-scroll flex-1 overflow-y-auto px-2 py-3" aria-label="Workspace">
+      <nav className="wb-scroll flex-1 overflow-y-auto px-2 py-3" aria-label="Team">
         <SidebarLink
           href={home}
           icon={LayoutGrid}

@@ -93,6 +93,6 @@ describe("authorizeWorkspaceAction", () => {
         action: "workspace.manage_members",
         context: { workspaceId }
       })
-    ).rejects.toThrow("Not a workspace member.");
+    ).rejects.toThrow("Not a team member.");
   });
 });

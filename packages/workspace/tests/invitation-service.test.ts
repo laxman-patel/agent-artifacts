@@ -184,7 +184,7 @@ describe("InvitationService", () => {
 
     expect(created.email).toBe("invitee@example.com");
     expect(created.role).toBe("member");
-    expect(created.acceptUrl).toMatch(/^https:\/\/app\.example\.com\/workspace-invite\//);
+    expect(created.acceptUrl).toMatch(/^https:\/\/app\.example\.com\/team-invite\//);
     expect(auditEvents).toMatchObject([
       {
         workspaceId,
@@ -367,7 +367,7 @@ describe("InvitationService", () => {
 
     const resent = await service.resendInvitation("inv_5", owner);
 
-    expect(resent.acceptUrl).toContain("/workspace-invite/");
+    expect(resent.acceptUrl).toContain("/team-invite/");
     expect(new Date(resent.expiresAt).getTime()).toBeGreaterThan(originalExpiry.getTime());
 
     await expect(service.acceptInvitation(originalToken, invitee)).rejects.toThrow(

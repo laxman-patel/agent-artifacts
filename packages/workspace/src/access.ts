@@ -39,7 +39,7 @@ export async function authorizeWorkspaceAction(
   }
 ): Promise<WorkspaceAccessDecision> {
   if (input.principal.type !== "user") {
-    return { allowed: false, reason: "Only signed-in users can access workspaces." };
+    return { allowed: false, reason: "Only signed-in users can access teams." };
   }
 
   const { role } = await resolver.resolveMembership(input.principal, input.context.workspaceId);

@@ -11,10 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@agent-artifacts/auth": "workspace:*",
     "@agent-artifacts/billing": "workspace:*",
-    "@agent-artifacts/config": "workspace:*",
-    "@agent-artifacts/db": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",
     "@logtail/next": "^0.3.1",
     "@paper-design/shaders": "^0.0.76",

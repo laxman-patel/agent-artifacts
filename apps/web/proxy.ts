@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { hasAuthenticatedSession } from "./lib/server-auth";
 
 // Coarse login redirect for /dashboard and /settings only; artifact pages gate themselves (share links, partial visibility).
 // `/_betterstack/*` is outside this matcher today. If the matcher is ever widened, exclude `/_betterstack/(.*)`
@@ -13,7 +12,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (!needsAuthProtection(pathname)) return NextResponse.next();
 
-  const hasSession = await hasAuthenticatedSession(request.headers.get("cookie"));
+  const hasSession = Boolean(request.cookies.get("better-auth.session_token")?.value);
   if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);

@@ -36,8 +36,8 @@ export type AppVariables = {
   principal?: Principal;
 };
 
-// Intentionally parallel to apps/web/lib/server-auth.ts: each process (API, Next) owns
-// one DB pool and one better-auth instance; no shared runtime package between them.
+// The API process owns the DB pool and better-auth instance. The web app reaches
+// auth-protected data through API calls so proxy/page rendering does not open its own DB pool.
 let authInstance: BetterAuthHandle | undefined;
 let artifactServiceInstance: ArtifactService | undefined;
 let projectServiceInstance: ProjectService | undefined;

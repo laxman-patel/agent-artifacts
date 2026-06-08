@@ -81,10 +81,10 @@ function Switch({
       <span
         aria-hidden
         data-on={checked}
-        className="relative h-[18px] w-[30px] shrink-0 rounded-full bg-foreground/15 transition-colors duration-200 data-[on=true]:bg-[var(--wb-accent-jsx)]"
+        className="relative h-[18px] w-[30px] shrink-0 rounded-full bg-foreground/15 transition-colors duration-200 data-[on=true]:bg-[var(--wb-accent-jsx)] motion-reduce:transition-none"
       >
         <span
-          className="absolute left-[2px] top-[2px] size-[14px] rounded-full bg-white transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className="absolute left-[2px] top-[2px] size-[14px] rounded-full bg-white transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
           style={{ transform: checked ? "translateX(12px)" : "translateX(0)" }}
         />
       </span>

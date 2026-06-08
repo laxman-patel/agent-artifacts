@@ -30,14 +30,20 @@ export function DashboardShell({
     setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "1");
   }, []);
 
-  function hideSidebar() {
+  function closeMobileSidebar() {
     setMobileOpen(false);
+  }
+
+  function openMobileSidebar() {
+    setMobileOpen(true);
+  }
+
+  function collapseDesktopSidebar() {
     setCollapsed(true);
     window.localStorage.setItem(STORAGE_KEY, "1");
   }
 
-  function showSidebar() {
-    setMobileOpen(true);
+  function expandDesktopSidebar() {
     setCollapsed(false);
     window.localStorage.setItem(STORAGE_KEY, "0");
   }
@@ -49,7 +55,7 @@ export function DashboardShell({
         aria-label="Close sidebar"
         tabIndex={mobileOpen ? 0 : -1}
         data-open={mobileOpen}
-        onClick={() => setMobileOpen(false)}
+        onClick={closeMobileSidebar}
         className="fixed inset-0 z-30 bg-black/55 opacity-0 transition-opacity duration-200 data-[open=false]:pointer-events-none data-[open=true]:opacity-100 lg:hidden"
       />
 
@@ -63,17 +69,26 @@ export function DashboardShell({
           workspace={workspace}
           projects={projects}
           profile={profile}
-          onCollapse={hideSidebar}
-          onNavigate={() => setMobileOpen(false)}
+          onCollapse={collapseDesktopSidebar}
+          onNavigate={closeMobileSidebar}
         />
       </aside>
 
       <button
         type="button"
-        onClick={showSidebar}
+        onClick={openMobileSidebar}
+        aria-label="Open sidebar"
+        className="fixed left-3 top-3 z-30 inline-flex size-9 items-center justify-center rounded-md border border-[var(--wb-line-strong)] bg-[var(--wb-tile)]/85 text-foreground/70 backdrop-blur-sm transition-colors hover:border-foreground/30 hover:text-foreground lg:hidden"
+      >
+        <PanelLeft className="size-4" />
+      </button>
+
+      <button
+        type="button"
+        onClick={expandDesktopSidebar}
         aria-label="Open sidebar"
         data-collapsed={collapsed}
-        className="fixed left-3 top-3 z-30 inline-flex size-9 items-center justify-center rounded-md border border-[var(--wb-line-strong)] bg-[var(--wb-tile)]/85 text-foreground/70 backdrop-blur-sm transition-colors hover:border-foreground/30 hover:text-foreground lg:hidden data-[collapsed=true]:lg:inline-flex"
+        className="fixed left-3 top-3 z-30 hidden size-9 items-center justify-center rounded-md border border-[var(--wb-line-strong)] bg-[var(--wb-tile)]/85 text-foreground/70 backdrop-blur-sm transition-colors hover:border-foreground/30 hover:text-foreground data-[collapsed=true]:lg:inline-flex"
       >
         <PanelLeft className="size-4" />
       </button>

@@ -57,10 +57,13 @@ export function ArtifactThumbnail({
           })
           .then((text) => {
             const trimmed = text.trim();
-            setLoaded(text);
+            setLoaded(trimmed);
             setStatus(trimmed.length === 0 ? "empty" : "ready");
           })
-          .catch(() => setStatus("error"));
+          .catch((error) => {
+            console.error("Artifact thumbnail failed to load", { artifactId, error });
+            setStatus("error");
+          });
       },
       { rootMargin: "200px" }
     );

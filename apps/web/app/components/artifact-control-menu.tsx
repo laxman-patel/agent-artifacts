@@ -26,6 +26,7 @@ export function ArtifactControlMenu({
   base,
   artifactId,
   versionLabel,
+  workspaceSlug,
   updatedLabel
 }: {
   title: string;
@@ -33,6 +34,7 @@ export function ArtifactControlMenu({
   base: string;
   artifactId: string;
   versionLabel: string;
+  workspaceSlug: string;
   updatedLabel: string | null;
 }) {
   const router = useRouter();
@@ -118,6 +120,7 @@ export function ArtifactControlMenu({
           artifactId={artifactId}
           base={base}
           title={title}
+          workspaceSlug={workspaceSlug}
           active={open}
           onNavigate={() => setOpen(false)}
         />

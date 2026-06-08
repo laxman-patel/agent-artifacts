@@ -65,7 +65,7 @@ export function DashboardSidebar({
           type="button"
           onClick={onCollapse}
           aria-label="Collapse sidebar"
-          className="grid size-7 place-items-center rounded-md text-foreground/45 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/80"
+          className="hidden size-7 place-items-center rounded-md text-foreground/45 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/80 lg:grid"
         >
           <PanelLeftClose className="size-4" />
         </button>

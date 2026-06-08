@@ -6,9 +6,10 @@ import { useState } from "react";
 interface Props {
   artifactId: string;
   artifactTitle: string;
+  workspaceSlug: string;
 }
 
-export function DeleteArtifactButton({ artifactId, artifactTitle }: Props) {
+export function DeleteArtifactButton({ artifactId, artifactTitle, workspaceSlug }: Props) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -32,7 +33,7 @@ export function DeleteArtifactButton({ artifactId, artifactTitle }: Props) {
         setDeleting(false);
         return;
       }
-      router.push("/dashboard");
+      router.push(`/dashboard/${workspaceSlug}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed.");

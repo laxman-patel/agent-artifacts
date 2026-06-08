@@ -61,6 +61,7 @@ export default async function ArtifactPage(props: {
         base={base}
         artifactId={meta.id}
         versionLabel={versionLabel}
+        workspaceSlug={meta.workspaceSlug}
         updatedLabel={updatedLabel}
       />
 

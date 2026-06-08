@@ -7,11 +7,21 @@ import type { ProfileMeResponse, WorkspaceSummary } from "../../../lib/server-ap
 import { useDismiss } from "../../../lib/use-dismiss";
 
 async function signOut() {
-  await fetch(`${window.location.origin}/api/auth/sign-out`, {
-    method: "POST",
-    credentials: "include"
-  });
-  window.location.href = "/";
+  try {
+    const response = await fetch(`${window.location.origin}/api/auth/sign-out`, {
+      method: "POST",
+      credentials: "include"
+    });
+
+    if (!response.ok) {
+      console.error("Sign out failed", { status: response.status });
+      return;
+    }
+
+    window.location.href = "/";
+  } catch (error) {
+    console.error("Sign out failed", error);
+  }
 }
 
 function initials(profile: ProfileMeResponse): string {

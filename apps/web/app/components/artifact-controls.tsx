@@ -100,12 +100,14 @@ export function ArtifactControls({
   artifactId,
   base,
   title,
+  workspaceSlug,
   active,
   onNavigate
 }: {
   artifactId: string;
   base: string;
   title: string;
+  workspaceSlug: string;
   active: boolean;
   onNavigate: () => void;
 }) {
@@ -239,7 +241,7 @@ export function ArtifactControls({
         return;
       }
       onNavigate();
-      router.push("/dashboard");
+      router.push(`/dashboard/${workspaceSlug}`);
       router.refresh();
     } catch {
       setDeleteError("Delete failed");

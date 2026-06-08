@@ -14,7 +14,7 @@ const KINDS: Record<string, ArtifactKindMeta> = {
   jsx: { label: "JSX", accent: "var(--wb-accent-jsx)", Icon: Component }
 };
 
-const FALLBACK: ArtifactKindMeta = { label: "File", accent: "var(--wb-accent-html)", Icon: FileText };
+const FALLBACK: ArtifactKindMeta = { label: "File", accent: "var(--wb-accent-fallback)", Icon: FileText };
 
 export function artifactKind(type: string): ArtifactKindMeta {
   return KINDS[type] ?? FALLBACK;

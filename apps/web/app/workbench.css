@@ -25,6 +25,7 @@
   --wb-accent-html: oklch(0.72 0.08 215);
   --wb-accent-md: oklch(0.72 0.08 75);
   --wb-accent-jsx: oklch(0.7 0.08 155);
+  --wb-accent-fallback: oklch(0.708 0 0);
 
   color-scheme: dark;
   background: var(--wb-canvas);
@@ -225,9 +226,6 @@
   .wb-control-chevron {
     transition: none;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
   .wb-skeleton::after {
     animation: none;
   }

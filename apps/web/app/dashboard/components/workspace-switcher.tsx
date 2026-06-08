@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import type { WorkspaceSummary } from "../../../lib/server-api";
-import { useDismiss } from "./use-dismiss";
+import { useDismiss } from "../../../lib/use-dismiss";
 
 function workspaceLabel(workspace: WorkspaceSummary): string {
   return workspace.kind === "personal" ? "Personal" : workspace.name;

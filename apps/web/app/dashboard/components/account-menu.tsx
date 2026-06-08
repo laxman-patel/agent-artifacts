@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CreditCard, LogOut, MoreHorizontal, UserRound, Users } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ProfileMeResponse, WorkspaceSummary } from "../../../lib/server-api";
-import { useDismiss } from "./use-dismiss";
+import { useDismiss } from "../../../lib/use-dismiss";
 
 async function signOut() {
   await fetch(`${window.location.origin}/api/auth/sign-out`, {

@@ -165,8 +165,29 @@
 }
 
 /* ── Immersive artifact render ───────────────────────────────────────── */
+/* The stage is its own dark surface and deliberately does NOT carry the
+ * `.workbench` class: a rendered markdown artifact uses the global `.prose`
+ * styles, which would collide with the workbench element resets. Only the
+ * floating control carries `.workbench`. So the stage restates the canvas
+ * value (== --wb-content) directly rather than reading the token. */
 .wb-stage {
-  background: var(--wb-content);
+  background: oklch(0.17 0 0);
+  color-scheme: dark;
+}
+.wb-stage-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* Whatever viewer renders an iframe (html srcDoc, jsx sandbox) fills the
+ * stage edge to edge. The markdown viewer renders a scroll column instead. */
+.wb-stage-body > iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
 }
 .wb-stage-frame {
   border: 0;
@@ -174,6 +195,36 @@
   height: 100%;
   display: block;
   background: #fff;
+}
+
+/* ── Floating artifact control ───────────────────────────────────────── */
+/* The expanded panel overlays the render (never reflows it). It fades and
+ * lifts in on an ease-out curve; reduced-motion users get the end state. */
+.wb-control-panel {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition:
+    opacity 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.wb-control-panel[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.wb-control-chevron {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-open="true"] > .wb-control-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-control-panel,
+  .wb-control-chevron {
+    transition: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

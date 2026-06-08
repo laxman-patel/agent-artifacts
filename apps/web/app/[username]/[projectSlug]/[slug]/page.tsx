@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { artifactPath, cookieHeader, fetchArtifactContent, loadArtifactGate } from "../../../../lib/server-api";
 import { wrapHtmlWithCsp } from "../../../components/html-csp";
 import { MarkdownViewer } from "../../../components/markdown-viewer";
 import { JsxViewer } from "../../../components/jsx-viewer";
 import { RestrictedArtifactView } from "../../../components/restricted-artifact-view";
+import { ArtifactControlMenu } from "../../../components/artifact-control-menu";
+import "../../../workbench.css";
 
 export default async function ArtifactPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string }>;
@@ -34,48 +35,47 @@ export default async function ArtifactPage(props: {
 
   if (!contentResult.ok) {
     return (
-      <main className="shell narrow">
-        <h1>Cannot load content</h1>
-        <p className="muted">HTTP {contentResult.status}</p>
+      <main className="wb-stage flex min-h-dvh flex-col items-center justify-center gap-2 p-8 text-center">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/35">Render failed</p>
+        <h1 className="text-lg font-medium text-white/90">Cannot load this artifact</h1>
+        <p className="font-mono text-xs text-white/45">HTTP {contentResult.status}</p>
       </main>
     );
   }
 
-  const { content, contentType } = contentResult.body;
+  const { content } = contentResult.body;
   const base = artifactPath(meta);
+  const versionLabel = searchParams.version ? `v${searchParams.version}` : "latest";
 
   return (
-    <main className="page-shell wide">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">
-            {meta.type.toUpperCase()} · v{searchParams.version ?? "latest"}
-          </p>
-          <h1>{meta.title}</h1>
-          <p className="subtle">{base}</p>
-        </div>
-        <div className="row-actions wrap">
-          <Link className="ghost-button" href={`${base}/history`}>
-            History
-          </Link>
-          <Link className="ghost-button" href={`${base}/settings`}>
-            Access
-          </Link>
-        </div>
-      </header>
+    <main className="wb-stage relative flex h-dvh w-full flex-col">
+      <ArtifactControlMenu
+        title={meta.title}
+        type={meta.type}
+        base={base}
+        versionLabel={versionLabel}
+        updatedAt={meta.updatedAt}
+      />
 
-      <section className="card flat viewer-card">
+      <div className="wb-stage-body">
         {meta.type === "html" && (
-          <iframe className="artifact-frame" referrerPolicy="no-referrer" sandbox="allow-scripts" srcDoc={wrapHtmlWithCsp(content)} title="HTML artifact preview" />
+          <iframe
+            className="wb-stage-frame"
+            referrerPolicy="no-referrer"
+            sandbox="allow-scripts"
+            srcDoc={wrapHtmlWithCsp(content)}
+            title={meta.title}
+          />
         )}
+        {meta.type === "jsx" && <JsxViewer content={content} />}
         {meta.type === "md" && (
-          <MarkdownViewer content={content} />
+          <div className="wb-scroll absolute inset-0 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[820px] px-4 py-12 sm:py-16">
+              <MarkdownViewer content={content} />
+            </div>
+          </div>
         )}
-        {meta.type === "jsx" && (
-          <JsxViewer content={content} />
-        )}
-        <p className="muted small">Rendered as {contentType}</p>
-      </section>
+      </div>
     </main>
   );
 }

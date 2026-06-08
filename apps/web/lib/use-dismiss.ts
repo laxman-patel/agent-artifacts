@@ -2,8 +2,8 @@
 
 import { useEffect, type RefObject } from "react";
 
-// Closes a popover on outside pointerdown or Escape. Kept deliberately small:
-// the dashboard popovers are short-lived menus, not full dialogs.
+// Closes a popover/panel on outside pointerdown or Escape. Kept deliberately
+// small: the workbench popovers are short-lived menus, not full dialogs.
 export function useDismiss(
   ref: RefObject<HTMLElement | null>,
   open: boolean,

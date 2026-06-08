@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Activity, Check, ChevronRight, Copy, Link2, Mail, Plus, Trash2 } from "lucide-react";
+import { Activity, Check, Copy, History, Link2, Plus, Settings, ShieldCheck, Trash2, type LucideIcon } from "lucide-react";
 
 type Version = { id: string; versionNumber: number; changelog: string | null; createdAt: string };
 type Access = { publicView: boolean; publicEdit: boolean; viewerEmails: string[] };
@@ -31,11 +31,14 @@ function ago(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function SectionLabel({ children }: { children: ReactNode }) {
+function SectionLabel({ children, icon: Icon }: { children: ReactNode; icon?: LucideIcon }) {
   return (
-    <p className="px-2 pb-1 pt-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">
-      {children}
-    </p>
+    <div className="flex items-center gap-2 px-1 pb-1 pt-2">
+      {Icon ? <Icon className="size-3.5 shrink-0 text-[var(--wb-accent-orange)]" /> : null}
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/45">
+        {children}
+      </p>
+    </div>
   );
 }
 
@@ -43,15 +46,14 @@ function Divider() {
   return <div className="my-1 h-px bg-[var(--wb-line)]" />;
 }
 
-function DeepLink({ href, icon: Icon, label }: { href: string; icon: typeof Activity; label: string }) {
+function QuickLink({ href, icon: Icon, label }: { href: string; icon: LucideIcon; label: string }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-foreground/75 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+      className="flex items-center justify-center gap-2 rounded-[0.3rem] border border-[var(--wb-line)] bg-foreground/[0.035] px-2 py-2 text-[12px] text-foreground/72 transition-colors hover:border-[color-mix(in_oklch,var(--wb-accent-orange)_30%,var(--wb-line-strong))] hover:bg-[color-mix(in_oklch,var(--wb-accent-orange)_8%,transparent)] hover:text-foreground"
     >
-      <Icon className="size-3.5 shrink-0 text-foreground/45" />
-      <span className="flex-1 text-[13px] leading-tight">{label}</span>
-      <ChevronRight className="size-3.5 shrink-0 text-foreground/30" />
+      <Icon className="size-3.5 text-foreground/45" />
+      {label}
     </Link>
   );
 }
@@ -85,7 +87,7 @@ function Switch({
       <span
         aria-hidden
         data-on={checked}
-        className="relative h-[18px] w-[30px] shrink-0 rounded-full bg-foreground/15 transition-colors duration-200 data-[on=true]:bg-[var(--wb-accent-jsx)] motion-reduce:transition-none"
+        className="relative h-[18px] w-[30px] shrink-0 rounded-full bg-foreground/15 transition-colors duration-200 data-[on=true]:bg-[var(--wb-accent-orange)] motion-reduce:transition-none"
       >
         <span
           className="absolute left-[2px] top-[2px] size-[14px] rounded-full bg-white transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
@@ -251,7 +253,7 @@ export function ArtifactControls({
 
   return (
     <div>
-      <SectionLabel>History</SectionLabel>
+      <SectionLabel icon={History}>Version history</SectionLabel>
       {versions === null ? (
         <div className="space-y-1 px-2 py-1">
           <div className="wb-skeleton h-5 rounded" />
@@ -271,7 +273,7 @@ export function ArtifactControls({
             >
               <span aria-hidden className="grid w-1.5 shrink-0 place-items-center">
                 {index === 0 ? (
-                  <span className="size-1.5 rounded-full" style={{ background: "var(--wb-accent-jsx)" }} />
+                  <span className="size-1.5 rounded-full" style={{ background: "var(--wb-accent-orange)" }} />
                 ) : null}
               </span>
               <span className="font-mono text-[11px] text-foreground/70">v{version.versionNumber}</span>
@@ -288,7 +290,7 @@ export function ArtifactControls({
         <>
           <Divider />
           <div className="flex items-center justify-between pr-1">
-            <SectionLabel>Access</SectionLabel>
+            <SectionLabel icon={ShieldCheck}>Access controls</SectionLabel>
             {saving ? <span className="font-mono text-[9px] text-foreground/35">saving…</span> : null}
             {accessError ? <span className="font-mono text-[9px] text-[oklch(0.7_0.13_25)]">{accessError}</span> : null}
           </div>
@@ -322,7 +324,7 @@ export function ArtifactControls({
           )}
 
           <Divider />
-          <SectionLabel>Share links</SectionLabel>
+          <SectionLabel icon={Link2}>Share link</SectionLabel>
           {shareLinks === null ? (
             <div className="px-2 py-1">
               <div className="wb-skeleton h-6 rounded" />
@@ -358,7 +360,7 @@ export function ArtifactControls({
                       aria-label="Copy share link"
                       className="grid size-6 shrink-0 place-items-center rounded text-foreground/55 transition-colors hover:bg-foreground/[0.08] hover:text-foreground"
                     >
-                      {copiedShare ? <Check className="size-3.5 text-[var(--wb-accent-jsx)]" /> : <Copy className="size-3.5" />}
+                      {copiedShare ? <Check className="size-3.5 text-[var(--wb-accent-orange)]" /> : <Copy className="size-3.5" />}
                     </button>
                   </div>
                   <p className="mt-1 text-[10px] text-foreground/40">Copy it now; it won&rsquo;t be shown again.</p>
@@ -373,7 +375,7 @@ export function ArtifactControls({
                       type="button"
                       data-on={shareRole === role}
                       onClick={() => setShareRole(role)}
-                      className="rounded px-2 py-0.5 text-[11px] capitalize text-foreground/55 transition-colors data-[on=true]:bg-foreground/10 data-[on=true]:text-foreground/90"
+                      className="rounded-[0.25rem] px-2 py-0.5 text-[11px] capitalize text-foreground/55 transition-colors data-[on=true]:bg-[color-mix(in_oklch,var(--wb-accent-orange)_14%,transparent)] data-[on=true]:text-foreground/90"
                     >
                       {role}
                     </button>
@@ -383,7 +385,7 @@ export function ArtifactControls({
                   type="button"
                   onClick={() => void createShareLink()}
                   disabled={creating}
-                  className="ml-auto flex items-center gap-1 rounded-md border border-[var(--wb-line-strong)] px-2 py-1 text-[12px] text-foreground/80 transition-colors hover:bg-foreground/[0.06] disabled:opacity-50"
+                  className="ml-auto flex items-center gap-1 rounded-[0.25rem] border border-[color-mix(in_oklch,var(--wb-accent-orange)_32%,var(--wb-line-strong))] px-2 py-1 text-[12px] text-foreground/80 transition-colors hover:bg-[color-mix(in_oklch,var(--wb-accent-orange)_10%,transparent)] disabled:opacity-50"
                 >
                   <Plus className="size-3.5" />
                   {creating ? "Creating…" : "New link"}
@@ -394,8 +396,10 @@ export function ArtifactControls({
           )}
 
           <Divider />
-          <DeepLink href={`${base}/settings`} icon={Mail} label="Viewer emails" />
-          <DeepLink href={`${base}/audit`} icon={Activity} label="Activity log" />
+          <div className="grid grid-cols-2 gap-2 px-1 py-1">
+            <QuickLink href={`${base}/audit`} icon={Activity} label="Audit" />
+            <QuickLink href={`${base}/settings`} icon={Settings} label="Settings" />
+          </div>
 
           <Divider />
           {confirmingDelete ? (

@@ -52,7 +52,6 @@ export default async function ArtifactPage(props: {
   const updatedLabel = Number.isNaN(updatedDate.getTime())
     ? null
     : updatedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
   return (
     <main className="wb-stage relative flex h-dvh w-full flex-col">
       <ArtifactControlMenu
@@ -63,6 +62,9 @@ export default async function ArtifactPage(props: {
         versionLabel={versionLabel}
         workspaceSlug={meta.workspaceSlug}
         updatedLabel={updatedLabel}
+        ownerUsername={meta.ownerUsername}
+        projectSlug={meta.projectSlug}
+        publicView={meta.publicView}
       />
 
       <div className="wb-stage-body">

@@ -40,8 +40,11 @@ export default async function DashboardLayout(props: {
     fetchProfileMe(header)
   ]);
 
-  const projects = projectsResult.ok ? projectsResult.body.projects : [];
-  const sortedProjects = [...projects].sort((a, b) => a.title.localeCompare(b.title));
+  if (!projectsResult.ok) {
+    throw new Error(projectsResult.message ?? `Projects could not be loaded (HTTP ${projectsResult.status}).`);
+  }
+
+  const sortedProjects = [...projectsResult.body.projects].sort((a, b) => a.title.localeCompare(b.title));
 
   return (
     <DashboardShell

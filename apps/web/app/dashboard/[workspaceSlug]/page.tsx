@@ -37,11 +37,12 @@ export default async function WorkspaceDashboardPage(props: {
   }
 
   const artifactsResult = await fetchWorkspaceArtifacts(workspace.id, header);
-  const artifacts = artifactsResult.ok
-    ? [...artifactsResult.body.artifacts].sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      )
-    : [];
+  if (!artifactsResult.ok) {
+    throw new Error(artifactsResult.message ?? `Artifacts could not be loaded (HTTP ${artifactsResult.status}).`);
+  }
+  const artifacts = artifactsResult.body.artifacts.sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
 
   return (
     <ArtifactBrowser

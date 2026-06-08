@@ -38,19 +38,23 @@ export default async function ProjectDashboardPage(props: {
     fetchWorkspaceArtifacts(workspace.id, header)
   ]);
 
-  const project = projectsResult.ok
-    ? projectsResult.body.projects.find((candidate) => candidate.slug.toLowerCase() === projectSlug.toLowerCase())
-    : undefined;
+  if (!projectsResult.ok) {
+    throw new Error(projectsResult.message ?? `Projects could not be loaded (HTTP ${projectsResult.status}).`);
+  }
+
+  if (!artifactsResult.ok) {
+    throw new Error(artifactsResult.message ?? `Artifacts could not be loaded (HTTP ${artifactsResult.status}).`);
+  }
+
+  const project = projectsResult.body.projects.find((candidate) => candidate.slug.toLowerCase() === projectSlug.toLowerCase());
 
   if (!project) {
     notFound();
   }
 
-  const artifacts = artifactsResult.ok
-    ? artifactsResult.body.artifacts
-        .filter((artifact) => artifact.projectId === project.id)
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    : [];
+  const artifacts = artifactsResult.body.artifacts
+    .filter((artifact) => artifact.projectId === project.id)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   return (
     <ArtifactBrowser

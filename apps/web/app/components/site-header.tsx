@@ -24,7 +24,8 @@ const RESERVED_TOP_LEVEL = new Set([
 function isImmersiveArtifactPath(pathname: string): boolean {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length !== 3) return false;
-  return !RESERVED_TOP_LEVEL.has(segments[0]);
+  const [top] = segments;
+  return top !== undefined && !RESERVED_TOP_LEVEL.has(top);
 }
 
 // Shared app header for app pages. Marketing routes ship their own header +

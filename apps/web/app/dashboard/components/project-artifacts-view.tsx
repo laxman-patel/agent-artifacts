@@ -30,6 +30,7 @@ export function ProjectArtifactsView({ projectSlug }: { projectSlug: string }) {
       scope="project"
       emptyTitle="No artifacts in this project"
       emptyHint={`Publish into ${projectPath(project)} to collect versioned artifacts under this namespace.`}
+      createHref={`/dashboard/${project.workspaceSlug}/artifacts/new?project=${encodeURIComponent(project.slug)}`}
     />
   );
 }

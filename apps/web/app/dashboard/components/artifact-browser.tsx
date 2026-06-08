@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { Plus } from "lucide-react";
 import { artifactPath } from "../../../lib/paths";
 import type { ArtifactOwnerSummary } from "../../../lib/server-api";
 import { artifactKind } from "./artifact-kind";
@@ -73,6 +74,7 @@ export function ArtifactBrowser({
   scope,
   emptyTitle,
   emptyHint,
+  createHref,
   previewContent
 }: {
   title: string;
@@ -81,25 +83,37 @@ export function ArtifactBrowser({
   scope: "workspace" | "project";
   emptyTitle: string;
   emptyHint: string;
+  createHref?: string;
   previewContent?: Record<string, string>;
 }) {
   const count = artifacts.length;
 
   return (
     <div className="mx-auto w-full max-w-[1600px] px-6 pb-24 pt-16 sm:px-10 lg:pt-12">
-      <header className="mb-8 border-b border-[var(--wb-line)] pb-6">
-        <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
-          {title}
-        </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] text-foreground/45">
-          <span className="tabular-nums text-[var(--wb-accent-orange)]">
-            {count}
-          </span>
-          <span>
-            artifact{count === 1 ? "" : "s"}
-          </span>
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--wb-line)] pb-6">
+        <div className="min-w-0">
+          <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
+            {title}
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] text-foreground/45">
+            <span className="tabular-nums text-[var(--wb-accent-orange)]">
+              {count}
+            </span>
+            <span>
+              artifact{count === 1 ? "" : "s"}
+            </span>
+          </div>
+          {description ? <p className="mt-3 max-w-[65ch] text-sm leading-relaxed text-foreground/55">{description}</p> : null}
         </div>
-        {description ? <p className="mt-3 max-w-[65ch] text-sm leading-relaxed text-foreground/55">{description}</p> : null}
+        {createHref ? (
+          <Link
+            href={createHref}
+            className="inline-flex h-8 shrink-0 items-center gap-2 rounded-none border border-foreground/30 bg-[oklch(0.96_0_0)] px-3 font-pixel text-[13px] font-normal uppercase leading-none tracking-[-0.035em] text-primary-foreground shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.42),0_1px_0_oklch(1_0_0_/_0.18)] transition-colors hover:bg-[oklch(0.92_0_0)]"
+          >
+            <span>Create artifact</span>
+            <Plus className="size-4 text-[var(--wb-accent-orange)]" strokeWidth={2} />
+          </Link>
+        ) : null}
       </header>
 
       {count === 0 ? (

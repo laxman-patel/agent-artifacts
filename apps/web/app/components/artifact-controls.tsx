@@ -9,7 +9,11 @@ type Version = { id: string; versionNumber: number; changelog: string | null; cr
 type Access = { publicView: boolean; publicEdit: boolean; viewerEmails: string[] };
 type ShareLink = { id: string; role: string; createdAt: string; revokedAt: string | null };
 
-const DANGER = "oklch(0.68 0.16 25)";
+// DESIGN.md reserves the Artifact Rose hue (≈15) as the review/risk accent,
+// used as an alert only when state requires it. Delete qualifies: a readable
+// rose for text/icons, a deeper solid for the committed destructive button.
+const DANGER = "oklch(0.72 0.12 15)";
+const DANGER_SOLID = "oklch(0.55 0.15 15)";
 
 // Compact, glance-able age. Falls back to a date past a week so the label
 // never grows unbounded inside the narrow panel.
@@ -393,7 +397,7 @@ export function ArtifactControls({
 
           <Divider />
           {confirmingDelete ? (
-            <div className="m-1 rounded-md p-2" style={{ background: "color-mix(in oklch, oklch(0.68 0.16 25) 9%, transparent)" }}>
+            <div className="m-1 rounded-md p-2" style={{ background: "color-mix(in oklch, oklch(0.6 0.14 15) 10%, transparent)" }}>
               <p className="text-[11px] leading-snug text-foreground/60">
                 Type <span className="font-mono text-foreground/85">{title}</span> to permanently delete this artifact and every version.
               </p>
@@ -421,7 +425,7 @@ export function ArtifactControls({
                   onClick={() => void handleDelete()}
                   disabled={deleting || confirmText !== title}
                   className="rounded-md px-2.5 py-1 text-[12px] font-medium text-white transition-opacity disabled:opacity-40"
-                  style={{ background: DANGER }}
+                  style={{ background: DANGER_SOLID }}
                 >
                   {deleting ? "Deleting…" : "Delete"}
                 </button>

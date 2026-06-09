@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { artifactPath, cookieHeader, fetchArtifactContent, loadArtifactGate } from "../../../../lib/server-api";
+import {
+  GENERIC_OG_DESCRIPTION,
+  genericOpenGraphMetadata,
+  SITE_NAME
+} from "../../../../lib/site-metadata";
+import { loadPublicArtifactPreview } from "../../../../lib/artifact-preview";
 import { wrapHtmlWithCsp } from "../../../components/html-csp";
 import { MarkdownViewer } from "../../../components/markdown-viewer";
 import { JsxViewer } from "../../../components/jsx-viewer";
@@ -7,10 +14,62 @@ import { RestrictedArtifactView } from "../../../components/restricted-artifact-
 import { ArtifactControlMenu } from "../../../components/artifact-control-menu";
 import "../../../workbench.css";
 
-export default async function ArtifactPage(props: {
-  params: Promise<{ username: string; projectSlug: string; slug: string }>;
+type ArtifactPageParams = { username: string; projectSlug: string; slug: string };
+type ArtifactPageProps = {
+  params: Promise<ArtifactPageParams>;
   searchParams: Promise<{ version?: string }>;
-}) {
+};
+
+export async function generateMetadata(props: { params: Promise<ArtifactPageParams> }): Promise<Metadata> {
+  const params = await props.params;
+  const path = artifactPath({
+    ownerUsername: params.username,
+    projectSlug: params.projectSlug,
+    slug: params.slug
+  });
+  const preview = await loadPublicArtifactPreview(params.username, params.projectSlug, params.slug);
+
+  if (!preview) {
+    return {
+      title: "Open artifact",
+      description: GENERIC_OG_DESCRIPTION,
+      alternates: { canonical: path },
+      ...genericOpenGraphMetadata(path)
+    };
+  }
+
+  const imageVersion = encodeURIComponent(preview.latestVersionId ?? preview.updatedAt);
+  const imagePath = `${path}/opengraph-image?v=${imageVersion}`;
+
+  return {
+    title: preview.title,
+    description: preview.description,
+    alternates: { canonical: path },
+    openGraph: {
+      title: preview.title,
+      description: preview.description,
+      url: path,
+      siteName: SITE_NAME,
+      images: [
+        {
+          url: imagePath,
+          width: 1200,
+          height: 630,
+          alt: `${preview.title} artifact preview`
+        }
+      ],
+      type: "article"
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: preview.title,
+      description: preview.description,
+      images: [imagePath]
+    }
+  };
+}
+
+export default async function ArtifactPage(props: ArtifactPageProps) {
   const params = await props.params;
   const searchParams = await props.searchParams;
   const cookieStore = await cookies();

@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { GENERIC_OG_DESCRIPTION, genericOpenGraphMetadata } from "../../../lib/site-metadata";
 import { internalApiOrigin } from "../../../lib/server-api";
 
 interface ShareResolveResponse {
@@ -11,6 +13,12 @@ interface ShareResolveResponse {
     slug: string;
   };
 }
+
+export const metadata: Metadata = {
+  title: "Open shared artifact",
+  description: GENERIC_OG_DESCRIPTION,
+  ...genericOpenGraphMetadata("/share")
+};
 
 export default async function ShareTokenPage(props: { params: Promise<{ token: string }> }) {
   const { token } = await props.params;

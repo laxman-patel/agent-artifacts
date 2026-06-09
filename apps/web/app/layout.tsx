@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
 import { BetterStackWebVitals } from "@logtail/next/webVitals";
+import {
+  genericOpenGraphMetadata,
+  publicAppUrl,
+  SITE_DESCRIPTION,
+  SITE_TITLE
+} from "../lib/site-metadata";
 import { SiteHeader } from "./components/site-header";
 import "./styles.css";
 import "./tailwind.css";
 
+const defaultSocialMetadata = genericOpenGraphMetadata("/");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(publicAppUrl()),
   title: {
-    default: "Artifacts | Agent-native artifact hosting",
+    default: SITE_TITLE,
     template: "Artifacts | %s"
   },
-  description:
-    "Publish HTML reports, Markdown specs, JSX prototypes, and agent-built tools with permanent URLs, immutable versions, access control, and MCP automation.",
+  description: SITE_DESCRIPTION,
+  ...defaultSocialMetadata,
   icons: {
     icon: [{ url: "/brand/artifacts-logo.svg", type: "image/svg+xml" }],
     shortcut: [{ url: "/brand/artifacts-logo.svg", type: "image/svg+xml" }]

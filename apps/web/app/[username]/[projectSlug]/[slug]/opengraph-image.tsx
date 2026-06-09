@@ -1,7 +1,6 @@
 import { ImageResponse } from "next/og";
 import { loadPublicArtifactPreview } from "../../../../lib/artifact-preview";
 import { ArtifactOgCard, GenericOgCard, OG_IMAGE_SIZE } from "../../../../lib/og-card";
-import { loadOgFonts } from "../../../../lib/og-fonts";
 
 export const alt = "Artifact link preview";
 export const contentType = "image/png";
@@ -18,7 +17,6 @@ export default async function Image(props: {
   });
 
   return new ImageResponse(preview ? <ArtifactOgCard preview={preview} /> : <GenericOgCard />, {
-    ...OG_IMAGE_SIZE,
-    fonts: await loadOgFonts()
+    ...OG_IMAGE_SIZE
   });
 }

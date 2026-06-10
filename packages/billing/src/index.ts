@@ -757,7 +757,7 @@ export class DrizzleBillingRepository implements BillingRepository {
         .select({ bytes: sql<string>`coalesce(sum(${artifactVersions.contentBytes}), 0)` })
         .from(artifactVersions)
         .innerJoin(artifacts, eq(artifacts.id, artifactVersions.artifactId))
-        .where(eq(artifacts.ownerUserId, userId)),
+        .where(and(eq(artifacts.ownerUserId, userId), eq(artifacts.state, "active"))),
       this.db
         .select({ count: sql<number>`count(*)::int` })
         .from(artifactVersions)

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, LogOut, MoreHorizontal, UserRound, Users } from "lucide-react";
+import { CreditCard, KeyRound, LogOut, MoreHorizontal, UserRound, Users } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ProfileMeResponse, WorkspaceSummary } from "../../../lib/server-api";
 import { useDismiss } from "../../../lib/use-dismiss";
@@ -97,6 +97,7 @@ export function AccountMenu({
           <div className="mb-1 h-px bg-[var(--wb-line)]" />
           <MenuLink href="/settings/account" icon={UserRound} label="Account settings" onClick={() => setOpen(false)} />
           <MenuLink href="/settings/billing" icon={CreditCard} label="Plan & billing" onClick={() => setOpen(false)} />
+          <MenuLink href="/settings/keys" icon={KeyRound} label="API keys" onClick={() => setOpen(false)} />
           {workspace.kind === "team" ? (
             <MenuLink
               href={`/dashboard/${workspace.slug}/settings`}

@@ -37,6 +37,24 @@ export type BillingPlan = {
 };
 type BillingUsage = { projects: number; activeArtifacts: number; storageBytes: number; versionWritesThisMonth: number; deliveryBytesThisMonth: number };
 type BillingMeter = { eventName: string; unit: string; overagePriceUsd: number };
+export type AgentScope =
+  | "artifacts:read"
+  | "artifacts:create"
+  | "artifacts:update"
+  | "artifacts:delete"
+  | "artifacts:share"
+  | "artifacts:access:read"
+  | "artifacts:access:write"
+  | "agents:manage";
+export type ApiKeySummary = {
+  id: string;
+  userId: string;
+  name: string;
+  scopes: AgentScope[];
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+};
 
 export interface ProfileMeResponse {
   user: { id: string; email: string; name: string; image: string | null; emailVerified: boolean };
@@ -222,6 +240,8 @@ export const fetchBillingMe = (cookie: string) =>
   apiCall<{ plan: BillingPlan; account: { planId: string; status: string; currentPeriodEnd?: string | null } | null; usage: BillingUsage }>("/api/billing/me", { cookie });
 export const fetchBillingPlans = () =>
   apiCall<{ plans: Record<BillingPlan["id"], BillingPlan>; meters: BillingMeter[] }>("/api/billing/plans");
+export const fetchApiKeys = (cookie: string) =>
+  apiCall<{ apiKeys: ApiKeySummary[] }>("/api/api-keys", { cookie });
 
 export async function loadArtifactGate(
   username: string, projectSlug: string, slug: string, cookie: string | undefined, opts: { redirectPath: string }

@@ -62,6 +62,7 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
       slug: input.slug,
       name: input.name,
       kind: input.kind,
+      createdByUserId: input.createdByUserId,
       personalUserId: input.personalUserId ?? null,
       createdAt: now,
       updatedAt: now
@@ -144,7 +145,7 @@ const intruder: Principal = {
   scopes: []
 };
 
-function createHarness() {
+function createHarness(billing?: ConstructorParameters<typeof InvitationService>[5]) {
   const workspaceRepository = new MemoryWorkspaceRepository();
   const auditEvents: Array<Record<string, unknown>> = [];
   workspaceRepository.addWorkspace({
@@ -152,7 +153,16 @@ function createHarness() {
     slug: "acme",
     name: "Acme",
     kind: "team",
+    createdByUserId: owner.id,
     personalUserId: null,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+  workspaceRepository.addMemberRecord({
+    id: "member_owner",
+    workspaceId,
+    userId: owner.id,
+    role: "owner",
     createdAt: new Date(),
     updatedAt: new Date()
   });
@@ -170,7 +180,8 @@ function createHarness() {
       async record(event: Record<string, unknown>) {
         auditEvents.push(event);
       }
-    }
+    },
+    billing
   );
 
   return { service, invitationRepository, workspaceRepository, auditEvents };
@@ -198,6 +209,21 @@ describe("InvitationService", () => {
         }
       }
     ]);
+  });
+
+  it("checks seat limits before creating an invitation", async () => {
+    const calls: Array<{ ownerUserId: string; seatsInUse: number; seatsToAdd?: number }> = [];
+    const { service } = createHarness({
+      async assertCanAddSeat(ownerUserId, input) {
+        calls.push({ ownerUserId, ...input });
+        throw new Error("Team includes 1 team seat.");
+      }
+    });
+
+    await expect(
+      service.createInvitation(workspaceId, "invitee@example.com", "member", owner)
+    ).rejects.toThrow("Team includes 1 team seat.");
+    expect(calls).toEqual([{ ownerUserId: owner.id, seatsInUse: 1, seatsToAdd: 1 }]);
   });
 
   it("denies invitation creation without manage_members permission", async () => {

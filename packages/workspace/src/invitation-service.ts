@@ -126,6 +126,13 @@ export interface InvitationRepository {
   listPendingByWorkspace(workspaceId: string): Promise<WorkspaceInvitationRecord[]>;
 }
 
+export interface WorkspaceSeatBillingGuard {
+  assertCanAddSeat(
+    ownerUserId: string,
+    input: { seatsInUse: number; seatsToAdd?: number }
+  ): Promise<void>;
+}
+
 export function hashInvitationToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -164,7 +171,8 @@ export class InvitationService {
     private readonly workspaceRepository: WorkspaceRepository,
     private readonly access: WorkspaceAccess,
     private readonly appUrl: string,
-    private readonly audit?: WorkspaceAuditSink
+    private readonly audit?: WorkspaceAuditSink,
+    private readonly billing?: WorkspaceSeatBillingGuard
   ) {}
 
   async createInvitation(
@@ -210,6 +218,8 @@ export class InvitationService {
         throw new WorkspaceInvitationConflictError("A pending invitation already exists for that email.");
       }
     }
+
+    await this.assertCanReserveSeat(workspace, 1);
 
     const token = randomBytes(32).toString("base64url");
     const tokenHash = hashInvitationToken(token);
@@ -280,6 +290,12 @@ export class InvitationService {
       }
       return { workspaceId: invitation.workspaceId, role: existingMembership.role };
     }
+
+    const workspace = await this.workspaceRepository.getById(invitation.workspaceId);
+    if (!workspace) {
+      throw new WorkspaceNotFoundError();
+    }
+    await this.assertCanAddAcceptedSeat(workspace, 1);
 
     if (
       !(await this.invitationRepository.acceptPendingInvitation({
@@ -405,6 +421,40 @@ export class InvitationService {
     });
 
     return invitation;
+  }
+
+  private async assertCanReserveSeat(workspace: { id: string; personalUserId: string | null; createdByUserId: string | null }, seatsToAdd: number): Promise<void> {
+    if (!this.billing) {
+      return;
+    }
+    const ownerUserId = workspace.personalUserId ?? workspace.createdByUserId;
+    if (!ownerUserId) {
+      return;
+    }
+    const [members, invitations] = await Promise.all([
+      this.workspaceRepository.listMembers(workspace.id),
+      this.invitationRepository.listPendingByWorkspace(workspace.id)
+    ]);
+    const now = new Date();
+    await this.billing.assertCanAddSeat(ownerUserId, {
+      seatsInUse: members.length + invitations.filter((invitation) => !isInvitationExpired(invitation, now)).length,
+      seatsToAdd
+    });
+  }
+
+  private async assertCanAddAcceptedSeat(workspace: { id: string; personalUserId: string | null; createdByUserId: string | null }, seatsToAdd: number): Promise<void> {
+    if (!this.billing) {
+      return;
+    }
+    const ownerUserId = workspace.personalUserId ?? workspace.createdByUserId;
+    if (!ownerUserId) {
+      return;
+    }
+    const members = await this.workspaceRepository.listMembers(workspace.id);
+    await this.billing.assertCanAddSeat(ownerUserId, {
+      seatsInUse: members.length,
+      seatsToAdd
+    });
   }
 
   private async recordAudit(
@@ -710,7 +760,7 @@ export class MemoryInvitationRepository implements InvitationRepository {
   }
 }
 
-export function createDrizzleInvitationService(db: Database, appUrl: string): InvitationService {
+export function createDrizzleInvitationService(db: Database, appUrl: string, billing?: WorkspaceSeatBillingGuard): InvitationService {
   const workspaceRepository = new DrizzleWorkspaceRepository(db);
   const access = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(workspaceRepository));
   return new InvitationService(
@@ -718,6 +768,7 @@ export function createDrizzleInvitationService(db: Database, appUrl: string): In
     workspaceRepository,
     access,
     appUrl,
-    new DrizzleWorkspaceAuditSink(db)
+    new DrizzleWorkspaceAuditSink(db),
+    billing
   );
 }

@@ -52,6 +52,7 @@ export interface WorkspaceSummary {
   slug: string;
   name: string;
   kind: WorkspaceKind;
+  createdByUserId: string | null;
   personalUserId: string | null;
   role: WorkspaceRole;
   createdAt: string;
@@ -177,6 +178,11 @@ export const createWorkspace = (cookie: string, body: { slug: string; name: stri
   apiCall<{ workspace: WorkspaceSummary }>("/api/workspaces", { cookie, method: "POST", body });
 export const fetchWorkspaceMembers = (workspaceId: string, cookie: string) =>
   apiCall<{ members: WorkspaceMemberSummary[] }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/members`, { cookie });
+export const fetchWorkspaceSeatUsage = (workspaceId: string, cookie: string) =>
+  apiCall<{ members: number; pendingInvitations: number; seatsUsed: number; includedSeats: number; planId: string; planDisplayName: string }>(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/seat-usage`,
+    { cookie }
+  );
 export const fetchWorkspaceInvitations = (workspaceId: string, cookie: string) =>
   apiCall<{ invitations: WorkspaceInvitationSummary[] }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/invitations`, { cookie });
 export const fetchWorkspaceProjects = (workspaceId: string, cookie: string) =>

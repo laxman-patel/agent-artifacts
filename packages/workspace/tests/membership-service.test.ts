@@ -61,6 +61,7 @@ class MemoryWorkspaceRepository implements WorkspaceRepository {
       slug: input.slug,
       name: input.name,
       kind: input.kind,
+      createdByUserId: input.createdByUserId,
       personalUserId: input.personalUserId ?? null,
       createdAt: now,
       updatedAt: now
@@ -199,6 +200,7 @@ function createHarness(options?: { withCoOwner?: boolean }) {
     slug: "acme",
     name: "Acme",
     kind: "team",
+    createdByUserId: owner.id,
     personalUserId: null,
     createdAt: new Date(),
     updatedAt: new Date()

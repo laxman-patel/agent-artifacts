@@ -9,6 +9,7 @@ import {
   fetchWorkspaceAuditEvents,
   fetchWorkspaceInvitations,
   fetchWorkspaceMembers,
+  fetchWorkspaceSeatUsage,
   fetchWorkspaces,
   workspaceDashboardPath
 } from "../../../../lib/server-api";
@@ -35,16 +36,18 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
     notFound();
   }
 
-  const [membersResult, invitationsResult, auditResult] = await Promise.all([
+  const [membersResult, invitationsResult, auditResult, seatUsageResult] = await Promise.all([
     fetchWorkspaceMembers(workspace.id, header),
     fetchWorkspaceInvitations(workspace.id, header),
-    fetchWorkspaceAuditEvents(workspace.id, header)
+    fetchWorkspaceAuditEvents(workspace.id, header),
+    fetchWorkspaceSeatUsage(workspace.id, header)
   ]);
 
   const canManageMembers = membersResult.ok;
   const members = membersResult.ok ? membersResult.body.members : [];
   const invitations = invitationsResult.ok ? invitationsResult.body.invitations : [];
   const auditEvents = auditResult.ok ? auditResult.body.events : [];
+  const seatUsage = seatUsageResult.ok ? seatUsageResult.body : null;
 
   return (
     <main className="page-shell wide">
@@ -62,7 +65,10 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
       <section className="card flat stack">
         <div className="section-header">
           <h2>Members</h2>
-          <p className="muted small">Roles control team access across web, API, CLI, and MCP.</p>
+          <p className="muted small">
+            Roles control team access across web, API, CLI, and MCP.
+            {seatUsage ? ` Seats: ${seatUsage.seatsUsed}/${seatUsage.includedSeats} on ${seatUsage.planDisplayName}.` : null}
+          </p>
         </div>
         <div>
           {!canManageMembers ? (

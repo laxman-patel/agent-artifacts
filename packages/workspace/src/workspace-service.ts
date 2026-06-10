@@ -23,6 +23,7 @@ export interface WorkspaceRecord {
   slug: string;
   name: string;
   kind: WorkspaceKind;
+  createdByUserId: string | null;
   personalUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -72,6 +73,10 @@ export interface PersistAddMemberInput {
   role: WorkspaceRole;
 }
 
+export interface WorkspaceBillingGuard {
+  assertCanCreateTeamWorkspace?(ownerUserId: string): Promise<void>;
+}
+
 export const createTeamWorkspaceInputSchema = z.object({
   slug: z.string().min(1),
   name: z.string().min(1).max(200)
@@ -86,7 +91,8 @@ export function validateWorkspaceSlug(slug: string): string {
 export class WorkspaceService {
   constructor(
     private readonly repository: WorkspaceRepository,
-    private readonly access: WorkspaceAccess
+    private readonly access: WorkspaceAccess,
+    private readonly billing?: WorkspaceBillingGuard
   ) {}
 
   async checkSlugAvailability(slug: string): Promise<{ available: boolean; normalizedSlug: string }> {
@@ -110,6 +116,7 @@ export class WorkspaceService {
 
     const parsed = createTeamWorkspaceInputSchema.parse(input);
     const normalizedSlug = validateWorkspaceSlug(parsed.slug);
+    await this.billing?.assertCanCreateTeamWorkspace?.(principal.id);
 
     if (await this.repository.usernameExists(normalizedSlug)) {
       throw new WorkspaceSlugUnavailableError(normalizedSlug);
@@ -299,6 +306,7 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
         slug: workspaces.slug,
         name: workspaces.name,
         kind: workspaces.kind,
+        createdByUserId: workspaces.createdByUserId,
         personalUserId: workspaces.personalUserId,
         createdAt: workspaces.createdAt,
         updatedAt: workspaces.updatedAt,
@@ -313,6 +321,7 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       slug: row.slug,
       name: row.name,
       kind: row.kind,
+      createdByUserId: row.createdByUserId,
       personalUserId: row.personalUserId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
@@ -430,6 +439,7 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       slug: workspace.slug,
       name: workspace.name,
       kind: workspace.kind,
+      createdByUserId: workspace.createdByUserId,
       personalUserId: workspace.personalUserId,
       createdAt: workspace.createdAt,
       updatedAt: workspace.updatedAt
@@ -453,10 +463,10 @@ export class DrizzleWorkspaceRoleResolver implements WorkspaceRoleResolver {
   }
 }
 
-export function createDrizzleWorkspaceService(db: Database): WorkspaceService {
+export function createDrizzleWorkspaceService(db: Database, billing?: WorkspaceBillingGuard): WorkspaceService {
   const repository = new DrizzleWorkspaceRepository(db);
   const access = createWorkspaceAccess(new DrizzleWorkspaceRoleResolver(repository));
-  return new WorkspaceService(repository, access);
+  return new WorkspaceService(repository, access, billing);
 }
 
 export async function ensurePersonalWorkspace(

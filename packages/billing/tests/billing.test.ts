@@ -306,6 +306,32 @@ describe("BillingService", () => {
     });
     await expect(service.assertCanWriteVersion("user_1", { contentBytes: 1_048_577 })).rejects.toThrow("exceeds Builder");
   });
+
+  it("enforces team workspace and seat entitlements", async () => {
+    const repository = new MemoryBillingRepository();
+    const service = new BillingService(repository, new MemoryBillingGateway());
+
+    await expect(service.assertCanCreateTeamWorkspace("user_1")).rejects.toMatchObject({
+      limit: "team_workspaces",
+      requiredPlanId: "studio"
+    });
+    await expect(service.assertCanAddSeat("user_1", { seatsInUse: 1 })).rejects.toMatchObject({
+      limit: "included_seats",
+      requiredPlanId: "builder"
+    });
+
+    repository.accounts.set("user_team", {
+      userId: "user_team",
+      planId: "studio",
+      status: "active",
+      dodoCustomerId: "cus_team"
+    });
+    await expect(service.assertCanCreateTeamWorkspace("user_team")).resolves.toBeUndefined();
+    await expect(service.assertCanAddSeat("user_team", { seatsInUse: 2 })).resolves.toBeUndefined();
+    await expect(service.assertCanAddSeat("user_team", { seatsInUse: 3 })).rejects.toMatchObject({
+      limit: "included_seats"
+    });
+  });
 });
 
 function sign(payload: string, timestamp: string, secret: string): string {

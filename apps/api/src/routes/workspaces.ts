@@ -5,10 +5,13 @@ import {
   createWorkspaceProjectInputSchema,
   ProjectNotFoundError
 } from "@agent-artifacts/artifact";
+import { BILLING_PLANS } from "@agent-artifacts/billing";
 import { createTeamWorkspaceInputSchema, changeMemberRoleInputSchema } from "@agent-artifacts/workspace";
 import {
   getArtifactService,
   getAuditService,
+  getBillingService,
+  getInvitationService,
   getMembershipService,
   getProjectService,
   getWorkspaceAccess,
@@ -178,6 +181,31 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
       const members = await getWorkspaceService().listMembers(c.req.param("workspaceId"), principal);
 
       return { members };
+    })
+  );
+
+  app.get("/api/workspaces/:workspaceId/seat-usage", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const workspaceId = c.req.param("workspaceId");
+      const [workspace, members, invitations] = await Promise.all([
+        getWorkspaceService().getWorkspace(workspaceId, principal),
+        getWorkspaceService().listMembers(workspaceId, principal),
+        getInvitationService().listPendingInvitations(workspaceId, principal)
+      ]);
+      const ownerUserId = workspace.personalUserId ?? workspace.createdByUserId;
+      const entitlements = ownerUserId
+        ? await getBillingService().getAccountEntitlements(ownerUserId)
+        : { plan: BILLING_PLANS.free };
+
+      return {
+        members: members.length,
+        pendingInvitations: invitations.length,
+        seatsUsed: members.length + invitations.length,
+        includedSeats: entitlements.plan.entitlements.includedSeats,
+        planId: entitlements.plan.id,
+        planDisplayName: entitlements.plan.displayName
+      };
     })
   );
 

@@ -145,7 +145,7 @@ export function getWorkspaceAccess() {
 }
 
 export function getWorkspaceService() {
-  workspaceServiceInstance ??= createDrizzleWorkspaceService(getDb());
+  workspaceServiceInstance ??= createDrizzleWorkspaceService(getDb(), getBillingService());
   return workspaceServiceInstance;
 }
 
@@ -155,7 +155,7 @@ export function getMembershipService() {
 }
 
 export function getInvitationService() {
-  invitationServiceInstance ??= createDrizzleInvitationService(getDb(), loadServerEnv().PUBLIC_APP_URL);
+  invitationServiceInstance ??= createDrizzleInvitationService(getDb(), loadServerEnv().PUBLIC_APP_URL, getBillingService());
   return invitationServiceInstance;
 }
 

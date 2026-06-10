@@ -334,6 +334,32 @@ export class BillingService {
     return this.repository.getUsage(userId);
   }
 
+  async assertCanAddSeat(
+    ownerUserId: string,
+    input: { seatsInUse: number; seatsToAdd?: number }
+  ): Promise<void> {
+    const resolved = await this.getAccountEntitlements(ownerUserId);
+    const includedSeats = resolved.plan.entitlements.includedSeats;
+    const projectedSeats = input.seatsInUse + (input.seatsToAdd ?? 1);
+    if (projectedSeats > includedSeats) {
+      const requiredPlanId = nextPaidPlanId(resolved.plan.id);
+      throw new EntitlementLimitError(
+        `${resolved.plan.displayName} includes ${includedSeats} team seat${includedSeats === 1 ? "" : "s"}. Upgrade${requiredPlanId ? ` to ${displayNameForPlan(requiredPlanId)}` : ""} to add more.`,
+        { limit: "included_seats", requiredPlanId }
+      );
+    }
+  }
+
+  async assertCanCreateTeamWorkspace(ownerUserId: string): Promise<void> {
+    const resolved = await this.getAccountEntitlements(ownerUserId);
+    if (resolved.plan.id !== "studio") {
+      throw new EntitlementLimitError("Team workspaces require Team.", {
+        limit: "team_workspaces",
+        requiredPlanId: "studio"
+      });
+    }
+  }
+
   async createCheckoutSession(input: {
     planId: Exclude<BillingPlanId, "free">;
     productId: string;

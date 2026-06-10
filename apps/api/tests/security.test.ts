@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
+import { CSRF_PROTECTED_ROUTES } from "../src/http/middleware.js";
 
 describe("security headers", () => {
   it("includes security headers on API responses", async () => {
@@ -36,6 +37,25 @@ describe("rate limiting", () => {
     });
     expect(response.status).not.toBe(200);
     expect(response.status).not.toBe(201);
+  });
+});
+
+describe("CSRF protection", () => {
+  it("covers cookie-authenticated workspace mutations", () => {
+    const protectedPaths = CSRF_PROTECTED_ROUTES.map((route) => route.path);
+
+    expect(protectedPaths).toEqual(
+      expect.arrayContaining([
+        "/api/workspaces",
+        "/api/workspaces/:workspaceId/projects",
+        "/api/workspaces/:workspaceId/artifacts",
+        "/api/workspaces/:workspaceId/invitations",
+        "/api/workspaces/:workspaceId/members/:userId",
+        "/api/workspace-invitations/accept",
+        "/api/workspace-invitations/:invitationId/revoke",
+        "/api/workspace-invitations/:invitationId/resend"
+      ])
+    );
   });
 });
 

@@ -40,7 +40,7 @@ export const csrfGuard: MiddlewareHandler = async (c, next) => {
   return csrfGuardImpl(c, next);
 };
 
-const CSRF_PROTECTED_ROUTES = [
+export const CSRF_PROTECTED_ROUTES = [
   { path: "/api/artifacts", middleware: [writeLimiter, artifactBodyLimit, csrfGuard] as const },
   { path: "/api/artifacts/:artifactId", middleware: [csrfGuard] as const },
   { path: "/api/artifacts/:artifactId/versions", middleware: [writeLimiter, artifactBodyLimit, csrfGuard] as const },
@@ -48,6 +48,14 @@ const CSRF_PROTECTED_ROUTES = [
   { path: "/api/artifacts/:artifactId/share-links", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/share-links/:shareLinkId/revoke", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/projects", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/workspaces", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/workspaces/:workspaceId/projects", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/workspaces/:workspaceId/artifacts", middleware: [writeLimiter, artifactBodyLimit, csrfGuard] as const },
+  { path: "/api/workspaces/:workspaceId/invitations", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/workspaces/:workspaceId/members/:userId", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/workspace-invitations/accept", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/workspace-invitations/:invitationId/revoke", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/workspace-invitations/:invitationId/resend", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/billing/checkout", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/billing/portal", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/billing/storage-snapshot", middleware: [writeLimiter, csrfGuard] as const },

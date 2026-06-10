@@ -66,7 +66,9 @@ export function AccessSettingsForm(props: {
           rows={6}
           value={viewerEmailsText}
         />
-        <span className="muted small">One email per line. Ignored when public viewing is enabled.</span>
+        <span className="muted small">
+          One email per line. Ignored when public viewing is enabled. Viewers are not emailed automatically; send them the artifact link.
+        </span>
       </label>
       <FormErrorMessage error={error} />
       <button className="primary-button" type="submit">

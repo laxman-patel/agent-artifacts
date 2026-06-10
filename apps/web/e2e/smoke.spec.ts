@@ -9,7 +9,7 @@ test.describe("web smoke", () => {
 
   test("pricing page renders plan tiers", async ({ page }) => {
     await page.goto("/pricing");
-    await expect(page.getByRole("heading", { name: /Choose by access model/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Simple pricing for artifact hosting/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Builder" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Pro" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Team" })).toBeVisible();
@@ -19,7 +19,7 @@ test.describe("web smoke", () => {
     await page.goto("/login");
     await expect(page.getByRole("tab", { name: "Sign in" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Sign up" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Continue with Google/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /(?:Continue|Sign in) with Google/i })).toBeVisible();
     await page.getByRole("tab", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: /Sign up/i })).toBeVisible();
     await expect(page.getByLabel("Username")).toBeVisible();

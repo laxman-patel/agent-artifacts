@@ -535,6 +535,10 @@ export class BillingService {
     }
   }
 
+  async listBillableOwnerIds(): Promise<string[]> {
+    return this.repository.listBillableOwnerIds();
+  }
+
   async assertCanCreateProject(ownerUserId: string): Promise<void> {
     const [resolved, usage] = await Promise.all([
       this.getAccountEntitlements(ownerUserId),

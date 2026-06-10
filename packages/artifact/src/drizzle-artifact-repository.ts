@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
 import { artifactPermissions, artifacts, artifactVersions, auditEvents, projects, workspaces } from "@agent-artifacts/db";
 import {
@@ -129,11 +129,16 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
     return version;
   }
 
-  async listVersions(artifactId: string, limit: number): Promise<ArtifactVersionRecord[]> {
+  async listVersions(artifactId: string, limit: number, options: { createdAtGte?: Date } = {}): Promise<ArtifactVersionRecord[]> {
+    const conditions = [eq(artifactVersions.artifactId, artifactId)];
+    if (options.createdAtGte) {
+      conditions.push(gte(artifactVersions.createdAt, options.createdAtGte));
+    }
+
     return this.db
       .select()
       .from(artifactVersions)
-      .where(eq(artifactVersions.artifactId, artifactId))
+      .where(and(...conditions))
       .orderBy(desc(artifactVersions.versionNumber))
       .limit(limit);
   }

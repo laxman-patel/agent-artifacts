@@ -13,7 +13,7 @@ import {
   type ReplaceArtifactEmailAccessInput
 } from "../src/index.js";
 import { createArtifactAccess, MemoryArtifactRoleResolver } from "@agent-artifacts/access";
-import { EntitlementLimitError } from "@agent-artifacts/billing";
+import { BILLING_PLANS, EntitlementLimitError } from "@agent-artifacts/billing";
 import type { Principal } from "@agent-artifacts/shared";
 import type { ArtifactStorage, GetObjectOutput, PutObjectInput } from "@agent-artifacts/storage";
 
@@ -235,6 +235,31 @@ describe("ArtifactService", () => {
       restoredFromVersionNumber: 1,
       versionNumber: 3
     });
+  });
+
+  it("filters version history by the owner's retention window", async () => {
+    const billingGuard = new MemoryBillingGuard();
+    billingGuard.versionHistoryDays = 30;
+    const { repository, service } = createTestHarness(billingGuard);
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        projectSlug: "default",
+        slug: "retained-history",
+        type: "md",
+        title: "Retained History",
+        content: "# one"
+      },
+      ownerPrincipal
+    );
+    await service.updateArtifact({ artifactId: created.artifactId, content: "# two" }, ownerPrincipal);
+
+    const versions = repository.versions.get(created.artifactId) ?? [];
+    versions[0] = { ...versions[0], createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000) };
+
+    await expect(service.listArtifactVersions(created.artifactId, ownerPrincipal)).resolves.toMatchObject([
+      { versionNumber: 2 }
+    ]);
   });
 
   it("removes newly written source content when version persistence fails", async () => {
@@ -659,8 +684,13 @@ class MemoryArtifactRepository implements ArtifactRepository {
       : versions.find((version) => version.versionNumber === versionNumber);
   }
 
-  async listVersions(artifactId: string, limit: number): Promise<ArtifactVersionRecord[]> {
+  async listVersions(
+    artifactId: string,
+    limit: number,
+    options: { createdAtGte?: Date } = {}
+  ): Promise<ArtifactVersionRecord[]> {
     return (this.versions.get(artifactId) ?? [])
+      .filter((version) => !options.createdAtGte || version.createdAt >= options.createdAtGte)
       .toSorted((left, right) => right.versionNumber - left.versionNumber)
       .slice(0, limit);
   }
@@ -766,6 +796,8 @@ class MemoryBillingGuard {
   rejectCreateArtifact?: Error;
   rejectWriteVersion?: Error;
   rejectAccess?: Error;
+  versionHistoryDays = 365;
+  auditRetentionDays = 365;
   readonly createArtifactChecks: Array<{ ownerUserId: string; publicView: boolean; publicEdit: boolean; contentBytes: number }> = [];
   readonly versionWrites: Array<{ ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }> = [];
   readonly deliveryEvents: Array<{ ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }> = [];
@@ -784,6 +816,19 @@ class MemoryBillingGuard {
 
   async assertCanSetArtifactAccess() {
     if (this.rejectAccess) throw this.rejectAccess;
+  }
+
+  async getAccountEntitlements() {
+    return {
+      plan: {
+        ...BILLING_PLANS.studio,
+        entitlements: {
+          ...BILLING_PLANS.studio.entitlements,
+          versionHistoryDays: this.versionHistoryDays,
+          auditRetentionDays: this.auditRetentionDays
+        }
+      }
+    };
   }
 
   async recordVersionWrite(input: { ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }) {

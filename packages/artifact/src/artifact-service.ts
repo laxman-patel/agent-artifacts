@@ -37,7 +37,7 @@ const textEncoder = new TextEncoder();
 
 type ArtifactBillingGuard = Pick<
   BillingService,
-  "assertCanCreateArtifact" | "assertCanWriteVersion" | "assertCanSetArtifactAccess"
+  "assertCanCreateArtifact" | "assertCanWriteVersion" | "assertCanSetArtifactAccess" | "getAccountEntitlements"
 > & {
   recordVersionWrite?(input: { ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }): Promise<void>;
   recordDelivery?(input: { ownerUserId: string; artifactId: string; versionNumber: number; contentBytes: number }): Promise<void>;
@@ -485,7 +485,8 @@ export class ArtifactService {
   async listArtifactVersions(artifactId: string, principal: Principal, limit = 50): Promise<ArtifactVersionRecord[]> {
     const artifact = await this.requireArtifactById(artifactId);
     await this.assertArtifactAction(artifact, principal, "artifact.view");
-    return this.repository.listVersions(artifactId, Math.min(Math.max(limit, 1), 100));
+    const cutoff = await this.versionHistoryCutoff(artifact.ownerUserId);
+    return this.repository.listVersions(artifactId, Math.min(Math.max(limit, 1), 100), { createdAtGte: cutoff });
   }
 
   async listWorkspaceArtifacts(workspaceId: string, principal: Principal): Promise<ArtifactRecord[]> {
@@ -691,6 +692,15 @@ export class ArtifactService {
       publicView: artifact.publicView,
       publicEdit: artifact.publicEdit
     };
+  }
+
+  private async versionHistoryCutoff(ownerUserId: string): Promise<Date | undefined> {
+    const entitlements = await this.billing?.getAccountEntitlements(ownerUserId);
+    const days = entitlements?.plan.entitlements.versionHistoryDays;
+    if (!days) {
+      return undefined;
+    }
+    return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   }
 
   private async writeContent(input: {

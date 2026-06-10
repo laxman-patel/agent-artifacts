@@ -112,7 +112,7 @@ export interface ArtifactRepository {
     slug: string
   ): Promise<ArtifactRecord | undefined>;
   getVersion(artifactId: string, versionNumber?: number): Promise<ArtifactVersionRecord | undefined>;
-  listVersions(artifactId: string, limit: number): Promise<ArtifactVersionRecord[]>;
+  listVersions(artifactId: string, limit: number, options?: { createdAtGte?: Date }): Promise<ArtifactVersionRecord[]>;
   createArtifact(input: PersistCreateArtifactInput): Promise<void>;
   createVersion(input: PersistCreateVersionInput): Promise<void>;
   createAuditEvent(input: PersistAuditEventInput): Promise<void>;

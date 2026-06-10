@@ -131,7 +131,7 @@ export function getShareLinkService() {
 }
 
 export function getAuditService() {
-  auditServiceInstance ??= new AuditService(getDb());
+  auditServiceInstance ??= new AuditService(getDb(), getBillingService());
   return auditServiceInstance;
 }
 

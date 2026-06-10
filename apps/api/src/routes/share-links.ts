@@ -100,6 +100,7 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
       const artifactId = c.req.query("artifactId");
       const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
       if (artifactId) {
+        const artifact = await getArtifactService().getArtifact(artifactId, principal);
         const canViewAudit = await getArtifactService().checkArtifactPermission(
           artifactId,
           "artifact.manage_access",
@@ -109,11 +110,19 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
           return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
         }
 
-        const events = await getAuditService().listAuditEvents({ artifactId, limit });
+        const events = await getAuditService().listAuditEvents({
+          artifactId,
+          retentionOwnerUserId: artifact.ownerUserId,
+          limit
+        });
         return { events };
       }
 
-      const events = await getAuditService().listAuditEvents({ ownerUserId: principal.id, limit });
+      const events = await getAuditService().listAuditEvents({
+        ownerUserId: principal.id,
+        retentionOwnerUserId: principal.id,
+        limit
+      });
 
       return { events };
     })

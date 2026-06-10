@@ -249,8 +249,15 @@ export function registerWorkspaceRoutes(app: Hono<{ Variables: AppVariables }>) 
         action: "workspace.manage_members",
         context: { workspaceId }
       });
+      const workspace = await getWorkspaceService().getWorkspace(workspaceId, principal);
+      const ownerUserId = workspace.personalUserId ?? workspace.createdByUserId;
 
-      const events = await getAuditService().listAuditEvents({ workspaceId, artifactId, limit });
+      const events = await getAuditService().listAuditEvents({
+        workspaceId,
+        artifactId,
+        retentionOwnerUserId: ownerUserId ?? undefined,
+        limit
+      });
 
       return { events };
     })

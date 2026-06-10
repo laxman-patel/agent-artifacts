@@ -186,6 +186,7 @@ export const mcpTools = {
     handler: async (input, ctx) => {
       const auditService = requireContext(ctx.auditService, "auditService");
       if (input.artifactId) {
+        const artifact = await ctx.artifactService.getArtifact(input.artifactId, ctx.principal);
         const canViewAudit = await ctx.artifactService.checkArtifactPermission(
           input.artifactId,
           "artifact.manage_access",
@@ -194,12 +195,24 @@ export const mcpTools = {
         if (!canViewAudit) {
           throw new ArtifactForbiddenError("Admin permission required.");
         }
-        return { events: await auditService.listAuditEvents({ artifactId: input.artifactId, limit: input.limit }) };
+        return {
+          events: await auditService.listAuditEvents({
+            artifactId: input.artifactId,
+            retentionOwnerUserId: artifact.ownerUserId,
+            limit: input.limit
+          })
+        };
       }
       if (ctx.principal.type !== "user") {
         throw new ArtifactForbiddenError("Only signed-in users can list account audit events.");
       }
-      return { events: await auditService.listAuditEvents({ ownerUserId: ctx.principal.id, limit: input.limit }) };
+      return {
+        events: await auditService.listAuditEvents({
+          ownerUserId: ctx.principal.id,
+          retentionOwnerUserId: ctx.principal.id,
+          limit: input.limit
+        })
+      };
     }
   }),
   resolve_path: def({

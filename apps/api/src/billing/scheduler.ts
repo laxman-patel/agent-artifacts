@@ -1,6 +1,6 @@
 import type { ServerEnv } from "@agent-artifacts/config";
 import { loadServerEnv } from "@agent-artifacts/config";
-import { getBillingService } from "../deps.js";
+import { getAuditService, getBillingService } from "../deps.js";
 import { logger } from "../logger.js";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -16,8 +16,12 @@ export function startBillingScheduler(env: ServerEnv = loadServerEnv()): (() => 
 
   const run = async () => {
     try {
-      await getBillingService().recordStorageSnapshotsForActiveAccounts();
+      const billingService = getBillingService();
+      await billingService.recordStorageSnapshotsForActiveAccounts();
       logger.info("billing_storage_snapshots_recorded");
+      const ownerIds = await billingService.listBillableOwnerIds();
+      const deletedAuditEvents = await getAuditService().pruneExpiredAuditEventsForOwners(ownerIds);
+      logger.info("billing_retention_pruned", { deletedAuditEvents });
     } catch (error) {
       logger.error("billing_storage_snapshots_failed", {
         message: error instanceof Error ? error.message : String(error)

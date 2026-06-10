@@ -99,7 +99,21 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
       const principal = await requireHumanPrincipal(c);
       const artifactId = c.req.query("artifactId");
       const limit = z.coerce.number().int().positive().max(100).default(50).parse(c.req.query("limit"));
-      const events = await getAuditService().listAuditEvents({ ownerUserId: principal.id, artifactId, limit });
+      if (artifactId) {
+        const canViewAudit = await getArtifactService().checkArtifactPermission(
+          artifactId,
+          "artifact.manage_access",
+          principal
+        );
+        if (!canViewAudit) {
+          return c.json({ error: "forbidden", message: "Admin permission required." }, 403);
+        }
+
+        const events = await getAuditService().listAuditEvents({ artifactId, limit });
+        return { events };
+      }
+
+      const events = await getAuditService().listAuditEvents({ ownerUserId: principal.id, limit });
 
       return { events };
     })

@@ -6,6 +6,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { FormErrorMessage } from "../../components/form-error-message";
 import { useDashboardWorkspace } from "./dashboard-workspace-data";
 import { readApiFormError, type ApiFormError } from "../../../lib/api-error";
+import type { ProjectSummary } from "../../../lib/server-api";
 
 function slugify(value: string): string {
   return value
@@ -19,11 +20,17 @@ function slugify(value: string): string {
 export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?: string }) {
   const router = useRouter();
   const { workspace, projects } = useDashboardWorkspace();
+  const [availableProjects, setAvailableProjects] = useState(projects);
   const defaultProject = useMemo(
-    () => projects.find((project) => project.slug === initialProjectSlug) ?? projects[0],
-    [initialProjectSlug, projects]
+    () => availableProjects.find((project) => project.slug === initialProjectSlug) ?? availableProjects[0],
+    [initialProjectSlug, availableProjects]
   );
   const [projectSlug, setProjectSlug] = useState(defaultProject?.slug ?? "");
+  const [projectTitle, setProjectTitle] = useState("");
+  const [newProjectSlug, setNewProjectSlug] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [projectError, setProjectError] = useState<ApiFormError | null>(null);
+  const [projectPending, setProjectPending] = useState(false);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [type, setType] = useState<"md" | "html" | "jsx">("md");
@@ -36,6 +43,67 @@ export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?
     setTitle(value);
     if (!slug) {
       setSlug(slugify(value));
+    }
+  }
+
+  function updateProjectTitle(value: string) {
+    setProjectTitle(value);
+    if (!newProjectSlug) {
+      setNewProjectSlug(slugify(value));
+    }
+  }
+
+  async function onCreateProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setProjectError(null);
+    setProjectPending(true);
+
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ownerUsername: workspace.slug,
+          slug: newProjectSlug,
+          title: projectTitle,
+          description: projectDescription.trim() || undefined
+        })
+      });
+
+      if (!response.ok) {
+        setProjectError(await readApiFormError(response, "Could not create project."));
+        return;
+      }
+
+      const created = (await response.json()) as Partial<ProjectSummary> & {
+        projectId?: string;
+        normalizedSlug?: string;
+      };
+      const createdSlug = created.slug ?? created.normalizedSlug ?? newProjectSlug;
+      const project: ProjectSummary = {
+        id: created.id ?? created.projectId ?? createdSlug,
+        ownerUsername: created.ownerUsername ?? workspace.slug,
+        workspaceId: created.workspaceId ?? workspace.id,
+        workspaceSlug: created.workspaceSlug ?? workspace.slug,
+        slug: createdSlug,
+        title: created.title ?? projectTitle,
+        description: created.description ?? null,
+        updatedAt: created.updatedAt ?? new Date().toISOString()
+      };
+
+      setAvailableProjects((current) => [...current.filter((item) => item.slug !== project.slug), project]);
+      setProjectSlug(project.slug);
+      setProjectTitle("");
+      setNewProjectSlug("");
+      setProjectDescription("");
+      router.refresh();
+    } catch (error) {
+      setProjectError({
+        message: error instanceof Error ? `Could not create project: ${error.message}` : "Could not create project."
+      });
+    } finally {
+      setProjectPending(false);
     }
   }
 
@@ -83,19 +151,50 @@ export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?
     }
   }
 
-  if (projects.length === 0) {
-    return (
-      <section className="card flat stack">
-        <div className="section-header">
-          <h2>No projects yet</h2>
-          <p className="muted small">Create a project from the CLI or MCP before adding artifacts here.</p>
-        </div>
-      </section>
-    );
+  const projectCreateForm = (
+    <form className="card flat stack" onSubmit={(event) => void onCreateProject(event)}>
+      <div className="section-header">
+        <h2>New project</h2>
+        <p className="muted small">Create a project here, then publish your first artifact into it.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="stack tight">
+          <span className="label">Project name</span>
+          <input className="input" onChange={(event) => updateProjectTitle(event.target.value)} required value={projectTitle} />
+        </label>
+        <label className="stack tight">
+          <span className="label">Project slug</span>
+          <input
+            autoCapitalize="none"
+            className="input"
+            onChange={(event) => setNewProjectSlug(slugify(event.target.value))}
+            pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
+            required
+            value={newProjectSlug}
+          />
+        </label>
+      </div>
+      <label className="stack tight">
+        <span className="label">Description</span>
+        <input className="input" onChange={(event) => setProjectDescription(event.target.value)} value={projectDescription} />
+      </label>
+      <FormErrorMessage error={projectError} />
+      <div className="flex justify-end">
+        <button className="primary-button" disabled={projectPending} type="submit">
+          {projectPending ? "Creating..." : "Create project"}
+        </button>
+      </div>
+    </form>
+  );
+
+  if (availableProjects.length === 0) {
+    return projectCreateForm;
   }
 
   return (
-    <form className="card flat stack" onSubmit={(event) => void onSubmit(event)}>
+    <>
+      {projectCreateForm}
+      <form className="card flat stack" onSubmit={(event) => void onSubmit(event)}>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="stack tight">
           <span className="label">Title</span>
@@ -118,7 +217,7 @@ export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?
         <label className="stack tight">
           <span className="label">Project</span>
           <select className="input" onChange={(event) => setProjectSlug(event.target.value)} required value={projectSlug}>
-            {projects.map((project) => (
+            {availableProjects.map((project) => (
               <option key={project.id} value={project.slug}>
                 {project.title}
               </option>
@@ -162,6 +261,7 @@ export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?
           <Plus className="size-4 text-[var(--wb-accent-orange)]" strokeWidth={2} />
         </button>
       </div>
-    </form>
+      </form>
+    </>
   );
 }

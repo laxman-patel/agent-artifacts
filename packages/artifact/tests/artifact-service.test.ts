@@ -123,6 +123,38 @@ describe("ArtifactService", () => {
     ).rejects.toBeInstanceOf(ArtifactForbiddenError);
   });
 
+  it("allows a share-granted principal to resolve a restricted artifact by path", async () => {
+    const { service } = createTestHarness();
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        projectSlug: "default",
+        slug: "private-demo",
+        type: "md",
+        title: "Private Demo",
+        content: "# Secret",
+        access: { publicView: false, publicEdit: false }
+      },
+      ownerPrincipal
+    );
+    const anonymousPrincipal: Principal = {
+      type: "service",
+      id: "anonymous-public-viewer",
+      scopes: ["artifacts:read"]
+    };
+
+    await expect(
+      service.getArtifactByPath("laxman", "default", "private-demo", anonymousPrincipal)
+    ).rejects.toBeInstanceOf(ArtifactForbiddenError);
+
+    await expect(
+      service.getArtifactByPath("laxman", "default", "private-demo", {
+        ...anonymousPrincipal,
+        artifactRoleGrants: { [created.artifactId]: "viewer" }
+      })
+    ).resolves.toMatchObject({ id: created.artifactId });
+  });
+
   it("appends updates as new versions and rejects stale version preconditions", async () => {
     const { repository, storage, service } = createTestHarness();
 

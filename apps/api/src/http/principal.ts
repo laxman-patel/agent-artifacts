@@ -51,13 +51,16 @@ function isContext(value: Context | Request): value is Context {
   return typeof (value as Context).req?.param === "function";
 }
 
-async function resolveShareGrantPrincipal(c: Context, principal: Principal): Promise<Principal> {
-  const artifactId = c.req.param("artifactId");
+export async function applyShareGrantForArtifact(
+  cookieHeader: string | null | undefined,
+  artifactId: string | undefined,
+  principal: Principal
+): Promise<Principal> {
   if (!artifactId) {
     return principal;
   }
 
-  const grant = await getShareLinkService().resolveCookieGrant(c.req.header("cookie"), artifactId);
+  const grant = await getShareLinkService().resolveCookieGrant(cookieHeader, artifactId);
   if (!grant) {
     return principal;
   }
@@ -69,6 +72,10 @@ async function resolveShareGrantPrincipal(c: Context, principal: Principal): Pro
       [artifactId]: grant.role
     }
   };
+}
+
+async function resolveShareGrantPrincipal(c: Context, principal: Principal): Promise<Principal> {
+  return applyShareGrantForArtifact(c.req.header("cookie"), c.req.param("artifactId"), principal);
 }
 
 export async function resolvePrincipal(c: Context | Request): Promise<Principal> {

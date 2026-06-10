@@ -297,6 +297,16 @@ export class ArtifactService {
     slug: string,
     principal: Principal
   ): Promise<ArtifactRecord> {
+    const artifact = await this.resolveActiveArtifactByPath(username, projectSlug, slug);
+    await this.assertArtifactAction(artifact, principal, "artifact.view");
+    return artifact;
+  }
+
+  async resolveActiveArtifactByPath(
+    username: string,
+    projectSlug: string,
+    slug: string
+  ): Promise<ArtifactRecord> {
     const artifact = await this.repository.getArtifactByOwnerProjectSlug(
       username,
       validateProjectSlug(projectSlug),
@@ -306,7 +316,6 @@ export class ArtifactService {
       throw new ArtifactNotFoundError();
     }
 
-    await this.assertArtifactAction(artifact, principal, "artifact.view");
     return artifact;
   }
 

@@ -5,7 +5,12 @@ import { ProjectNotFoundError } from "@agent-artifacts/artifact";
 import { usernameSchema } from "@agent-artifacts/shared";
 import { getArtifactService, getProfileService, getProjectService } from "../deps.js";
 import { handle } from "../http/handler.js";
-import { requireHumanPrincipal, requirePrincipal, resolvePrincipal } from "../http/principal.js";
+import {
+  applyShareGrantForArtifact,
+  requireHumanPrincipal,
+  requirePrincipal,
+  resolvePrincipal
+} from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
 
 export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
@@ -69,13 +74,14 @@ export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
 
   app.get("/api/by-path/:username/:projectSlug/:slug", (c) =>
     handle(c, async () => {
-      const principal = await resolvePrincipal(c);
-      const artifact = await getArtifactService().getArtifactByPath(
+      const basePrincipal = await resolvePrincipal(c);
+      const artifactByPath = await getArtifactService().resolveActiveArtifactByPath(
         c.req.param("username"),
         c.req.param("projectSlug"),
-        c.req.param("slug"),
-        principal
+        c.req.param("slug")
       );
+      const principal = await applyShareGrantForArtifact(c.req.header("cookie"), artifactByPath.id, basePrincipal);
+      const artifact = await getArtifactService().getArtifact(artifactByPath.id, principal);
 
       return artifact;
     })

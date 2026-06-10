@@ -50,6 +50,7 @@ describe("CLI schema", () => {
     const schema = buildAgentSchema();
     expect(schema.name).toBe("artifacts");
     expect(schema.version).toBe(readCliVersion());
+    expect(schema.version).not.toBe("0.0.0");
     expect(schema.commands.length).toBeGreaterThanOrEqual(20);
     expect(schema.discovery).toContain("artifacts schema");
     expect(schema.globalFlags.noInput.flag).toBe("--no-input");

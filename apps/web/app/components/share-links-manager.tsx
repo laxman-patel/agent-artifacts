@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { readApiFormError, type ApiFormError } from "../../lib/api-error";
+import { FormErrorMessage } from "./form-error-message";
 
 interface ShareLink {
   id: string;
@@ -20,7 +22,7 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
   const [role, setRole] = useState<"viewer" | "editor">("viewer");
   const [newLink, setNewLink] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiFormError | null>(null);
 
   async function createLink() {
     setCreating(true);
@@ -35,8 +37,7 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
       });
 
       if (!res.ok) {
-        const data = (await res.json()) as { message?: string };
-        setError(data.message ?? "Failed to create share link.");
+        setError(await readApiFormError(res, "Failed to create share link."));
         return;
       }
 
@@ -70,7 +71,7 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
         </button>
       </div>
 
-      {error && <p className="error-message">{error}</p>}
+      <FormErrorMessage error={error} className="error-message" />
 
       {newLink && (
         <div className="new-share-link">

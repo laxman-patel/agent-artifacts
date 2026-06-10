@@ -4,6 +4,7 @@ import type { ComponentType, ReactNode } from "react";
 import { LockKeyhole, PackageCheck, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { fetchBillingPlans, type BillingPlan } from "../../lib/server-api";
 import { BillingCheckoutButton } from "../components/billing-actions";
 import { PricingDitherShader } from "../components/pricing-dither-shader";
 
@@ -27,71 +28,77 @@ function GithubIcon({ className }: { className?: string }) {
 
 type CtaIcon = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 
-const plans = [
-  {
-    id: "builder",
-    name: "Builder",
-    price: "Free",
-    cadence: "No card needed",
-    summary: "Public artifact links for trying the workflow.",
-    cta: "Start free",
-    ctaIcon: PackageCheck,
-    href: "/login?next=%2Fdashboard",
-    checkoutPlanId: null,
-    featured: false,
-    features: [
-      "Public HTML, Markdown, and JSX artifacts",
-      "3 projects and 25 active artifacts",
-      "100 MiB stored history",
-      "100 version writes each month"
-    ],
-    usage: null
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$3",
-    cadence: "/month",
-    summary: "Private sharing and higher limits for one builder.",
-    cta: "Upgrade to Pro",
-    ctaIcon: LockKeyhole,
-    href: "/login?next=%2Fpricing",
-    checkoutPlanId: "builder",
-    featured: true,
-    features: [
-      "Everything in Builder is included",
-      "Private artifacts",
-      "Email allowlists and share links",
-      "5 GiB history and 50 GiB delivery",
-      "2,000 version writes each month"
-    ],
-    usage: [
-      { label: "Storage", price: "$0.10", unit: "extra GB-mo" },
-      { label: "Delivery", price: "$0.05", unit: "extra GB" },
-      { label: "Writes", price: "$0.20", unit: "extra 1k writes" }
-    ]
-  },
-  {
-    id: "team",
-    name: "Team",
-    price: "$12",
-    cadence: "/month",
-    summary: "A shared team home for artifacts that belong together.",
-    cta: "Start Team",
-    ctaIcon: Users,
-    href: "/login?next=%2Fpricing",
-    checkoutPlanId: "studio",
-    featured: false,
-    features: [
-      "Everything in Pro is included",
-      "3 seats included, $3 per extra seat",
-      "Team projects and member roles",
-      "50 GiB history and 250 GiB delivery",
-      "10,000 version writes each month"
-    ],
-    usage: null
+type PricingPlan = {
+  id: BillingPlan["id"];
+  name: string;
+  price: string;
+  cadence: string;
+  summary: string;
+  cta: string;
+  ctaIcon: CtaIcon;
+  href: string;
+  checkoutPlanId: Exclude<BillingPlan["id"], "free"> | null;
+  featured: boolean;
+  features: string[];
+  usage: { label: string; price: string; unit: string }[] | null;
+};
+
+const planIcons: Record<BillingPlan["id"], CtaIcon> = {
+  free: PackageCheck,
+  builder: LockKeyhole,
+  studio: Users
+};
+
+const planOrder: BillingPlan["id"][] = ["free", "builder", "studio"];
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${bytes / 1024 / 1024 / 1024} GiB`;
+  if (bytes >= 1024 * 1024) return `${bytes / 1024 / 1024} MiB`;
+  return `${bytes} bytes`;
+}
+
+function planFeatures(plan: BillingPlan): string[] {
+  const entitlements = plan.entitlements;
+  const features = [
+    entitlements.privateArtifacts ? "Private artifacts" : "Public HTML, Markdown, and JSX artifacts",
+    entitlements.emailAllowlist ? "Email allowlists and share links" : `${entitlements.maxProjects} projects and ${entitlements.maxActiveArtifacts} active artifacts`,
+    `${formatBytes(entitlements.includedStorageBytes)} history${entitlements.includedDeliveryBytes ? ` and ${formatBytes(entitlements.includedDeliveryBytes)} delivery` : ""}`,
+    `${entitlements.includedVersionWrites.toLocaleString()} version writes each month`
+  ];
+
+  if (plan.id === "studio") {
+    features.splice(1, 0, `${entitlements.includedSeats} seats included, $3 per extra seat`, "Team projects and member roles");
   }
-] as const;
+
+  return features;
+}
+
+function pricingPlansFromApi(plans: Record<BillingPlan["id"], BillingPlan>): PricingPlan[] {
+  return planOrder.map((planId) => {
+    const plan = plans[planId];
+    const paidPlanId = plan.id === "free" ? null : plan.id;
+    return {
+      id: plan.id,
+      name: plan.displayName,
+      price: plan.monthlyPriceUsd === 0 ? "Free" : `$${plan.monthlyPriceUsd}`,
+      cadence: plan.monthlyPriceUsd === 0 ? "No card needed" : "/month",
+      summary: plan.description,
+      cta: plan.id === "free" ? "Start free" : plan.id === "builder" ? "Upgrade to Pro" : "Start Team",
+      ctaIcon: planIcons[plan.id],
+      href: plan.id === "free" ? "/login?next=%2Fdashboard" : "/login?next=%2Fpricing",
+      checkoutPlanId: paidPlanId,
+      featured: plan.id === "builder",
+      features: planFeatures(plan),
+      usage: plan.id === "builder"
+        ? [
+            { label: "Storage", price: "$0.10", unit: "extra GB-mo" },
+            { label: "Delivery", price: "$0.05", unit: "extra GB" },
+            { label: "Writes", price: "$0.20", unit: "extra 1k writes" }
+          ]
+        : null
+    };
+  });
+}
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -179,8 +186,9 @@ function PricingNav() {
   );
 }
 
-function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
+function PlanCard({ plan }: { plan: PricingPlan }) {
   const Icon = plan.ctaIcon as CtaIcon;
+  const usage = plan.usage;
 
   return (
     <article
@@ -215,7 +223,7 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
           ))}
         </ul>
 
-        {plan.usage ? (
+        {usage ? (
           <div className="mt-7">
             <div className="mb-5 flex items-center justify-center gap-3">
               <span className="h-px w-8 bg-foreground/[0.07]" aria-hidden />
@@ -223,12 +231,12 @@ function PlanCard({ plan }: { plan: (typeof plans)[number] }) {
               <span className="h-px w-8 bg-foreground/[0.07]" aria-hidden />
             </div>
             <div className="grid grid-cols-3 gap-0">
-              {plan.usage.map((meter, index) => (
+              {usage.map((meter, index) => (
                 <div
                   key={meter.label}
                   className={cn(
                     "relative min-w-0 px-3 first:pl-0 last:pr-0",
-                    index < plan.usage.length - 1 &&
+                    index < usage.length - 1 &&
                       "after:absolute after:right-0 after:top-1/2 after:h-8 after:w-px after:-translate-y-1/2 after:bg-foreground/[0.08]"
                   )}
                 >
@@ -296,7 +304,13 @@ function PricingFooter() {
   );
 }
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const billingPlans = await fetchBillingPlans();
+  if (!billingPlans.ok) {
+    throw new Error(billingPlans.message);
+  }
+  const plans = pricingPlansFromApi(billingPlans.body.plans);
+
   return (
     <main id="pricing" className="marketing dark flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
       <a href="#content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-sm focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground">

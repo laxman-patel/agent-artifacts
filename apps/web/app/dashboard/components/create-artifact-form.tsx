@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
+import { FormErrorMessage } from "../../components/form-error-message";
 import { useDashboardWorkspace } from "./dashboard-workspace-data";
+import { readApiFormError, type ApiFormError } from "../../../lib/api-error";
 
 function slugify(value: string): string {
   return value
@@ -27,7 +29,7 @@ export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?
   const [type, setType] = useState<"md" | "html" | "jsx">("md");
   const [content, setContent] = useState("# New artifact\n\nStart writing here.");
   const [description, setDescription] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiFormError | null>(null);
   const [pending, setPending] = useState(false);
 
   function updateTitle(value: string) {
@@ -58,9 +60,15 @@ export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?
         })
       });
 
-      const body = (await response.json().catch(() => ({}))) as { url?: string; message?: string };
-      if (!response.ok || !body.url) {
-        setError(body.message ?? "Could not create artifact.");
+      if (!response.ok) {
+        setError(await readApiFormError(response, "Could not create artifact."));
+        setPending(false);
+        return;
+      }
+
+      const body = (await response.json().catch(() => ({}))) as { url?: string };
+      if (!body.url) {
+        setError({ message: "Could not create artifact." });
         setPending(false);
         return;
       }
@@ -68,7 +76,9 @@ export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?
       router.push(new URL(body.url, window.location.origin).pathname);
       router.refresh();
     } catch (error) {
-      setError(error instanceof Error ? `Could not create artifact: ${error.message}` : "Could not create artifact.");
+      setError({
+        message: error instanceof Error ? `Could not create artifact: ${error.message}` : "Could not create artifact."
+      });
       setPending(false);
     }
   }
@@ -140,7 +150,7 @@ export function CreateArtifactForm({ initialProjectSlug }: { initialProjectSlug?
         />
       </label>
 
-      {error ? <p className="error">{error}</p> : null}
+      <FormErrorMessage error={error} />
 
       <div className="flex justify-end">
         <button

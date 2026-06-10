@@ -17,6 +17,10 @@ import {
 
 describe("billing entitlements", () => {
   it("keeps free public and capped while Builder and Studio allow paid collaboration features", () => {
+    expect(BILLING_PLANS.free.displayName).toBe("Builder");
+    expect(BILLING_PLANS.builder.displayName).toBe("Pro");
+    expect(BILLING_PLANS.studio.displayName).toBe("Team");
+
     expect(BILLING_PLANS.free.entitlements).toMatchObject({
       maxProjects: 3,
       maxActiveArtifacts: 25,
@@ -280,10 +284,12 @@ describe("BillingService", () => {
     const service = new BillingService(repository, new MemoryBillingGateway());
 
     await expect(service.assertCanCreateProject("user_1")).rejects.toBeInstanceOf(EntitlementLimitError);
-    await expect(service.assertCanCreateArtifact("user_1", { publicView: false, publicEdit: false, contentBytes: 100 })).rejects.toThrow(
-      "Private artifacts require Builder or Studio"
-    );
-    await expect(service.assertCanWriteVersion("user_1", { contentBytes: 1_048_577 })).rejects.toThrow("exceeds Free");
+    await expect(service.assertCanCreateArtifact("user_1", { publicView: false, publicEdit: false, contentBytes: 100 })).rejects.toMatchObject({
+      message: "Private artifacts require Pro.",
+      limit: "private_artifacts",
+      requiredPlanId: "builder"
+    });
+    await expect(service.assertCanWriteVersion("user_1", { contentBytes: 1_048_577 })).rejects.toThrow("exceeds Builder");
   });
 });
 

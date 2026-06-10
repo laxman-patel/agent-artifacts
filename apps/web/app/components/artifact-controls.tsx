@@ -17,6 +17,8 @@ import {
   Trash2,
   type LucideIcon
 } from "lucide-react";
+import { readApiFormError, type ApiFormError } from "../../lib/api-error";
+import { FormErrorMessage } from "./form-error-message";
 
 type Version = { id: string; versionNumber: number; changelog: string | null; createdAt: string };
 type Access = { publicView: boolean; publicEdit: boolean; viewerEmails: string[] };
@@ -140,7 +142,7 @@ export function ArtifactControls({
   const [manager, setManager] = useState<boolean | null>(null);
   const [access, setAccess] = useState<Access | null>(null);
   const [saving, setSaving] = useState(false);
-  const [accessError, setAccessError] = useState<string | null>(null);
+  const [accessError, setAccessError] = useState<ApiFormError | null>(null);
 
   const [shareLinks, setShareLinks] = useState<ShareLink[] | null>(null);
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer");
@@ -148,7 +150,7 @@ export function ArtifactControls({
   const [newShareUrl, setNewShareUrl] = useState<string | null>(null);
   const [copiedShare, setCopiedShare] = useState(false);
   const [copiedArtifactLink, setCopiedArtifactLink] = useState(false);
-  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<ApiFormError | null>(null);
 
   const [linksOpen, setLinksOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
@@ -206,12 +208,12 @@ export function ArtifactControls({
       if (!res.ok) {
         setAccess(previous);
         onPublicViewChange(previous.publicView);
-        setAccessError("Could not save");
+        setAccessError(await readApiFormError(res, "Could not save"));
       }
     } catch {
       setAccess(previous);
       onPublicViewChange(previous.publicView);
-      setAccessError("Could not save");
+      setAccessError({ message: "Could not save" });
     } finally {
       setSaving(false);
     }
@@ -228,9 +230,13 @@ export function ArtifactControls({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ role: shareRole })
       });
-      const body = (await res.json().catch(() => ({}))) as { id?: string; shareUrl?: string; role?: string; message?: string };
-      if (!res.ok || !body.shareUrl || !body.id) {
-        setShareError(body.message ?? "Could not create link");
+      if (!res.ok) {
+        setShareError(await readApiFormError(res, "Could not create link"));
+        return;
+      }
+      const body = (await res.json().catch(() => ({}))) as { id?: string; shareUrl?: string; role?: string };
+      if (!body.shareUrl || !body.id) {
+        setShareError({ message: "Could not create link" });
         return;
       }
       setNewShareUrl(body.shareUrl);
@@ -239,7 +245,7 @@ export function ArtifactControls({
         { id: body.id!, role: body.role ?? shareRole, createdAt: new Date().toISOString(), revokedAt: null }
       ]);
     } catch {
-      setShareError("Could not create link");
+      setShareError({ message: "Could not create link" });
     } finally {
       setCreating(false);
     }
@@ -367,11 +373,11 @@ export function ArtifactControls({
           </span>
         </div>
       )}
-      {accessError ? (
-        <p className="mt-1 px-2 font-mono text-[10px]" style={{ color: DANGER }}>
-          {accessError}
-        </p>
-      ) : null}
+      <FormErrorMessage
+        error={accessError}
+        className="mt-1 px-2 font-mono text-[10px]"
+        style={{ color: DANGER }}
+      />
 
       <button
         type="button"
@@ -456,11 +462,11 @@ export function ArtifactControls({
                       {creating ? "Creating…" : "New link"}
                     </button>
                   </div>
-                  {shareError ? (
-                    <p className="px-1.5 pb-1 text-[11px]" style={{ color: DANGER }}>
-                      {shareError}
-                    </p>
-                  ) : null}
+                  <FormErrorMessage
+                    error={shareError}
+                    className="px-1.5 pb-1 text-[11px]"
+                    style={{ color: DANGER }}
+                  />
                 </>
               )}
             </div>

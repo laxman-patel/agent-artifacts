@@ -28,7 +28,7 @@ export default async function BillingSettingsPage() {
           <p className="mt-3 text-sm text-foreground/50">
             {account ? `Subscription status: ${account.status}` : "Free plan with hard limits and no overage billing."}
           </p>
-          <p className="mt-2 font-mono text-[12px] text-[var(--wb-accent-orange)]">{plan.name}</p>
+          <p className="mt-2 font-mono text-[12px] text-[var(--wb-accent-orange)]">{plan.displayName}</p>
         </div>
         <div className="row-actions">
           <Link className="ghost-button" href="/pricing">
@@ -64,13 +64,13 @@ export default async function BillingSettingsPage() {
       <section className="card flat stack">
         <div className="section-header">
           <h2>Feature access</h2>
-          <p className="muted">Upgrade prompts appear when a plan gate blocks a paid feature.</p>
+          <p className="muted">Plan gates are enforced server-side across every client.</p>
         </div>
         <ul className="feature-list">
-          <li>{plan.entitlements.privateArtifacts ? "Private artifacts enabled" : "Private artifacts require Builder or Studio"}</li>
-          <li>{plan.entitlements.emailAllowlist ? "Email allowlists enabled" : "Email allowlists require Builder or Studio"}</li>
-          <li>{plan.entitlements.shareLinks ? "Share links enabled" : "Share links require Builder or Studio"}</li>
-          <li>{plan.entitlements.overageBilling ? "Overage billing enabled after included usage" : "No overage billing on Free"}</li>
+          <li>{plan.entitlements.privateArtifacts ? "Private artifacts enabled" : "Private artifacts require Pro"}</li>
+          <li>{plan.entitlements.emailAllowlist ? "Email allowlists enabled" : "Email allowlists require Pro"}</li>
+          <li>{plan.entitlements.shareLinks ? "Share links enabled" : "Share links require Pro"}</li>
+          <li>{plan.entitlements.overageBilling ? "Overage billing enabled after included usage" : "No overage billing on Builder"}</li>
         </ul>
       </section>
     </main>

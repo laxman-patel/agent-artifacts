@@ -75,7 +75,10 @@ describe("ArtifactService", () => {
 
   it("checks billing entitlements before private artifact writes", async () => {
     const billingGuard = new MemoryBillingGuard();
-    billingGuard.rejectCreateArtifact = new EntitlementLimitError("Private artifacts require Builder or Studio.");
+    billingGuard.rejectCreateArtifact = new EntitlementLimitError("Private artifacts require Pro.", {
+      limit: "private_artifacts",
+      requiredPlanId: "builder"
+    });
     const { service, storage } = createTestHarness(billingGuard);
 
     await expect(
@@ -91,7 +94,7 @@ describe("ArtifactService", () => {
         },
         ownerPrincipal
       )
-    ).rejects.toThrow("Private artifacts require Builder or Studio.");
+    ).rejects.toThrow("Private artifacts require Pro.");
 
     expect(storage.objects.size).toBe(0);
     expect(billingGuard.createArtifactChecks).toEqual([

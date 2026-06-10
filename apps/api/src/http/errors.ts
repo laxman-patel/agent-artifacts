@@ -33,7 +33,12 @@ export function artifactErrorResponse(c: Context, error: unknown) {
   }
 
   if (error instanceof EntitlementLimitError) {
-    return c.json({ error: "plan_limit_exceeded", message: error.message }, 402);
+    return c.json({
+      error: "plan_limit_exceeded",
+      message: error.message,
+      ...(error.limit ? { limit: error.limit } : {}),
+      ...(error.requiredPlanId ? { requiredPlanId: error.requiredPlanId } : {})
+    }, 402);
   }
 
   if (

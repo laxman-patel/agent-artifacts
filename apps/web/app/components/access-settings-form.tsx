@@ -3,6 +3,8 @@
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { readApiFormError, type ApiFormError } from "../../lib/api-error";
+import { FormErrorMessage } from "./form-error-message";
 
 export function AccessSettingsForm(props: {
   artifactId: string;
@@ -15,7 +17,7 @@ export function AccessSettingsForm(props: {
   const [publicView, setPublicView] = useState(props.initialPublicView);
   const [publicEdit, setPublicEdit] = useState(props.initialPublicEdit);
   const [viewerEmailsText, setViewerEmailsText] = useState(initialEmailsText);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiFormError | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,8 +40,7 @@ export function AccessSettingsForm(props: {
     });
 
     if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { message?: string };
-      setError(body.message ?? "Could not update access rules.");
+      setError(await readApiFormError(response, "Could not update access rules."));
       return;
     }
 
@@ -67,7 +68,7 @@ export function AccessSettingsForm(props: {
         />
         <span className="muted small">One email per line. Ignored when public viewing is enabled.</span>
       </label>
-      {error ? <p className="error">{error}</p> : null}
+      <FormErrorMessage error={error} />
       <button className="primary-button" type="submit">
         Save access rules
       </button>

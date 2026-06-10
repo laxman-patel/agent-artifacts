@@ -43,6 +43,7 @@ export interface BillingEntitlements {
 export interface BillingPlan {
   id: BillingPlanId;
   name: string;
+  displayName: string;
   monthlyPriceUsd: number;
   description: string;
   entitlements: BillingEntitlements;
@@ -52,6 +53,7 @@ export const BILLING_PLANS = {
   free: {
     id: "free",
     name: "Free",
+    displayName: "Builder",
     monthlyPriceUsd: 0,
     description: "Public artifact hosting for trying Artifacts.",
     entitlements: {
@@ -74,6 +76,7 @@ export const BILLING_PLANS = {
   builder: {
     id: "builder",
     name: "Builder",
+    displayName: "Pro",
     monthlyPriceUsd: 3,
     description: "Private artifacts, longer history, and higher automation limits for solo builders.",
     entitlements: {
@@ -96,6 +99,7 @@ export const BILLING_PLANS = {
   studio: {
     id: "studio",
     name: "Studio",
+    displayName: "Team",
     monthlyPriceUsd: 12,
     description: "Shared workspace billing and collaboration for teams.",
     entitlements: {
@@ -222,9 +226,33 @@ export interface ResolvedEntitlements {
 }
 
 export class EntitlementLimitError extends Error {
-  constructor(message: string) {
+  readonly limit?: string;
+  readonly requiredPlanId?: BillingPlanId;
+
+  constructor(message: string, options: { limit?: string; requiredPlanId?: BillingPlanId } = {}) {
     super(message);
     this.name = "EntitlementLimitError";
+    this.limit = options.limit;
+    this.requiredPlanId = options.requiredPlanId;
+  }
+}
+
+function displayNameForPlan(planId: BillingPlanId): string {
+  return BILLING_PLANS[planId].displayName;
+}
+
+function nextPaidPlanId(planId: BillingPlanId): BillingPlanId | undefined {
+  switch (planId) {
+    case "free":
+      return "builder";
+    case "builder":
+      return "studio";
+    case "studio":
+      return undefined;
+    default: {
+      const _exhaustive: never = planId;
+      return _exhaustive;
+    }
   }
 }
 
@@ -310,7 +338,10 @@ export class BillingService {
   async createPortalSession(input: { userId: string; returnUrl: string }) {
     const account = await this.repository.getAccount(input.userId);
     if (!account?.dodoCustomerId) {
-      throw new EntitlementLimitError("No paid billing customer is linked to this account.");
+      throw new EntitlementLimitError("No paid billing customer is linked to this account.", {
+        limit: "billing_customer_required",
+        requiredPlanId: "builder"
+      });
     }
 
     return this.gateway.createPortalSession({ customerId: account.dodoCustomerId, returnUrl: input.returnUrl });
@@ -477,7 +508,11 @@ export class BillingService {
     ]);
     const maxProjects = resolved.plan.entitlements.maxProjects;
     if (maxProjects !== null && usage.projects >= maxProjects) {
-      throw new EntitlementLimitError(`${resolved.plan.name} includes ${maxProjects} projects. Upgrade to create more.`);
+      const requiredPlanId = nextPaidPlanId(resolved.plan.id);
+      throw new EntitlementLimitError(
+        `${resolved.plan.displayName} includes ${maxProjects} projects. Upgrade${requiredPlanId ? ` to ${displayNameForPlan(requiredPlanId)}` : ""} to create more.`,
+        { limit: "max_projects", requiredPlanId }
+      );
     }
   }
 
@@ -494,7 +529,11 @@ export class BillingService {
 
     const maxActiveArtifacts = resolved.plan.entitlements.maxActiveArtifacts;
     if (maxActiveArtifacts !== null && usage.activeArtifacts >= maxActiveArtifacts) {
-      throw new EntitlementLimitError(`${resolved.plan.name} includes ${maxActiveArtifacts} active artifacts. Upgrade to create more.`);
+      const requiredPlanId = nextPaidPlanId(resolved.plan.id);
+      throw new EntitlementLimitError(
+        `${resolved.plan.displayName} includes ${maxActiveArtifacts} active artifacts. Upgrade${requiredPlanId ? ` to ${displayNameForPlan(requiredPlanId)}` : ""} to create more.`,
+        { limit: "max_active_artifacts", requiredPlanId }
+      );
     }
     this.assertStorageEntitlement(resolved.plan, usage.storageBytes + input.contentBytes);
   }
@@ -506,8 +545,10 @@ export class BillingService {
     ]);
     this.assertContentEntitlement(resolved.plan, input.contentBytes);
     if (!resolved.plan.entitlements.overageBilling && usage.versionWritesThisMonth >= resolved.plan.entitlements.includedVersionWrites) {
+      const requiredPlanId = nextPaidPlanId(resolved.plan.id);
       throw new EntitlementLimitError(
-        `${resolved.plan.name} includes ${resolved.plan.entitlements.includedVersionWrites} version writes per month. Upgrade for more.`
+        `${resolved.plan.displayName} includes ${resolved.plan.entitlements.includedVersionWrites} version writes per month. Upgrade${requiredPlanId ? ` to ${displayNameForPlan(requiredPlanId)}` : ""} for more.`,
+        { limit: "included_version_writes", requiredPlanId }
       );
     }
     this.assertStorageEntitlement(resolved.plan, usage.storageBytes + input.contentBytes);
@@ -520,31 +561,44 @@ export class BillingService {
     const resolved = await this.getAccountEntitlements(ownerUserId);
     this.assertAccessEntitlements(resolved.plan, input);
     if (input.viewerEmails.length > 0 && !resolved.plan.entitlements.emailAllowlist) {
-      throw new EntitlementLimitError("Email allowlists require Builder or Studio.");
+      throw new EntitlementLimitError("Email allowlists require Pro.", {
+        limit: "email_allowlist",
+        requiredPlanId: "builder"
+      });
     }
   }
 
   private assertAccessEntitlements(plan: BillingPlan, input: { publicView: boolean; publicEdit: boolean }) {
     if (!input.publicView && !plan.entitlements.privateArtifacts) {
-      throw new EntitlementLimitError("Private artifacts require Builder or Studio.");
+      throw new EntitlementLimitError("Private artifacts require Pro.", {
+        limit: "private_artifacts",
+        requiredPlanId: "builder"
+      });
     }
     if (input.publicEdit && !plan.entitlements.publicEditLinks) {
-      throw new EntitlementLimitError("Public edit links require Builder or Studio.");
+      throw new EntitlementLimitError("Public edit links require Pro.", {
+        limit: "public_edit_links",
+        requiredPlanId: "builder"
+      });
     }
   }
 
   private assertContentEntitlement(plan: BillingPlan, contentBytes: number) {
     if (contentBytes > plan.entitlements.maxContentBytes) {
+      const requiredPlanId = nextPaidPlanId(plan.id);
       throw new EntitlementLimitError(
-        `Content size ${contentBytes} bytes exceeds ${plan.name} limit of ${plan.entitlements.maxContentBytes} bytes.`
+        `Content size ${contentBytes} bytes exceeds ${plan.displayName} limit of ${plan.entitlements.maxContentBytes} bytes.`,
+        { limit: "max_content_bytes", requiredPlanId }
       );
     }
   }
 
   private assertStorageEntitlement(plan: BillingPlan, projectedStorageBytes: number) {
     if (!plan.entitlements.overageBilling && projectedStorageBytes > plan.entitlements.includedStorageBytes) {
+      const requiredPlanId = nextPaidPlanId(plan.id);
       throw new EntitlementLimitError(
-        `${plan.name} includes ${plan.entitlements.includedStorageBytes} stored bytes. Upgrade for more storage.`
+        `${plan.displayName} includes ${plan.entitlements.includedStorageBytes} stored bytes. Upgrade${requiredPlanId ? ` to ${displayNameForPlan(requiredPlanId)}` : ""} for more storage.`,
+        { limit: "included_storage_bytes", requiredPlanId }
       );
     }
   }

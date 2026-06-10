@@ -30,7 +30,10 @@ export function registerShareLinkRoutes(app: Hono<{ Variables: AppVariables }>) 
 
       const entitlements = await getBillingService().getAccountEntitlements(artifact.ownerUserId);
       if (!entitlements.plan.entitlements.shareLinks) {
-        throw new EntitlementLimitError("Share links require Builder or Studio.");
+        throw new EntitlementLimitError("Share links require Pro.", {
+          limit: "share_links",
+          requiredPlanId: "builder"
+        });
       }
 
       const created = await getShareLinkService().createShareLink({

@@ -27,8 +27,16 @@ type BillingEntitlements = {
   emailAllowlist: boolean; shareLinks: boolean; publicEditLinks: boolean; overageBilling: boolean;
   auditRetentionDays: number; versionHistoryDays: number;
 };
-type BillingPlan = { id: "free" | "builder" | "studio"; name: string; monthlyPriceUsd: number; description: string; entitlements: BillingEntitlements };
+export type BillingPlan = {
+  id: "free" | "builder" | "studio";
+  name: string;
+  displayName: string;
+  monthlyPriceUsd: number;
+  description: string;
+  entitlements: BillingEntitlements;
+};
 type BillingUsage = { projects: number; activeArtifacts: number; storageBytes: number; versionWritesThisMonth: number; deliveryBytesThisMonth: number };
+type BillingMeter = { eventName: string; unit: string; overagePriceUsd: number };
 
 export interface ProfileMeResponse {
   user: { id: string; email: string; name: string; image: string | null; emailVerified: boolean };
@@ -200,6 +208,8 @@ export const fetchArtifactAccess = (artifactId: string, cookie: string) =>
   apiCall<{ publicView: boolean; publicEdit: boolean; viewerEmails: string[] }>(artifactApi(artifactId, "access"), { cookie });
 export const fetchBillingMe = (cookie: string) =>
   apiCall<{ plan: BillingPlan; account: { planId: string; status: string; currentPeriodEnd?: string | null } | null; usage: BillingUsage }>("/api/billing/me", { cookie });
+export const fetchBillingPlans = () =>
+  apiCall<{ plans: Record<BillingPlan["id"], BillingPlan>; meters: BillingMeter[] }>("/api/billing/plans");
 
 export async function loadArtifactGate(
   username: string, projectSlug: string, slug: string, cookie: string | undefined, opts: { redirectPath: string }

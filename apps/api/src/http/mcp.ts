@@ -20,6 +20,16 @@ const mcpJsonRpcRequestSchema = z.object({
 });
 
 type McpJsonRpcRequest = z.infer<typeof mcpJsonRpcRequestSchema>;
+type McpRequestId = string | number | null;
+type McpErrorPayload = {
+  jsonrpc: "2.0";
+  id: McpRequestId;
+  error: { code: number; message: string; data?: unknown };
+};
+
+const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2024-11-05"] as const;
+const DEFAULT_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[0];
+const SERVER_VERSION = process.env.npm_package_version ?? "0.1.0";
 
 class McpJsonRpcError extends Error {
   constructor(
@@ -36,26 +46,42 @@ function isMcpToolName(name: string): name is McpToolName {
 }
 
 function isPublicMethod(method: string): boolean {
-  return method === "initialize" || method === "tools/list";
+  return method === "initialize" || method === "tools/list" || method === "ping";
 }
 
 async function handleMcpJsonRpc(message: McpJsonRpcRequest, principal: Principal | null): Promise<unknown> {
   switch (message.method) {
-    case "initialize":
+    case "initialize": {
+      const params = z
+        .object({
+          protocolVersion: z.string().optional()
+        })
+        .passthrough()
+        .optional()
+        .parse(message.params);
+      const protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(
+        params?.protocolVersion as (typeof SUPPORTED_PROTOCOL_VERSIONS)[number]
+      )
+        ? params!.protocolVersion!
+        : DEFAULT_PROTOCOL_VERSION;
+
       return {
-        protocolVersion: "2024-11-05",
+        protocolVersion,
         capabilities: {
           tools: {}
         },
         serverInfo: {
           name: "agent-artifacts",
-          version: "0.1.0"
+          version: SERVER_VERSION
         }
       };
+    }
     case "tools/list":
       return {
         tools: listMcpTools()
       };
+    case "ping":
+      return {};
     case "tools/call": {
       const params = z
         .object({
@@ -93,31 +119,31 @@ async function handleMcpJsonRpc(message: McpJsonRpcRequest, principal: Principal
   }
 }
 
-export function mcpErrorPayload(error: unknown): {
-  jsonrpc: "2.0";
-  id: null;
-  error: { code: number; message: string; data?: unknown };
-} {
-  if (error instanceof McpJsonRpcError) {
-    return { jsonrpc: "2.0", id: null, error: { code: error.code, message: error.message } };
-  }
-  if (error instanceof z.ZodError) {
-    return { jsonrpc: "2.0", id: null, error: { code: -32602, message: "Invalid MCP request.", data: error.issues } };
-  }
-  if (error instanceof ArtifactForbiddenError) {
-    return { jsonrpc: "2.0", id: null, error: { code: -32001, message: error.message } };
-  }
-  if (error instanceof ArtifactNotFoundError) {
-    return { jsonrpc: "2.0", id: null, error: { code: -32004, message: error.message } };
-  }
-  if (error instanceof SlugUnavailableError || error instanceof ArtifactConflictError) {
-    return { jsonrpc: "2.0", id: null, error: { code: -32009, message: error.message } };
-  }
-  return { jsonrpc: "2.0", id: null, error: { code: -32603, message: error instanceof Error ? error.message : String(error) } };
+function requestId(message: McpJsonRpcRequest): McpRequestId {
+  return message.id ?? null;
 }
 
-export function mcpErrorAsResponse(error: unknown): Response {
-  return Response.json(mcpErrorPayload(error), { status: 200 });
+export function mcpErrorPayload(error: unknown, id: McpRequestId = null): McpErrorPayload {
+  if (error instanceof McpJsonRpcError) {
+    return { jsonrpc: "2.0", id, error: { code: error.code, message: error.message } };
+  }
+  if (error instanceof z.ZodError) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: "Invalid MCP request.", data: error.issues } };
+  }
+  if (error instanceof ArtifactForbiddenError) {
+    return { jsonrpc: "2.0", id, error: { code: -32001, message: error.message } };
+  }
+  if (error instanceof ArtifactNotFoundError) {
+    return { jsonrpc: "2.0", id, error: { code: -32004, message: error.message } };
+  }
+  if (error instanceof SlugUnavailableError || error instanceof ArtifactConflictError) {
+    return { jsonrpc: "2.0", id, error: { code: -32009, message: error.message } };
+  }
+  return { jsonrpc: "2.0", id, error: { code: -32603, message: error instanceof Error ? error.message : String(error) } };
+}
+
+export function mcpErrorAsResponse(error: unknown, id: McpRequestId = null): Response {
+  return Response.json(mcpErrorPayload(error, id), { status: 200 });
 }
 
 export function mcpErrorResponse(c: Context, error: unknown) {
@@ -127,9 +153,17 @@ export function mcpErrorResponse(c: Context, error: unknown) {
 export async function handleMcpRequest(c: Context) {
   const raw = await c.req.raw.clone().text();
   const message = mcpJsonRpcRequestSchema.parse(JSON.parse(raw));
+  if (message.id === undefined) {
+    return new Response(null, { status: 202 });
+  }
 
   if (isPublicMethod(message.method)) {
-    const result = await handleMcpJsonRpc(message, null);
+    let result: unknown;
+    try {
+      result = await handleMcpJsonRpc(message, null);
+    } catch (error) {
+      return c.json(mcpErrorPayload(error, requestId(message)), 200);
+    }
     return c.json({ jsonrpc: "2.0", id: message.id, result });
   }
 
@@ -154,7 +188,12 @@ export async function handleMcpRequest(c: Context) {
     }
 
     const principal = createUserPrincipal({ userId: userRow.id, email: userRow.email });
-    const result = await handleMcpJsonRpc(message, principal);
+    let result: unknown;
+    try {
+      result = await handleMcpJsonRpc(message, principal);
+    } catch (error) {
+      return mcpErrorAsResponse(error, requestId(message));
+    }
     return Response.json({ jsonrpc: "2.0", id: message.id, result });
   });
 

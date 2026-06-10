@@ -17,6 +17,8 @@
   "dependencies": {
     "@agent-artifacts/db": "workspace:*",
     "@agent-artifacts/shared": "workspace:*",
-    "better-auth": "1.6.11"
+    "better-auth": "1.6.11",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.4.3"
   }
 }

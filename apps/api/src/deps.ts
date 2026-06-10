@@ -9,7 +9,7 @@ import {
   ProjectService,
   ShareLinkService
 } from "@agent-artifacts/artifact";
-import { createAuth, type BetterAuthHandle } from "@agent-artifacts/auth";
+import { ApiKeyService, createAuth, type BetterAuthHandle } from "@agent-artifacts/auth";
 import { BillingService, DrizzleBillingRepository } from "@agent-artifacts/billing";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, type Database } from "@agent-artifacts/db";
@@ -49,6 +49,7 @@ let workspaceServiceInstance: WorkspaceService | undefined;
 let membershipServiceInstance: MembershipService | undefined;
 let invitationServiceInstance: InvitationService | undefined;
 let billingServiceInstance: BillingService | undefined;
+let apiKeyServiceInstance: ApiKeyService | undefined;
 let dbInstance: Database | undefined;
 
 export function getDb() {
@@ -175,4 +176,9 @@ export function getBillingService() {
   })();
 
   return billingServiceInstance;
+}
+
+export function getApiKeyService() {
+  apiKeyServiceInstance ??= new ApiKeyService(getDb());
+  return apiKeyServiceInstance;
 }

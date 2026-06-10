@@ -53,7 +53,9 @@ describe("CSRF protection", () => {
         "/api/workspaces/:workspaceId/members/:userId",
         "/api/workspace-invitations/accept",
         "/api/workspace-invitations/:invitationId/revoke",
-        "/api/workspace-invitations/:invitationId/resend"
+        "/api/workspace-invitations/:invitationId/resend",
+        "/api/api-keys",
+        "/api/api-keys/:apiKeyId"
       ])
     );
   });

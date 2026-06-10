@@ -1,9 +1,10 @@
 import { bodyLimit } from "hono/body-limit";
 import type { Hono, MiddlewareHandler } from "hono";
 import { MAX_ARTIFACT_CONTENT_BYTES } from "@agent-artifacts/artifact";
+import { API_KEY_PREFIX } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { csrfOriginGuard } from "../csrf.js";
-import { getAuth } from "../deps.js";
+import { getApiKeyService, getAuth } from "../deps.js";
 import { rateLimit } from "../rate-limit.js";
 import type { AppVariables } from "../deps.js";
 
@@ -33,6 +34,11 @@ export const csrfGuard: MiddlewareHandler = async (c, next) => {
         return false;
       }
 
+      const token = authorization.match(/^bearer\s+(\S+)$/i)?.[1];
+      if (token?.startsWith(API_KEY_PREFIX)) {
+        return Boolean(await getApiKeyService().authenticateToken(token));
+      }
+
       const session = await getAuth().api.getSession({ headers: requestContext.req.raw.headers });
       return Boolean(session?.user);
     }
@@ -60,6 +66,8 @@ export const CSRF_PROTECTED_ROUTES = [
   { path: "/api/billing/checkout", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/billing/portal", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/billing/storage-snapshot", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/api-keys", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/api-keys/:apiKeyId", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/profile/username", middleware: [csrfGuard] as const },
   { path: "/api/cli/authorize", middleware: [csrfGuard] as const }
 ] as const;

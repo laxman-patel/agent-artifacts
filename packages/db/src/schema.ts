@@ -157,6 +157,27 @@ export const oauthConsents = pgTable(
   })
 );
 
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    scopes: jsonb("scopes").$type<string[]>().default([]).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true })
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("api_keys_token_hash_unique").on(table.tokenHash),
+    userIdx: index("api_keys_user_idx").on(table.userId),
+    activeUserIdx: index("api_keys_active_user_idx").on(table.userId, table.revokedAt)
+  })
+);
+
 export const artifactType = pgEnum("artifact_type", ["html", "md", "jsx"]);
 export const artifactState = pgEnum("artifact_state", ["active", "archived", "deleted"]);
 export const artifactRole = pgEnum("artifact_role", ["owner", "admin", "editor", "viewer"]);

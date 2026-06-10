@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { createUserPrincipal } from "@agent-artifacts/auth";
 import { ArtifactForbiddenError, type Principal } from "@agent-artifacts/shared";
-import { getAuth, getShareLinkService } from "../deps.js";
+import { getApiKeyService, getAuth, getShareLinkService } from "../deps.js";
 
 function isTransientDbError(error: unknown): boolean {
   const codes = new Set(["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ENOTFOUND"]);
@@ -47,6 +47,21 @@ async function getSessionFromRequest(request: Request) {
   return null;
 }
 
+function bearerToken(request: Request): string | undefined {
+  const authorization = request.headers.get("authorization");
+  const match = authorization?.match(/^bearer\s+(\S+)$/i);
+  return match?.[1];
+}
+
+async function getApiKeyPrincipalFromRequest(request: Request): Promise<Principal | undefined> {
+  const token = bearerToken(request);
+  if (!token) {
+    return undefined;
+  }
+
+  return getApiKeyService().authenticateToken(token);
+}
+
 function isContext(value: Context | Request): value is Context {
   return typeof (value as Context).req?.param === "function";
 }
@@ -80,6 +95,11 @@ async function resolveShareGrantPrincipal(c: Context, principal: Principal): Pro
 
 export async function resolvePrincipal(c: Context | Request): Promise<Principal> {
   const request = isContext(c) ? c.req.raw : c;
+  const apiKeyPrincipal = await getApiKeyPrincipalFromRequest(request);
+  if (apiKeyPrincipal) {
+    return isContext(c) ? resolveShareGrantPrincipal(c, apiKeyPrincipal) : apiKeyPrincipal;
+  }
+
   const session = await getSessionFromRequest(request);
 
   let principal: Principal;
@@ -105,6 +125,11 @@ export async function resolvePrincipal(c: Context | Request): Promise<Principal>
 
 export async function requirePrincipal(c: Context | Request): Promise<Principal> {
   const request = isContext(c) ? c.req.raw : c;
+  const apiKeyPrincipal = await getApiKeyPrincipalFromRequest(request);
+  if (apiKeyPrincipal) {
+    return isContext(c) ? resolveShareGrantPrincipal(c, apiKeyPrincipal) : apiKeyPrincipal;
+  }
+
   const session = await getSessionFromRequest(request);
 
   if (!session?.user) {

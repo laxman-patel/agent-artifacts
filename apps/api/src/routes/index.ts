@@ -5,6 +5,7 @@ import { getAuth } from "../deps.js";
 import { handleMcp } from "../http/handler.js";
 import { handleMcpRequest } from "../http/mcp.js";
 import { registerArtifactRoutes } from "./artifacts.js";
+import { registerApiKeyRoutes } from "./api-keys.js";
 import { registerBillingRoutes } from "./billing.js";
 import { registerCliRoutes } from "./cli.js";
 import { registerProfileRoutes } from "./profile.js";
@@ -47,6 +48,7 @@ export function registerRoutes(app: Hono<{ Variables: AppVariables }>) {
   registerWorkspaceInvitationRoutes(app);
   registerProjectRoutes(app);
   registerProfileRoutes(app);
+  registerApiKeyRoutes(app);
   registerBillingRoutes(app);
   registerArtifactRoutes(app);
   registerShareLinkRoutes(app);

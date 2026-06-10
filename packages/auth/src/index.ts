@@ -13,6 +13,15 @@ import { bearer, mcp, withMcpAuth } from "better-auth/plugins";
 import type { Principal } from "@agent-artifacts/shared";
 
 export { withMcpAuth };
+export {
+  API_KEY_PREFIX,
+  ApiKeyNotFoundError,
+  ApiKeyService,
+  createApiKeyInputSchema,
+  type ApiKeySummary,
+  type CreatedApiKey,
+  type CreateApiKeyInput
+} from "./api-key-service.js";
 
 export interface BetterAuthHandle {
   handler: (request: Request) => Promise<Response>;

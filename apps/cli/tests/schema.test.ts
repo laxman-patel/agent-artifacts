@@ -29,6 +29,7 @@ describe("CLI schema", () => {
       "project create",
       "project list",
       "project slug-availability",
+      "setup",
       "share create",
       "share list",
       "share revoke",

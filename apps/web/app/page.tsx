@@ -6,7 +6,7 @@ import { CommandCopyButton } from "./components/command-copy-button";
 import { HeroDitherShader } from "./components/hero-dither-shader";
 import { cn } from "@/lib/utils";
 
-const setupCommand = "npx agent-artifacts@latest setup";
+const setupCommand = "npx @agent-artifacts/cli@latest setup";
 const logoPath = "/brand/artifacts-logo.svg";
 
 type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;

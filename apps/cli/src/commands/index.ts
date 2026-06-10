@@ -21,10 +21,12 @@ import { pathArtifactCommand, pathProjectCommand } from "./path.js";
 import { profileGetCommand } from "./profile-get.js";
 import { profileSetUsernameCommand } from "./profile-set-username.js";
 import { projectCreateCommand, projectListCommand, projectSlugAvailabilityCommand } from "./project.js";
+import { setupCommand } from "./setup.js";
 import { shareCreateCommand, shareListCommand, shareRevokeCommand } from "./share.js";
 import { whoamiCommand } from "./whoami.js";
 
 export const allCommands: CommandSpec[] = [
+  setupCommand,
   loginCommand,
   logoutCommand,
   whoamiCommand,

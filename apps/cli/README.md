@@ -4,6 +4,12 @@ Primary interface for AI agents to use [agent-artifacts](https://github.com/agen
 
 ## Install
 
+Published package:
+
+```bash
+npx @agent-artifacts/cli@latest setup
+```
+
 From the monorepo root:
 
 ```bash

@@ -63,6 +63,7 @@ export interface ProjectWorkspaceRecord {
   slug: string;
   name: string;
   kind: WorkspaceKind;
+  createdByUserId: string | null;
   personalUserId: string | null;
 }
 
@@ -229,12 +230,13 @@ export class ProjectService {
     if (!available) {
       throw new ProjectSlugUnavailableError(normalizedSlug);
     }
-    await this.billing?.assertCanCreateProject(principal.id);
+    const ownerUserId = this.namespaceOwnerUserId(workspace);
+    await this.billing?.assertCanCreateProject(ownerUserId);
 
     const projectId = randomUUID();
     await this.repository.createProject({
       id: projectId,
-      ownerUserId: principal.id,
+      ownerUserId,
       workspaceId: workspace.id,
       slug: normalizedSlug,
       title: input.title,
@@ -243,7 +245,7 @@ export class ProjectService {
 
     return {
       projectId,
-      ownerUserId: principal.id,
+      ownerUserId,
       ownerUsername: workspace.slug,
       workspaceId: workspace.id,
       workspaceSlug: workspace.slug,
@@ -266,7 +268,7 @@ export class ProjectService {
   }
 
   private namespaceOwnerUserId(workspace: ProjectWorkspaceRecord): string {
-    return workspace.personalUserId ?? workspace.id;
+    return workspace.personalUserId ?? workspace.createdByUserId ?? workspace.id;
   }
 
   private async requireWorkspaceBySlug(slug: string): Promise<ProjectWorkspaceRecord> {
@@ -296,6 +298,7 @@ export class DrizzleProjectRepository implements ProjectRepository {
         slug: workspaces.slug,
         name: workspaces.name,
         kind: workspaces.kind,
+        createdByUserId: workspaces.createdByUserId,
         personalUserId: workspaces.personalUserId
       })
       .from(workspaces)
@@ -312,6 +315,7 @@ export class DrizzleProjectRepository implements ProjectRepository {
         slug: workspaces.slug,
         name: workspaces.name,
         kind: workspaces.kind,
+        createdByUserId: workspaces.createdByUserId,
         personalUserId: workspaces.personalUserId
       })
       .from(workspaces)

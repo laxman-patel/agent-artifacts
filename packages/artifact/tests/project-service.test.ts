@@ -44,6 +44,31 @@ describe("ProjectService billing gates", () => {
     expect(repository.projects).toHaveLength(0);
     expect(billingGuard.checkedOwnerIds).toEqual(["user_1"]);
   });
+
+  it("uses the team workspace owner as the project billing owner", async () => {
+    const billingGuard = new MemoryProjectBillingGuard();
+    const repository = new MemoryProjectRepository();
+    repository.workspace.kind = "team";
+    repository.workspace.personalUserId = null;
+    repository.workspace.createdByUserId = "user_1";
+    const service = new ProjectService(
+      repository,
+      "https://agent-artifacts.test",
+      createArtifactAccess(new MemoryArtifactRoleResolver()),
+      billingGuard
+    );
+
+    const project = await service.createWorkspaceProject(
+      repository.workspace.id,
+      repository.workspace.slug,
+      { slug: "team-project", title: "Team Project" },
+      ownerPrincipal
+    );
+
+    expect(project.ownerUserId).toBe("user_1");
+    expect(repository.projects).toMatchObject([{ ownerUserId: "user_1" }]);
+    expect(billingGuard.checkedOwnerIds).toEqual(["user_1"]);
+  });
 });
 
 class MemoryProjectBillingGuard {
@@ -62,6 +87,7 @@ class MemoryProjectRepository implements ProjectRepository {
     slug: "laxman",
     name: "Laxman",
     kind: "personal",
+    createdByUserId: null,
     personalUserId: "user_1"
   };
   readonly projects: PersistCreateProjectInput[] = [];

@@ -256,8 +256,16 @@ function nextPaidPlanId(planId: BillingPlanId): BillingPlanId | undefined {
   }
 }
 
-export function resolveEntitlements(account: BillingAccount | { planId: BillingPlanId; status: string } | undefined): ResolvedEntitlements {
+const SUBSCRIPTION_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000;
+
+export function resolveEntitlements(
+  account: (BillingAccount | { planId: BillingPlanId; status: string; currentPeriodEnd?: Date | null }) | undefined,
+  now = new Date()
+): ResolvedEntitlements {
   if (!account || !isPaidStatus(account.status)) {
+    return { plan: BILLING_PLANS.free };
+  }
+  if (account.currentPeriodEnd && account.currentPeriodEnd.getTime() + SUBSCRIPTION_GRACE_PERIOD_MS < now.getTime()) {
     return { plan: BILLING_PLANS.free };
   }
 

@@ -54,6 +54,21 @@ describe("billing entitlements", () => {
     expect(resolveEntitlements({ planId: "builder", status: "active" }).plan.id).toBe("builder");
     expect(resolveEntitlements({ planId: "builder", status: "cancelled" }).plan.id).toBe(FREE_PLAN_ID);
   });
+
+  it("falls back to free entitlements when the paid period is stale", () => {
+    const now = new Date("2026-06-10T00:00:00Z");
+
+    expect(resolveEntitlements({
+      planId: "builder",
+      status: "active",
+      currentPeriodEnd: new Date("2026-06-08T00:00:00Z")
+    }, now).plan.id).toBe("builder");
+    expect(resolveEntitlements({
+      planId: "builder",
+      status: "active",
+      currentPeriodEnd: new Date("2026-06-01T00:00:00Z")
+    }, now).plan.id).toBe(FREE_PLAN_ID);
+  });
 });
 
 describe("Dodo product and meter configuration", () => {

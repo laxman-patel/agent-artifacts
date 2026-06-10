@@ -12,6 +12,7 @@ import { loadServerEnv } from "@agent-artifacts/config";
 import { getBillingService } from "../deps.js";
 import { handle } from "../http/handler.js";
 import { requireHumanPrincipal } from "../http/principal.js";
+import { logger } from "../logger.js";
 import type { AppVariables } from "../deps.js";
 
 const paidPlanSchema = z.enum(["builder", "studio"]);
@@ -156,6 +157,11 @@ export function registerBillingRoutes(app: Hono<{ Variables: AppVariables }>) {
             studioProductId: env.DODO_STUDIO_PRODUCT_ID
           }
         );
+      } else {
+        logger.warn("billing_webhook_unhandled", {
+          eventId: webhookId || event.id,
+          eventType: event.type
+        });
       }
 
       return { received: true };

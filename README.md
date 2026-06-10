@@ -82,7 +82,10 @@ Operational logs ship to [Better Stack](https://betterstack.com/) when source to
 | `NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN` | Web (browser) | Browser logs via `/_betterstack` proxy |
 | `NEXT_PUBLIC_BETTER_STACK_INGESTING_URL` | Web (browser) | Browser ingest host; also drives CSP `connect-src` |
 | `LOG_IP_SALT` | API | Salt for hashing client IPs when `TRUST_PROXY=true` |
-| `BETTER_STACK_HEARTBEAT_URL_*` | (future) | Stub for cron/heartbeat monitors — no jobs wired yet |
+| `ENABLE_BILLING_CRON` | API | Set to `true` to run daily storage metering inside the API process |
+| `BILLING_CRON_INTERVAL_MS` | API | Optional scheduler interval override for dev/test |
+| `BILLING_CRON_SECRET` | API | Bearer token for the manual/internal billing snapshot endpoint |
+| `BETTER_STACK_HEARTBEAT_URL_*` | (future) | Stub for cron/heartbeat monitors |
 
 In production, the API emits a single boot warning if `BETTER_STACK_SOURCE_TOKEN` / `BETTER_STACK_INGESTING_URL` are missing. Tests force-disable Better Stack transport.
 
@@ -103,9 +106,9 @@ CI builds set `productionBrowserSourceMaps=true` when `CI=true` so production st
 | OAuth callback | `<public-app-url>/api/auth/callback/google` | HTTP keyword (must not 500) | 5m | OAuth misconfig alert |
 | SSL cert | apex domain | SSL expiry | daily | Cert rotation |
 
-### Heartbeats (future)
+### Billing Scheduler
 
-No cron jobs exist yet. When you add scheduled work, point a heartbeat monitor at a `BETTER_STACK_HEARTBEAT_URL_<job>` env var (see `.env.example`).
+Set `ENABLE_BILLING_CRON=true` on one API instance to record daily `artifact.storage_gb_days` usage events for active paid accounts. The job calls billing services directly; `POST /api/internal/billing/storage-snapshots` remains available for external schedulers when authenticated with `BILLING_CRON_SECRET`.
 
 ### Better Stack MCP server
 

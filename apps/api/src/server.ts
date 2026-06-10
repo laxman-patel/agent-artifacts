@@ -1,9 +1,11 @@
 import "./load-env.js";
 import { serve } from "@hono/node-server";
 import { app } from "./app.js";
+import { startBillingScheduler } from "./billing/scheduler.js";
 import { flushLogger, logger } from "./logger.js";
 
 const port = Number(process.env.PORT ?? 3001);
+const stopBillingScheduler = startBillingScheduler();
 
 serve(
   {
@@ -17,6 +19,7 @@ serve(
 
 const shutdown = async (signal: string) => {
   logger.info("api shutdown", { signal });
+  stopBillingScheduler?.();
   await flushLogger();
   process.exit(0);
 };

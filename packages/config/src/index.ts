@@ -20,6 +20,8 @@ export const serverEnvSchema = z.object({
   DODO_PAYMENTS_ENVIRONMENT: z.enum(["test_mode", "live_mode"]).default("test_mode"),
   DODO_BUILDER_PRODUCT_ID: z.string().min(1).optional(),
   DODO_STUDIO_PRODUCT_ID: z.string().min(1).optional(),
+  ENABLE_BILLING_CRON: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+  BILLING_CRON_INTERVAL_MS: z.coerce.number().int().positive().optional(),
   BILLING_CRON_SECRET: z.string().min(16).optional(),
   BETTER_STACK_SOURCE_TOKEN: z.string().min(1).optional(),
   BETTER_STACK_INGESTING_URL: urlSchema.optional(),

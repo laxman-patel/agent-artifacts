@@ -88,9 +88,10 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
   }
   const meta = gate.meta;
 
-  const versionNumber = searchParams.version ? Number.parseInt(searchParams.version, 10) : undefined;
+  const parsedVersion = searchParams.version ? Number.parseInt(searchParams.version, 10) : undefined;
+  const viewedVersion = typeof parsedVersion === "number" && Number.isFinite(parsedVersion) ? parsedVersion : null;
 
-  const contentResult = await fetchArtifactContent(meta.id, header, Number.isFinite(versionNumber) ? versionNumber : undefined);
+  const contentResult = await fetchArtifactContent(meta.id, header, viewedVersion ?? undefined);
 
   if (!contentResult.ok) {
     return (
@@ -104,13 +105,6 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
 
   const { content } = contentResult.body;
   const base = artifactPath(meta);
-  const versionLabel = searchParams.version ? `v${searchParams.version}` : "latest";
-  // Format on the server with a fixed locale so the string is identical at
-  // hydration regardless of the client's timezone or locale.
-  const updatedDate = new Date(meta.updatedAt);
-  const updatedLabel = Number.isNaN(updatedDate.getTime())
-    ? null
-    : updatedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   return (
     <main className="wb-stage relative flex h-dvh w-full flex-col">
       <ArtifactControlMenu
@@ -118,11 +112,8 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
         type={meta.type}
         base={base}
         artifactId={meta.id}
-        versionLabel={versionLabel}
+        viewedVersion={viewedVersion}
         workspaceSlug={meta.workspaceSlug}
-        updatedLabel={updatedLabel}
-        ownerUsername={meta.ownerUsername}
-        projectSlug={meta.projectSlug}
         publicView={meta.publicView}
       />
 

@@ -260,6 +260,15 @@
   transform: translateY(0);
   pointer-events: auto;
 }
+/* The panel is conditionally mounted, so @starting-style supplies the
+   first-frame values that make the transition run on mount. Browsers
+   without support simply show the end state. */
+@starting-style {
+  .wb-control-panel[data-open="true"] {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
 .wb-control-chevron {
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }

@@ -190,6 +190,8 @@ const artifactApi = (artifactId: string, suffix: string) =>
 
 export const fetchProfileMe = (cookie: string) => apiCall<ProfileMeResponse>("/api/profile/me", { cookie });
 export const fetchOwnedProjects = (cookie: string) => apiCall<{ projects: ProjectSummary[] }>("/api/profile/projects", { cookie });
+export const fetchPublicProjects = (username: string, cookie?: string) =>
+  apiCall<{ projects: ProjectSummary[] }>(`/api/by-path/${encodeURIComponent(username)}`, { cookie });
 export const fetchOwnedArtifacts = (cookie: string) => apiCall<{ artifacts: ArtifactOwnerSummary[] }>("/api/profile/artifacts", { cookie });
 export const fetchWorkspaces = (cookie: string) => apiCall<{ workspaces: WorkspaceSummary[] }>("/api/workspaces", { cookie });
 export const createWorkspace = (cookie: string, body: { slug: string; name: string }) =>

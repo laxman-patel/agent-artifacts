@@ -1,27 +1,17 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { cookieHeader, fetchOwnedProjects, fetchProfileMe, projectPath } from "../../lib/server-api";
+import { cookieHeader, fetchPublicProjects, projectPath } from "../../lib/server-api";
 
 export default async function UserProjectsPage(props: { params: Promise<{ username: string }> }) {
   const params = await props.params;
   const cookieStore = await cookies();
   const header = cookieHeader(cookieStore);
 
-  const profile = await fetchProfileMe(header);
-
-  if (!profile.ok || !profile.body.profile || profile.body.profile.username.toLowerCase() !== params.username.toLowerCase()) {
-    notFound();
-  }
-
-  const result = await fetchOwnedProjects(header);
-
-  if (!result.ok && (result.status === 401 || result.status === 403)) {
-    notFound();
-  }
+  const result = await fetchPublicProjects(params.username, header);
 
   if (!result.ok) {
-    throw new Error("Projects response was empty.");
+    notFound();
   }
 
   const { projects } = result.body;

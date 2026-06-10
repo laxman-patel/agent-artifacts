@@ -56,6 +56,13 @@ export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
     })
   );
 
+  app.get("/api/by-path/:username", (c) =>
+    handle(c, async () => {
+      const projects = await getProjectService().listPublicProjectsByWorkspaceSlug(c.req.param("username"));
+      return { projects };
+    })
+  );
+
   app.get("/api/by-path/:username/:projectSlug", (c) =>
     handle(c, async () => {
       const principal = await resolvePrincipal(c);

@@ -216,6 +216,11 @@ export class ProjectService {
     return this.repository.listProjectsForWorkspace(workspaceId);
   }
 
+  async listPublicProjectsByWorkspaceSlug(workspaceSlug: string): Promise<ProjectRecord[]> {
+    const workspace = await this.requireWorkspaceBySlug(workspaceSlug);
+    return this.repository.listProjectsForWorkspace(workspace.id);
+  }
+
   private async createProjectInWorkspace(
     workspace: ProjectWorkspaceRecord,
     input: CreateWorkspaceProjectInput,

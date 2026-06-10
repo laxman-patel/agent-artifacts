@@ -54,3 +54,14 @@ export function sliceListResult<T>(
   }
   return { items: sliced, total, truncated };
 }
+
+export function requireBoundedApiLimit(limitResult: ListLimitResult, label: string): number | undefined {
+  if (limitResult.all) {
+    throw new CliError(
+      "invalid_request",
+      `${label} does not support --all yet because the API exposes at most ${MAX_LIST_LIMIT} records. Use --limit <n>.`,
+      2
+    );
+  }
+  return limitResult.apiLimit;
+}

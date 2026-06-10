@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { resolveListLimit, sliceListResult } from "../src/list-limit.js";
+import { requireBoundedApiLimit, resolveListLimit, sliceListResult } from "../src/list-limit.js";
 import type { CliConfig } from "../src/config.js";
 import { CliError } from "../src/errors.js";
 
@@ -28,6 +28,10 @@ describe("resolveListLimit", () => {
 
   it("accepts explicit limits within range", () => {
     expect(resolveListLimit({ limit: 100 }).apiLimit).toBe(100);
+  });
+
+  it("rejects --all for bounded API endpoints", () => {
+    expect(() => requireBoundedApiLimit(resolveListLimit({ all: true }), "audit list")).toThrow(CliError);
   });
 });
 

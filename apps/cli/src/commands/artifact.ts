@@ -15,7 +15,7 @@ import {
 } from "../command-options.js";
 import type { CommandSpec } from "../command-spec.js";
 import { CliError } from "../errors.js";
-import { resolveListLimit, sliceListResult } from "../list-limit.js";
+import { requireBoundedApiLimit, resolveListLimit, sliceListResult } from "../list-limit.js";
 import { extractArtifactId, nextActionsForArtifact, nextActionsForArtifactList } from "../next-actions.js";
 import { parseIntFlag } from "../parse-int-flag.js";
 
@@ -191,7 +191,7 @@ export const artifactVersionsCommand: CommandSpec = {
     const id = readArtifactId(options);
     const limitResult = resolveListLimit(options);
     const data = await client.get(`/api/artifacts/${encodeURIComponent(id)}/versions`, {
-      limit: limitResult.apiLimit
+      limit: requireBoundedApiLimit(limitResult, "artifact versions")
     });
     return { data };
   }

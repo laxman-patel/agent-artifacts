@@ -2,7 +2,7 @@ import { createWorkspaceInvitationInputSchema } from "@agent-artifacts/workspace
 import { requireFlag } from "../args.js";
 import { LIST_LIMIT_OPTIONS } from "../command-options.js";
 import type { CommandSpec } from "../command-spec.js";
-import { resolveListLimit } from "../list-limit.js";
+import { requireBoundedApiLimit, resolveListLimit } from "../list-limit.js";
 
 const WORKSPACE_ID_FLAG = {
   optionKey: "workspaceId",
@@ -104,7 +104,7 @@ export const workspaceAuditCommand: CommandSpec = {
     const limitResult = resolveListLimit(options);
     const data = await client.get(`/api/workspaces/${encodeURIComponent(workspaceId)}/audit-events`, {
       artifactId: options.artifactId as string | undefined,
-      limit: limitResult.apiLimit
+      limit: requireBoundedApiLimit(limitResult, "workspace audit")
     });
     return { data };
   }

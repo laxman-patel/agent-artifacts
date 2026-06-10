@@ -1,6 +1,6 @@
 import { LIST_LIMIT_OPTIONS } from "../command-options.js";
 import type { CommandSpec } from "../command-spec.js";
-import { resolveListLimit } from "../list-limit.js";
+import { requireBoundedApiLimit, resolveListLimit } from "../list-limit.js";
 
 export const auditListCommand: CommandSpec = {
   name: "audit list",
@@ -16,7 +16,7 @@ export const auditListCommand: CommandSpec = {
     const limitResult = resolveListLimit(options);
     const data = await client.get("/api/audit-events", {
       artifactId: options.artifactId as string | undefined,
-      limit: limitResult.apiLimit
+      limit: requireBoundedApiLimit(limitResult, "audit list")
     });
     return { data };
   }

@@ -360,7 +360,7 @@ export function ArtifactControls({
                 className={`${SELECT} pl-2.5`}
               >
                 <option value="viewer">can view</option>
-                <option value="editor">can edit</option>
+                <option value="editor">signed-in edit</option>
               </select>
             </SelectShell>
           ) : null}

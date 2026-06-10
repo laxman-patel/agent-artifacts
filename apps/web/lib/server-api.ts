@@ -192,10 +192,16 @@ export const fetchArtifactMeta = (username: string, projectSlug: string, slug: s
 export const fetchArtifactVersions = (artifactId: string, cookie?: string) =>
   apiCall<{ versions: ArtifactVersion[] }>(artifactApi(artifactId, "versions"), { cookie });
 export const fetchArtifactContent = (artifactId: string, cookie?: string, versionNumber?: number) =>
-  apiCall<{ content: string; contentType: string }>(artifactApi(artifactId, "content"), {
+  apiCall<{ content: string; contentType: string; versionNumber: number | null }>(artifactApi(artifactId, "content"), {
     cookie, query: { version: versionNumber },
-    parseOk: async (response) => ({ content: await response.text(), contentType: response.headers.get("content-type") ?? "text/plain" })
+    parseOk: async (response) => ({
+      content: await response.text(),
+      contentType: response.headers.get("content-type") ?? "text/plain",
+      versionNumber: Number.parseInt(response.headers.get("x-artifact-version") ?? "", 10) || null
+    })
   });
+export const fetchArtifactPermissions = (artifactId: string, cookie: string) =>
+  apiCall<{ canUpdate: boolean; canManageAccess: boolean }>(artifactApi(artifactId, "permissions"), { cookie });
 export const fetchArtifactDiff = (artifactId: string, cookie: string | undefined, fromVersion: number, toVersion: number) =>
   apiCall<{ unifiedDiff: string; fromVersion: { versionNumber: number }; toVersion: { versionNumber: number } }>(
     artifactApi(artifactId, "diff"), { cookie, query: { from: fromVersion, to: toVersion } }

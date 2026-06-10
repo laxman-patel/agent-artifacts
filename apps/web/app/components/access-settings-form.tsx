@@ -55,7 +55,7 @@ export function AccessSettingsForm(props: {
       </label>
       <label className="inline">
         <input checked={publicEdit} onChange={(event) => setPublicEdit(event.target.checked)} type="checkbox" />
-        <span>Public edit (anonymous editors allowed, use carefully)</span>
+        <span>Public edit (signed-in editors only, use carefully)</span>
       </label>
       <label className="stack tight">
         <span className="label">Viewer emails (restricted mode)</span>

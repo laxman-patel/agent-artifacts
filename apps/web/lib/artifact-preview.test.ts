@@ -95,7 +95,8 @@ describe("loadPublicArtifactPreview", () => {
       status: 200,
       body: {
         content: "# Launch demo\n\nPublic artifact preview for messaging apps.",
-        contentType: "text/markdown"
+        contentType: "text/markdown",
+        versionNumber: 1
       }
     });
 

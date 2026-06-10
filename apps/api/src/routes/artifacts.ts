@@ -49,6 +49,18 @@ export function registerArtifactRoutes(app: Hono<{ Variables: AppVariables }>) {
     })
   );
 
+  app.get("/api/artifacts/:artifactId/permissions", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const artifactId = c.req.param("artifactId");
+
+      return {
+        canUpdate: await getArtifactService().checkArtifactPermission(artifactId, "artifact.update", principal),
+        canManageAccess: await getArtifactService().checkArtifactPermission(artifactId, "artifact.manage_access", principal)
+      };
+    })
+  );
+
   app.delete("/api/artifacts/:artifactId", (c) =>
     handle(c, async () => {
       const principal = await requirePrincipal(c);

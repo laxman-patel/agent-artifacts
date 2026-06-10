@@ -34,6 +34,8 @@ export function errorKindFromApi(error: string | undefined): ErrorKind {
       return "invalid_request";
     case "payload_too_large":
       return "payload_too_large";
+    case "csrf_blocked":
+      return "auth";
     default:
       return "unknown";
   }

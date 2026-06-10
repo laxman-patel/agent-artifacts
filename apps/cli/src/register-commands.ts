@@ -3,6 +3,7 @@ import type { CommandSpec } from "./command-spec.js";
 import { ApiClient } from "./client.js";
 import { readTokenFromStdin, resolveConfig, type OutputFormat } from "./config.js";
 import { buildDryRunPreview } from "./dry-run.js";
+import { CliError } from "./errors.js";
 import { parseJsonInput } from "./json-input.js";
 import { emitNdjsonRecords, emitSuccess } from "./output.js";
 
@@ -52,6 +53,9 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
     const token = globals.tokenStdin ? await readTokenFromStdin() : globals.token;
     const config = resolveConfig({ ...globals, token });
     const client = new ApiClient(config);
+    if (spec.mutates && spec.http && !config.dryRun && !config.token) {
+      throw new CliError("auth", "Not signed in. Run `artifacts login`.", 4);
+    }
     const rawBody = spec.bodySchema
       ? parseJsonInput(opts.json as string | undefined, opts.jsonFile as string | undefined, {
           example: spec.example

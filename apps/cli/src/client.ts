@@ -92,6 +92,10 @@ export class ApiClient {
 
 function apiErrorFromBody(status: number, body: ApiErrorBody): CliError {
   const kind = errorKindFromApi(body.error);
+  if (body.error === "csrf_blocked") {
+    return new CliError(kind, "Not signed in. Run `artifacts login`.", exitCodeForKind(kind), body.issues ?? body);
+  }
+
   const message = body.message ?? body.error ?? `HTTP ${status}`;
   return new CliError(kind, message, exitCodeForKind(kind), body.issues ?? body);
 }

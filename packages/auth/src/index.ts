@@ -35,6 +35,7 @@ export interface BetterAuthHandle {
       user?: {
         id: string;
         email: string;
+        emailVerified?: boolean;
       };
     } | null>;
   };
@@ -88,12 +89,12 @@ export function createAuth(config: AuthConfig): BetterAuthHandle {
   }) as BetterAuthHandle;
 }
 
-export function createUserPrincipal(input: { userId: string; email: string }): Principal {
+export function createUserPrincipal(input: { userId: string; email: string; emailVerified?: boolean }): Principal {
   return {
     type: "user",
     id: input.userId,
     ownerUserId: input.userId,
-    email: input.email,
+    email: input.emailVerified ? input.email : undefined,
     scopes: []
   };
 }

@@ -106,7 +106,8 @@ export async function resolvePrincipal(c: Context | Request): Promise<Principal>
   if (session?.user) {
     principal = createUserPrincipal({
       userId: session.user.id,
-      email: session.user.email
+      email: session.user.email,
+      emailVerified: session.user.emailVerified
     });
   } else {
     principal = {
@@ -138,7 +139,8 @@ export async function requirePrincipal(c: Context | Request): Promise<Principal>
 
   const principal = createUserPrincipal({
     userId: session.user.id,
-    email: session.user.email
+    email: session.user.email,
+    emailVerified: session.user.emailVerified
   });
 
   if (isContext(c)) {

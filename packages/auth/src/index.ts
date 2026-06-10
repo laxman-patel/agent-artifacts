@@ -1,4 +1,12 @@
-import { accounts, sessions, users, verifications } from "@agent-artifacts/db/schema";
+import {
+  accounts,
+  oauthAccessTokens,
+  oauthApplications,
+  oauthConsents,
+  sessions,
+  users,
+  verifications
+} from "@agent-artifacts/db/schema";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, mcp, withMcpAuth } from "better-auth/plugins";
@@ -47,7 +55,10 @@ export function createAuth(config: AuthConfig): BetterAuthHandle {
         user: users,
         session: sessions,
         account: accounts,
-        verification: verifications
+        verification: verifications,
+        oauthApplication: oauthApplications,
+        oauthAccessToken: oauthAccessTokens,
+        oauthConsent: oauthConsents
       }
     }),
     secret: config.secret,

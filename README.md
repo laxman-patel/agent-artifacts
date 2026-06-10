@@ -29,6 +29,26 @@ Without installing: `bun run artifacts -- <command>` from the repo root.
 
 See [apps/cli/README.md](apps/cli/README.md).
 
+## MCP clients
+
+The API exposes an MCP server at `/mcp` and OAuth discovery metadata on the public web origin.
+
+For local development:
+
+```bash
+bun install
+bun run db:migrate
+bun run dev
+```
+
+Then configure MCP clients with:
+
+- Server URL: `http://localhost:3000/mcp`
+- Protected resource metadata: `http://localhost:3000/.well-known/oauth-protected-resource`
+- Authorization server metadata: `http://localhost:3000/.well-known/oauth-authorization-server`
+
+Standard clients should dynamically register, complete browser consent, exchange the authorization code for a token, then call tools such as `get_current_principal`.
+
 ## Development
 
 Requires [Bun](https://bun.sh) for package management and Node.js 24+ for running apps.

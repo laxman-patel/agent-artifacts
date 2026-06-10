@@ -37,6 +37,12 @@ export function registerRoutes(app: Hono<{ Variables: AppVariables }>) {
     })
   );
 
+  app.get("/.well-known/oauth-authorization-server", (c) => {
+    const url = new URL(c.req.raw.url);
+    url.pathname = "/api/auth/.well-known/oauth-authorization-server";
+    return getAuth().handler(new Request(url.toString(), c.req.raw));
+  });
+
   registerWorkspaceRoutes(app);
   registerWorkspaceInvitationRoutes(app);
   registerProjectRoutes(app);

@@ -62,6 +62,14 @@ const nextConfig: NextConfig = {
     return {
       beforeFiles: [
         {
+          source: "/.well-known/oauth-protected-resource",
+          destination: `${internalApiUrl.replace(/\/+$/, "")}/.well-known/oauth-protected-resource`
+        },
+        {
+          source: "/.well-known/oauth-authorization-server",
+          destination: `${internalApiUrl.replace(/\/+$/, "")}/.well-known/oauth-authorization-server`
+        },
+        {
           source: "/api/:path*",
           destination: `${internalApiUrl.replace(/\/+$/, "")}/api/:path*`
         },

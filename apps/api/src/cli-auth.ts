@@ -1,46 +1,55 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
+import { and, eq, gt } from "drizzle-orm";
+import { verifications, type Database } from "@agent-artifacts/db";
 
 export interface CliAuthCodeEntry {
-  state: string;
   userId: string;
   email: string;
-  expiresAt: number;
 }
 
 const CLI_AUTH_CODE_TTL_MS = 2 * 60_000;
-const store = new Map<string, CliAuthCodeEntry>();
+const CLI_AUTH_IDENTIFIER_PREFIX = "agent-artifacts-cli";
 
-function purgeExpired(): void {
-  const now = Date.now();
-  for (const [code, entry] of store) {
-    if (entry.expiresAt <= now) {
-      store.delete(code);
-    }
-  }
+function identifierFor(code: string, state: string): string {
+  return `${CLI_AUTH_IDENTIFIER_PREFIX}:${code}:${state}`;
 }
 
-export function createCliAuthCode(input: {
+export async function createCliAuthCode(db: Database, input: {
   state: string;
   userId: string;
   email: string;
-}): string {
-  purgeExpired();
+}): Promise<string> {
   const code = randomBytes(32).toString("base64url");
-  store.set(code, {
-    state: input.state,
-    userId: input.userId,
-    email: input.email,
-    expiresAt: Date.now() + CLI_AUTH_CODE_TTL_MS
+  const now = new Date();
+  await db.insert(verifications).values({
+    id: randomUUID(),
+    identifier: identifierFor(code, input.state),
+    value: JSON.stringify({
+      userId: input.userId,
+      email: input.email
+    }),
+    expiresAt: new Date(now.getTime() + CLI_AUTH_CODE_TTL_MS),
+    createdAt: now,
+    updatedAt: now
   });
   return code;
 }
 
-export function consumeCliAuthCode(code: string, state: string): CliAuthCodeEntry | undefined {
-  purgeExpired();
-  const entry = store.get(code);
-  if (!entry || entry.state !== state || entry.expiresAt <= Date.now()) {
+export async function consumeCliAuthCode(db: Database, code: string, state: string): Promise<CliAuthCodeEntry | undefined> {
+  const [entry] = await db
+    .delete(verifications)
+    .where(and(eq(verifications.identifier, identifierFor(code, state)), gt(verifications.expiresAt, new Date())))
+    .returning({ value: verifications.value });
+  if (!entry) {
     return undefined;
   }
-  store.delete(code);
-  return entry;
+
+  const parsed = JSON.parse(entry.value) as Partial<CliAuthCodeEntry>;
+  if (typeof parsed.userId !== "string") {
+    return undefined;
+  }
+  return {
+    userId: parsed.userId,
+    email: typeof parsed.email === "string" ? parsed.email : ""
+  };
 }

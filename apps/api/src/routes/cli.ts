@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { createCliAuthCode, consumeCliAuthCode } from "../cli-auth.js";
-import { getApiKeyService } from "../deps.js";
+import { getApiKeyService, getDb } from "../deps.js";
 import { handle } from "../http/handler.js";
 import { requireHumanPrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
@@ -22,7 +22,7 @@ export function registerCliRoutes(app: Hono<{ Variables: AppVariables }>) {
       const principal = await requireHumanPrincipal(c);
 
       const body = cliAuthorizeInputSchema.parse(await c.req.json());
-      const code = createCliAuthCode({
+      const code = await createCliAuthCode(getDb(), {
         state: body.state,
         userId: principal.id,
         email: principal.email ?? ""
@@ -39,7 +39,7 @@ export function registerCliRoutes(app: Hono<{ Variables: AppVariables }>) {
   app.post("/api/cli/exchange", (c) =>
     handle(c, async () => {
       const body = cliExchangeInputSchema.parse(await c.req.json());
-      const entry = consumeCliAuthCode(body.code, body.state);
+      const entry = await consumeCliAuthCode(getDb(), body.code, body.state);
       if (!entry) {
         return c.json({ error: "invalid_code", message: "CLI authorization code is invalid or expired." }, 400);
       }

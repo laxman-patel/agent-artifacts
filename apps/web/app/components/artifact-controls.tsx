@@ -22,7 +22,7 @@ import { FormErrorMessage } from "./form-error-message";
 
 type Version = { id: string; versionNumber: number; changelog: string | null; createdAt: string };
 type Access = { publicView: boolean; publicEdit: boolean; viewerEmails: string[] };
-type ShareLink = { id: string; role: string; createdAt: string; revokedAt: string | null };
+type ShareLink = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
 
 // DESIGN.md reserves the Artifact Rose hue (≈15) as the review/risk accent,
 // used as an alert only when state requires it. Delete qualifies: a readable
@@ -51,6 +51,10 @@ function ago(iso: string): string {
   const d = Math.round(h / 24);
   if (d < 7) return `${d}d ago`;
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function compactDate(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 function MicroLabel({ children }: { children: ReactNode }) {
@@ -147,6 +151,7 @@ export function ArtifactControls({
 
   const [shareLinks, setShareLinks] = useState<ShareLink[] | null>(null);
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer");
+  const [shareExpiresAt, setShareExpiresAt] = useState("");
   const [creating, setCreating] = useState(false);
   const [newShareUrl, setNewShareUrl] = useState<string | null>(null);
   const [copiedShare, setCopiedShare] = useState(false);
@@ -236,13 +241,16 @@ export function ArtifactControls({
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ role: shareRole })
+        body: JSON.stringify({
+          role: shareRole,
+          expiresAt: shareExpiresAt ? new Date(shareExpiresAt).toISOString() : undefined
+        })
       });
       if (!res.ok) {
         setShareError(await readApiFormError(res, "Could not create link"));
         return;
       }
-      const body = (await res.json().catch(() => ({}))) as { id?: string; shareUrl?: string; role?: string };
+      const body = (await res.json().catch(() => ({}))) as { id?: string; shareUrl?: string; role?: string; expiresAt?: string | null };
       if (!body.shareUrl || !body.id) {
         setShareError({ message: "Could not create link" });
         return;
@@ -250,7 +258,14 @@ export function ArtifactControls({
       setNewShareUrl(body.shareUrl);
       setShareLinks((prev) => [
         ...(prev ?? []),
-        { id: body.id!, role: body.role ?? shareRole, createdAt: new Date().toISOString(), revokedAt: null }
+        {
+          id: body.id!,
+          role: body.role ?? shareRole,
+          createdAt: new Date().toISOString(),
+          expiresAt: body.expiresAt ?? (shareExpiresAt ? new Date(shareExpiresAt).toISOString() : null),
+          revokedAt: null,
+          lastUsedAt: null
+        }
       ]);
     } catch {
       setShareError({ message: "Could not create link" });
@@ -449,8 +464,14 @@ export function ArtifactControls({
                   ) : null}
                   {shareLinks.map((link) => (
                     <div key={link.id} className="flex items-center gap-2 rounded-[0.25rem] px-1.5 py-1.5">
-                      <span className="min-w-0 flex-1 truncate text-[12px] capitalize text-foreground/72">{link.role}</span>
-                      <span className="shrink-0 font-mono text-[10px] text-foreground/35">{ago(link.createdAt)}</span>
+                      <span className="min-w-0 flex-1 truncate text-[12px] text-foreground/72">
+                        <span className="capitalize">{link.role}</span>
+                        <span className="ml-1 text-foreground/38">
+                          {link.expiresAt ? `expires ${compactDate(link.expiresAt)}` : "no expiry"}
+                          {link.lastUsedAt ? ` · used ${ago(link.lastUsedAt)}` : ""}
+                        </span>
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-foreground/35">made {ago(link.createdAt)}</span>
                       <button
                         type="button"
                         onClick={() => void revokeShareLink(link.id)}
@@ -488,6 +509,13 @@ export function ArtifactControls({
                         <option value="editor">Editor</option>
                       </select>
                     </SelectShell>
+                    <input
+                      aria-label="Share link expiry"
+                      className={`${SELECT} min-w-0 flex-1 px-2.5`}
+                      onChange={(event) => setShareExpiresAt(event.target.value)}
+                      type="datetime-local"
+                      value={shareExpiresAt}
+                    />
                     <button
                       type="button"
                       onClick={() => void createShareLink()}

@@ -10,6 +10,7 @@ interface ShareLink {
   createdAt: string;
   expiresAt: string | null;
   revokedAt: string | null;
+  lastUsedAt: string | null;
 }
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
 export function ShareLinksManager({ artifactId, initialLinks }: Props) {
   const [links, setLinks] = useState(initialLinks.filter((l) => !l.revokedAt));
   const [role, setRole] = useState<"viewer" | "editor">("viewer");
+  const [expiresAt, setExpiresAt] = useState("");
   const [newLink, setNewLink] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<ApiFormError | null>(null);
@@ -33,7 +35,10 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
       const res = await fetch(`/api/artifacts/${artifactId}/share-links`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ role })
+        body: JSON.stringify({
+          role,
+          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined
+        })
       });
 
       if (!res.ok) {
@@ -41,11 +46,18 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
         return;
       }
 
-      const data = (await res.json()) as { id: string; shareUrl: string; role: string };
+      const data = (await res.json()) as { id: string; shareUrl: string; role: string; expiresAt?: string | null };
       setNewLink(data.shareUrl);
       setLinks((prev) => [
         ...prev,
-        { id: data.id, role: data.role, createdAt: new Date().toISOString(), expiresAt: null, revokedAt: null }
+        {
+          id: data.id,
+          role: data.role,
+          createdAt: new Date().toISOString(),
+          expiresAt: data.expiresAt ?? (expiresAt ? new Date(expiresAt).toISOString() : null),
+          revokedAt: null,
+          lastUsedAt: null
+        }
       ]);
     } finally {
       setCreating(false);
@@ -66,6 +78,12 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
           <option value="viewer">Viewer</option>
           <option value="editor">Editor</option>
         </select>
+        <input
+          aria-label="Share link expiry"
+          onChange={(event) => setExpiresAt(event.target.value)}
+          type="datetime-local"
+          value={expiresAt}
+        />
         <button className="primary-button" disabled={creating} onClick={createLink} type="button">
           {creating ? "Creating…" : "Create share link"}
         </button>
@@ -86,6 +104,8 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
             <li className="share-links-item" key={link.id}>
               <span className="small">
                 <strong>{link.role}</strong> · created {new Date(link.createdAt).toLocaleDateString()}
+                {link.expiresAt ? ` · expires ${new Date(link.expiresAt).toLocaleString()}` : " · no expiry"}
+                {link.lastUsedAt ? ` · last used ${new Date(link.lastUsedAt).toLocaleDateString()}` : ""}
               </span>
               <button
                 className="ghost-button small"

@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
-import { readSessionCookie } from "@agent-artifacts/shared";
 import { z } from "zod";
 import { createCliAuthCode, consumeCliAuthCode } from "../cli-auth.js";
+import { getApiKeyService } from "../deps.js";
 import { handle } from "../http/handler.js";
 import { requireHumanPrincipal } from "../http/principal.js";
 import type { AppVariables } from "../deps.js";
@@ -22,14 +22,9 @@ export function registerCliRoutes(app: Hono<{ Variables: AppVariables }>) {
       const principal = await requireHumanPrincipal(c);
 
       const body = cliAuthorizeInputSchema.parse(await c.req.json());
-      const sessionToken = readSessionCookie(c.req.header("cookie"));
-      if (!sessionToken) {
-        return c.json({ error: "unauthorized", message: "Session cookie required." }, 401);
-      }
-
       const code = createCliAuthCode({
         state: body.state,
-        sessionToken,
+        userId: principal.id,
         email: principal.email ?? ""
       });
 
@@ -48,9 +43,23 @@ export function registerCliRoutes(app: Hono<{ Variables: AppVariables }>) {
       if (!entry) {
         return c.json({ error: "invalid_code", message: "CLI authorization code is invalid or expired." }, 400);
       }
+      const apiKey = await getApiKeyService().createApiKey(entry.userId, {
+        name: "CLI login",
+        scopes: [
+          "artifacts:read",
+          "artifacts:create",
+          "artifacts:update",
+          "artifacts:delete",
+          "artifacts:share",
+          "artifacts:access:read",
+          "artifacts:access:write",
+          "agents:manage"
+        ]
+      });
 
       return {
-        token: entry.sessionToken,
+        token: apiKey.token,
+        apiKeyId: apiKey.id,
         email: entry.email || undefined
       };
     })

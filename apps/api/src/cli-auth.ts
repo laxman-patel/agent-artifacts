@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 
 export interface CliAuthCodeEntry {
   state: string;
-  sessionToken: string;
+  userId: string;
   email: string;
   expiresAt: number;
 }
@@ -21,14 +21,14 @@ function purgeExpired(): void {
 
 export function createCliAuthCode(input: {
   state: string;
-  sessionToken: string;
+  userId: string;
   email: string;
 }): string {
   purgeExpired();
   const code = randomBytes(32).toString("base64url");
   store.set(code, {
     state: input.state,
-    sessionToken: input.sessionToken,
+    userId: input.userId,
     email: input.email,
     expiresAt: Date.now() + CLI_AUTH_CODE_TTL_MS
   });

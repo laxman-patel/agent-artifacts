@@ -27,12 +27,13 @@ const GROUP_DESCRIPTIONS: Record<string, string> = {
   workspace: "Workspaces",
   artifact: "Artifacts",
   "artifact access": "Artifact access settings",
+  keys: "API keys",
   path: "Resolve resources by URL path",
   share: "Share links",
   audit: "Audit log"
 };
 
-const LIST_RECORD_KEYS = ["artifacts", "projects", "events", "shareLinks", "versions"] as const;
+const LIST_RECORD_KEYS = ["apiKeys", "artifacts", "projects", "events", "shareLinks", "versions"] as const;
 
 export function registerSpec(program: Command, spec: CommandSpec): void {
   const cmd = registerCommandPath(program, spec.name);

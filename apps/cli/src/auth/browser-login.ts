@@ -48,19 +48,19 @@ function successHtml(): string {
 </html>`;
 }
 
-async function exchangeCliCode(baseUrl: string, code: string, state: string): Promise<{ token: string; email?: string }> {
+async function exchangeCliCode(baseUrl: string, code: string, state: string): Promise<{ token: string; apiKeyId?: string; email?: string }> {
   const response = await fetch(new URL("/api/cli/exchange", baseUrl), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ code, state })
   });
 
-  const payload = (await response.json()) as { token?: string; email?: string; message?: string };
+  const payload = (await response.json()) as { token?: string; apiKeyId?: string; email?: string; message?: string };
   if (!response.ok || !payload.token) {
     throw new Error(payload.message ?? "Login callback failed: could not exchange authorization code.");
   }
 
-  return { token: payload.token, email: payload.email };
+  return { token: payload.token, apiKeyId: payload.apiKeyId, email: payload.email };
 }
 
 export async function browserLogin(options: BrowserLoginOptions): Promise<BrowserLoginResult> {
@@ -107,6 +107,7 @@ export async function browserLogin(options: BrowserLoginOptions): Promise<Browse
             baseUrl: options.baseUrl,
             webUrl: options.webUrl,
             token: exchanged.token,
+            apiKeyId: exchanged.apiKeyId,
             email: exchanged.email,
             updatedAt: new Date().toISOString()
           };

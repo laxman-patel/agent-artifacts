@@ -6,6 +6,7 @@ export interface StoredCredentials {
   baseUrl: string;
   webUrl: string;
   token: string;
+  apiKeyId?: string;
   email?: string;
   updatedAt: string;
 }
@@ -32,6 +33,7 @@ export function loadStoredCredentials(): StoredCredentials | null {
       baseUrl: parsed.baseUrl,
       webUrl: typeof parsed.webUrl === "string" ? parsed.webUrl : "http://localhost:3000",
       token: parsed.token,
+      apiKeyId: typeof parsed.apiKeyId === "string" ? parsed.apiKeyId : undefined,
       email: typeof parsed.email === "string" ? parsed.email : undefined,
       updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString()
     };

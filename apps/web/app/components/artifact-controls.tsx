@@ -498,31 +498,41 @@ export function ArtifactControls({
           ) : versions.length === 0 ? (
             <p className="px-1.5 py-1 text-[12px] text-foreground/40">No versions yet.</p>
           ) : (
-            versions.map((version, index) => {
-              const isViewed = viewedVersion ? version.versionNumber === viewedVersion : index === 0;
-              return (
-                <Link
-                  key={version.id}
-                  href={index === 0 ? base : `${base}?version=${version.versionNumber}`}
-                  onClick={onNavigate}
-                  aria-current={isViewed ? "true" : undefined}
-                  className={`flex items-center gap-2 rounded-[0.25rem] px-1.5 py-1.5 transition-colors hover:bg-foreground/[0.06] ${isViewed ? "bg-foreground/[0.045]" : ""}`}
-                >
-                  <span
-                    aria-hidden
-                    className="size-1 shrink-0 rounded-full"
-                    style={{ background: isViewed ? "var(--wb-accent-orange)" : "transparent" }}
-                  />
-                  <span className={`shrink-0 font-mono text-[11px] ${isViewed ? "text-foreground/90" : "text-foreground/60"}`}>
-                    v{version.versionNumber}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-[12px] text-foreground/45">
-                    {version.changelog ?? (index === 0 ? "Latest version" : "")}
-                  </span>
-                  <span className="shrink-0 font-mono text-[10px] text-foreground/35">{ago(version.createdAt)}</span>
-                </Link>
-              );
-            })
+            <>
+              {versions.map((version, index) => {
+                const isViewed = viewedVersion ? version.versionNumber === viewedVersion : index === 0;
+                return (
+                  <Link
+                    key={version.id}
+                    href={index === 0 ? base : `${base}?version=${version.versionNumber}`}
+                    onClick={onNavigate}
+                    aria-current={isViewed ? "true" : undefined}
+                    className={`flex items-center gap-2 rounded-[0.25rem] px-1.5 py-1.5 transition-colors hover:bg-foreground/[0.06] ${isViewed ? "bg-foreground/[0.045]" : ""}`}
+                  >
+                    <span
+                      aria-hidden
+                      className="size-1 shrink-0 rounded-full"
+                      style={{ background: isViewed ? "var(--wb-accent-orange)" : "transparent" }}
+                    />
+                    <span className={`shrink-0 font-mono text-[11px] ${isViewed ? "text-foreground/90" : "text-foreground/60"}`}>
+                      v{version.versionNumber}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[12px] text-foreground/45">
+                      {version.changelog ?? (index === 0 ? "Latest version" : "")}
+                    </span>
+                    <span className="shrink-0 font-mono text-[10px] text-foreground/35">{ago(version.createdAt)}</span>
+                  </Link>
+                );
+              })}
+              <Link
+                href={`${base}/history`}
+                onClick={onNavigate}
+                className="mt-1 flex items-center gap-2 rounded-[0.25rem] border-t border-[var(--wb-line)] px-1.5 py-1.5 text-[12px] text-foreground/55 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/85"
+              >
+                Open full history
+                <ArrowUpRight className="ml-auto size-3.5 text-foreground/35" />
+              </Link>
+            </>
           )}
         </div>
       </Disclosure>

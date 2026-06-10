@@ -1,5 +1,6 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { randomUUID } from "node:crypto";
 
 export interface StorageConfig {
   endpoint: string;
@@ -33,6 +34,7 @@ export function createVersionSourceKey(input: {
   ownerUserId: string;
   artifactId: string;
   versionNumber: number;
+  attemptId?: string;
 }): string {
   if (!ID_PATTERN.test(input.ownerUserId)) {
     throw new Error("createVersionSourceKey: ownerUserId must match [a-zA-Z0-9_-]{1,64}");
@@ -43,7 +45,11 @@ export function createVersionSourceKey(input: {
   if (!Number.isInteger(input.versionNumber) || input.versionNumber <= 0) {
     throw new Error("createVersionSourceKey: versionNumber must be a positive integer");
   }
-  return `users/${input.ownerUserId}/artifacts/${input.artifactId}/versions/${input.versionNumber}/source`;
+  const attemptId = input.attemptId ?? randomUUID();
+  if (!ID_PATTERN.test(attemptId)) {
+    throw new Error("createVersionSourceKey: attemptId must match [a-zA-Z0-9_-]{1,64}");
+  }
+  return `users/${input.ownerUserId}/artifacts/${input.artifactId}/versions/${input.versionNumber}/source-${attemptId}`;
 }
 
 export class S3ArtifactStorage implements ArtifactStorage {

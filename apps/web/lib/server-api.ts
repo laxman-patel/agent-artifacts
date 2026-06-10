@@ -201,7 +201,7 @@ export const fetchArtifactContent = (artifactId: string, cookie?: string, versio
     })
   });
 export const fetchArtifactPermissions = (artifactId: string, cookie: string) =>
-  apiCall<{ canUpdate: boolean; canManageAccess: boolean }>(artifactApi(artifactId, "permissions"), { cookie });
+  apiCall<{ canUpdate: boolean; canRestore: boolean; canManageAccess: boolean }>(artifactApi(artifactId, "permissions"), { cookie });
 export const fetchArtifactDiff = (artifactId: string, cookie: string | undefined, fromVersion: number, toVersion: number) =>
   apiCall<{ unifiedDiff: string; fromVersion: { versionNumber: number }; toVersion: { versionNumber: number } }>(
     artifactApi(artifactId, "diff"), { cookie, query: { from: fromVersion, to: toVersion } }

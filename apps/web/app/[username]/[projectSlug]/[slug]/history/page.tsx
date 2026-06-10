@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { readSessionCookie } from "@agent-artifacts/shared";
 import { cookies } from "next/headers";
-import { artifactPath, cookieHeader, fetchArtifactVersions, loadArtifactGate } from "../../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactPermissions, fetchArtifactVersions, loadArtifactGate } from "../../../../../lib/server-api";
+import { ArtifactRestoreButton } from "../../../../components/artifact-restore-button";
 import { RestrictedArtifactView } from "../../../../components/restricted-artifact-view";
 
 export default async function ArtifactHistoryPage(props: {
@@ -9,6 +11,7 @@ export default async function ArtifactHistoryPage(props: {
   const params = await props.params;
   const cookieStore = await cookies();
   const header = cookieHeader(cookieStore);
+  const hasSession = Boolean(readSessionCookie(cookieStore));
   const path = artifactPath({
     ownerUsername: params.username,
     projectSlug: params.projectSlug,
@@ -23,7 +26,10 @@ export default async function ArtifactHistoryPage(props: {
   }
   const meta = gate.meta;
 
-  const versions = await fetchArtifactVersions(meta.id, header);
+  const [versions, permissions] = await Promise.all([
+    fetchArtifactVersions(meta.id, header),
+    hasSession ? fetchArtifactPermissions(meta.id, header) : Promise.resolve(null)
+  ]);
 
   if (!versions.ok) {
     return (
@@ -35,6 +41,7 @@ export default async function ArtifactHistoryPage(props: {
   }
 
   const base = artifactPath(meta);
+  const canRestore = permissions?.ok === true && permissions.body.canRestore;
 
   return (
     <main className="page-shell">
@@ -71,6 +78,7 @@ export default async function ArtifactHistoryPage(props: {
                         Diff vs v{previous.versionNumber}
                       </Link>
                     ) : null}
+                    {canRestore ? <ArtifactRestoreButton artifactId={meta.id} versionNumber={version.versionNumber} /> : null}
                   </div>
                 </li>
               );

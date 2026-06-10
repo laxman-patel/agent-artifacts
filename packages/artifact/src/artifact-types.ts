@@ -50,6 +50,13 @@ export const updateArtifactInputSchema = z.object({
 
 export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
 
+export const restoreArtifactVersionInputSchema = z.object({
+  artifactId: z.string().min(1),
+  versionNumber: z.number().int().positive()
+});
+
+export type RestoreArtifactVersionInput = z.infer<typeof restoreArtifactVersionInputSchema>;
+
 export const setArtifactAccessInputSchema = z.object({
   publicView: z.boolean(),
   publicEdit: z.boolean(),

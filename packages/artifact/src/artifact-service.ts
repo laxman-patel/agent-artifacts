@@ -15,6 +15,7 @@ import {
   contentTypeForArtifact,
   createArtifactInputSchema,
   createWorkspaceArtifactInputSchema,
+  restoreArtifactVersionInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema,
   type ArtifactAccessSnapshot,
@@ -24,6 +25,7 @@ import {
   type ArtifactVersionRecord,
   type CreateArtifactInput,
   type CreateWorkspaceArtifactInput,
+  type RestoreArtifactVersionInput,
   type SetArtifactAccessInput,
   type UpdateArtifactInput
 } from "./artifact-types.js";
@@ -259,6 +261,88 @@ export class ArtifactService {
 
     await this.audit(artifact.ownerUserId, artifact.id, principal, "artifact.updated", "artifact_version", versionId, {
       previousVersionNumber: latestVersion.versionNumber,
+      versionNumber: nextVersionNumber
+    }, artifact.workspaceId ?? undefined);
+    this.recordBillingMetering(
+      "recordVersionWrite",
+      this.billing?.recordVersionWrite?.({
+        ownerUserId: artifact.ownerUserId,
+        artifactId: artifact.id,
+        versionNumber: nextVersionNumber,
+        contentBytes: content.contentBytes
+      })
+    );
+
+    return {
+      artifactId: artifact.id,
+      versionId,
+      versionNumber: nextVersionNumber,
+      ownerUserId: artifact.ownerUserId,
+      ownerUsername: namespaceSlug,
+      projectId: artifact.projectId,
+      projectSlug: artifact.projectSlug,
+      normalizedSlug: artifact.slug,
+      type: artifact.type,
+      title: artifact.title,
+      url: buildWorkspaceProjectArtifactUrl(this.appUrl, namespaceSlug, artifact.projectSlug, artifact.slug),
+      contentObjectKey: content.contentObjectKey,
+      contentSha256: content.contentSha256,
+      contentBytes: content.contentBytes,
+      publicView: artifact.publicView,
+      publicEdit: artifact.publicEdit
+    };
+  }
+
+  async restoreArtifactVersion(input: RestoreArtifactVersionInput, principal: Principal): Promise<ArtifactSummary> {
+    const parsed = restoreArtifactVersionInputSchema.parse(input);
+    const artifact = await this.requireArtifactById(parsed.artifactId);
+    await this.assertArtifactAction(artifact, principal, "artifact.restore");
+
+    const latestVersion = await this.requireVersion(artifact.id);
+    const sourceVersion = await this.requireVersion(artifact.id, parsed.versionNumber);
+    const sourceObject = await this.storage.getObject(sourceVersion.contentObjectKey);
+    const restoredContent = textDecoder.decode(sourceObject.body);
+    const namespaceSlug = artifact.workspaceId ? artifact.workspaceSlug : artifact.ownerUsername;
+    if (!namespaceSlug) {
+      throw new ArtifactNotFoundError();
+    }
+
+    const nextVersionNumber = latestVersion.versionNumber + 1;
+    await this.billing?.assertCanWriteVersion(artifact.ownerUserId, { contentBytes: sourceVersion.contentBytes });
+
+    const versionId = randomUUID();
+    const content = await this.writeContent({
+      ownerUserId: artifact.ownerUserId,
+      artifactId: artifact.id,
+      versionNumber: nextVersionNumber,
+      type: artifact.type,
+      content: restoredContent
+    });
+
+    try {
+      await this.repository.createVersion({
+        expectedLatestVersionId: latestVersion.id,
+        version: {
+          id: versionId,
+          artifactId: artifact.id,
+          versionNumber: nextVersionNumber,
+          parentVersionId: latestVersion.id,
+          contentObjectKey: content.contentObjectKey,
+          contentSha256: content.contentSha256,
+          contentBytes: content.contentBytes,
+          changelog: `Restored from v${sourceVersion.versionNumber}`,
+          createdByPrincipalType: principal.type,
+          createdByPrincipalId: principal.id
+        }
+      });
+    } catch (error) {
+      await this.deleteContent(content.contentObjectKey);
+      throw error;
+    }
+
+    await this.audit(artifact.ownerUserId, artifact.id, principal, "artifact.version_restored", "artifact_version", versionId, {
+      previousVersionNumber: latestVersion.versionNumber,
+      restoredFromVersionNumber: sourceVersion.versionNumber,
       versionNumber: nextVersionNumber
     }, artifact.workspaceId ?? undefined);
     this.recordBillingMetering(

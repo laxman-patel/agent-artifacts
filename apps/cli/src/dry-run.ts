@@ -35,6 +35,7 @@ const PATH_PARAM_OPTION_KEYS: Record<string, string[]> = {
   projectSlug: ["projectSlug", "project"],
   slug: ["slug"],
   artifactId: ["artifactId"],
+  versionNumber: ["version"],
   shareLinkId: ["shareLinkId"]
 };
 
@@ -52,8 +53,8 @@ function resolvePathParam(key: string, options?: Record<string, unknown>): strin
   const optionKeys = [key, ...(PATH_PARAM_OPTION_KEYS[key] ?? [])];
   for (const optionKey of optionKeys) {
     const value = options?.[optionKey];
-    if (typeof value === "string" && value.length > 0) {
-      return value;
+    if ((typeof value === "string" && value.length > 0) || typeof value === "number") {
+      return String(value);
     }
   }
   return undefined;

@@ -1,5 +1,6 @@
 import {
   createArtifactInputSchema,
+  restoreArtifactVersionInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
@@ -105,6 +106,30 @@ export const artifactUpdateCommand: CommandSpec = {
     const data = await client.post(
       `/api/artifacts/${encodeURIComponent(id)}/versions`,
       updateArtifactInputSchema.parse(body)
+    );
+    return { data, nextActions: nextActionsForArtifact(id) };
+  }
+};
+
+export const artifactRestoreCommand: CommandSpec = {
+  name: "artifact restore",
+  description: "Restore an old artifact version by creating a new head version",
+  options: [
+    ARTIFACT_ID_OPTION,
+    { flag: "--version <n>", description: "Version number to restore", required: true, parse: parseIntFlag("--version", "artifacts artifact restore --artifact-id ARTIFACT_ID --version 1") }
+  ],
+  http: { method: "POST", pathTemplate: "/api/artifacts/{artifactId}/versions/{versionNumber}/restore" },
+  mutates: true,
+  example: "artifacts artifact restore --artifact-id ARTIFACT_ID --version 1",
+  async run({ client, options }) {
+    const id = readArtifactId(options);
+    const body = restoreArtifactVersionInputSchema.parse({
+      artifactId: id,
+      versionNumber: options.version
+    });
+    const data = await client.post(
+      `/api/artifacts/${encodeURIComponent(id)}/versions/${encodeURIComponent(String(body.versionNumber))}/restore`,
+      body
     );
     return { data, nextActions: nextActionsForArtifact(id) };
   }

@@ -14,6 +14,7 @@ describe("CLI schema", () => {
       "artifact diff",
       "artifact get",
       "artifact list",
+      "artifact restore",
       "artifact slug-availability",
       "artifact update",
       "artifact url-preview",

@@ -44,6 +44,7 @@ export const CSRF_PROTECTED_ROUTES = [
   { path: "/api/artifacts", middleware: [writeLimiter, artifactBodyLimit, csrfGuard] as const },
   { path: "/api/artifacts/:artifactId", middleware: [csrfGuard] as const },
   { path: "/api/artifacts/:artifactId/versions", middleware: [writeLimiter, artifactBodyLimit, csrfGuard] as const },
+  { path: "/api/artifacts/:artifactId/versions/:versionNumber/restore", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/artifacts/:artifactId/access", middleware: [csrfGuard] as const },
   { path: "/api/artifacts/:artifactId/share-links", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/share-links/:shareLinkId/revoke", middleware: [writeLimiter, csrfGuard] as const },

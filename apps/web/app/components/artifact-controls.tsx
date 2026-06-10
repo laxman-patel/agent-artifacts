@@ -139,6 +139,7 @@ export function ArtifactControls({
 }) {
   const router = useRouter();
   const [versions, setVersions] = useState<Version[] | null>(null);
+  const [canRestore, setCanRestore] = useState(false);
   const [manager, setManager] = useState<boolean | null>(null);
   const [access, setAccess] = useState<Access | null>(null);
   const [saving, setSaving] = useState(false);
@@ -151,6 +152,8 @@ export function ArtifactControls({
   const [copiedShare, setCopiedShare] = useState(false);
   const [copiedArtifactLink, setCopiedArtifactLink] = useState(false);
   const [shareError, setShareError] = useState<ApiFormError | null>(null);
+  const [restoreError, setRestoreError] = useState<ApiFormError | null>(null);
+  const [restoringVersion, setRestoringVersion] = useState<number | null>(null);
 
   const [linksOpen, setLinksOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
@@ -167,6 +170,11 @@ export function ArtifactControls({
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { versions: Version[] } | null) => setVersions(d?.versions ?? []))
       .catch(() => setVersions([]));
+
+    void fetch(`/api/artifacts/${artifactId}/permissions`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { canRestore?: boolean } | null) => setCanRestore(d?.canRestore === true))
+      .catch(() => setCanRestore(false));
 
     void fetch(`/api/artifacts/${artifactId}/access`, { credentials: "include" })
       .then(async (r) => {
@@ -248,6 +256,34 @@ export function ArtifactControls({
       setShareError({ message: "Could not create link" });
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function restoreVersion(versionNumber: number) {
+    setRestoringVersion(versionNumber);
+    setRestoreError(null);
+
+    try {
+      const res = await fetch(
+        `/api/artifacts/${encodeURIComponent(artifactId)}/versions/${encodeURIComponent(String(versionNumber))}/restore`,
+        {
+          method: "POST",
+          credentials: "include"
+        }
+      );
+      if (!res.ok) {
+        setRestoreError(await readApiFormError(res, `Could not restore v${versionNumber}.`));
+        return;
+      }
+
+      router.refresh();
+      onNavigate();
+    } catch (error) {
+      setRestoreError({
+        message: error instanceof Error ? `Could not restore v${versionNumber}: ${error.message}` : `Could not restore v${versionNumber}.`
+      });
+    } finally {
+      setRestoringVersion(null);
     }
   }
 
@@ -502,28 +538,40 @@ export function ArtifactControls({
               {versions.map((version, index) => {
                 const isViewed = viewedVersion ? version.versionNumber === viewedVersion : index === 0;
                 return (
-                  <Link
-                    key={version.id}
-                    href={index === 0 ? base : `${base}?version=${version.versionNumber}`}
-                    onClick={onNavigate}
-                    aria-current={isViewed ? "true" : undefined}
-                    className={`flex items-center gap-2 rounded-[0.25rem] px-1.5 py-1.5 transition-colors hover:bg-foreground/[0.06] ${isViewed ? "bg-foreground/[0.045]" : ""}`}
-                  >
-                    <span
-                      aria-hidden
-                      className="size-1 shrink-0 rounded-full"
-                      style={{ background: isViewed ? "var(--wb-accent-orange)" : "transparent" }}
-                    />
-                    <span className={`shrink-0 font-mono text-[11px] ${isViewed ? "text-foreground/90" : "text-foreground/60"}`}>
-                      v{version.versionNumber}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[12px] text-foreground/45">
-                      {version.changelog ?? (index === 0 ? "Latest version" : "")}
-                    </span>
-                    <span className="shrink-0 font-mono text-[10px] text-foreground/35">{ago(version.createdAt)}</span>
-                  </Link>
+                  <div key={version.id}>
+                    <Link
+                      href={index === 0 ? base : `${base}?version=${version.versionNumber}`}
+                      onClick={onNavigate}
+                      aria-current={isViewed ? "true" : undefined}
+                      className={`flex items-center gap-2 rounded-[0.25rem] px-1.5 py-1.5 transition-colors hover:bg-foreground/[0.06] ${isViewed ? "bg-foreground/[0.045]" : ""}`}
+                    >
+                      <span
+                        aria-hidden
+                        className="size-1 shrink-0 rounded-full"
+                        style={{ background: isViewed ? "var(--wb-accent-orange)" : "transparent" }}
+                      />
+                      <span className={`shrink-0 font-mono text-[11px] ${isViewed ? "text-foreground/90" : "text-foreground/60"}`}>
+                        v{version.versionNumber}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[12px] text-foreground/45">
+                        {version.changelog ?? (index === 0 ? "Latest version" : "")}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-foreground/35">{ago(version.createdAt)}</span>
+                    </Link>
+                    {canRestore ? (
+                      <button
+                        className="ml-4 rounded-[0.25rem] px-1.5 py-1 text-[11px] text-foreground/45 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/85 disabled:cursor-wait disabled:opacity-60"
+                        disabled={restoringVersion !== null}
+                        onClick={() => void restoreVersion(version.versionNumber)}
+                        type="button"
+                      >
+                        {restoringVersion === version.versionNumber ? "Restoring..." : "Restore this version"}
+                      </button>
+                    ) : null}
+                  </div>
                 );
               })}
+              <FormErrorMessage error={restoreError} className="error small mt-1 px-1.5" />
               <Link
                 href={`${base}/history`}
                 onClick={onNavigate}

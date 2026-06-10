@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import {
   createArtifactInputSchema,
+  restoreArtifactVersionInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema
 } from "@agent-artifacts/artifact";
@@ -56,6 +57,7 @@ export function registerArtifactRoutes(app: Hono<{ Variables: AppVariables }>) {
 
       return {
         canUpdate: await getArtifactService().checkArtifactPermission(artifactId, "artifact.update", principal),
+        canRestore: await getArtifactService().checkArtifactPermission(artifactId, "artifact.restore", principal),
         canManageAccess: await getArtifactService().checkArtifactPermission(artifactId, "artifact.manage_access", principal)
       };
     })
@@ -78,6 +80,19 @@ export function registerArtifactRoutes(app: Hono<{ Variables: AppVariables }>) {
         artifactId: c.req.param("artifactId")
       });
       const version = await getArtifactService().updateArtifact(body, principal);
+
+      return { body: version, status: 201 };
+    })
+  );
+
+  app.post("/api/artifacts/:artifactId/versions/:versionNumber/restore", (c) =>
+    handle(c, async () => {
+      const principal = await requirePrincipal(c);
+      const body = restoreArtifactVersionInputSchema.parse({
+        artifactId: c.req.param("artifactId"),
+        versionNumber: Number.parseInt(c.req.param("versionNumber"), 10)
+      });
+      const version = await getArtifactService().restoreArtifactVersion(body, principal);
 
       return { body: version, status: 201 };
     })

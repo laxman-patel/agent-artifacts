@@ -198,6 +198,45 @@ describe("ArtifactService", () => {
     ).rejects.toBeInstanceOf(ArtifactConflictError);
   });
 
+  it("restores an old version by creating a new head version", async () => {
+    const { repository, storage, service } = createTestHarness();
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        projectSlug: "default",
+        slug: "restore-demo",
+        type: "md",
+        title: "Restore Demo",
+        content: "# One"
+      },
+      ownerPrincipal
+    );
+    await service.updateArtifact(
+      {
+        artifactId: created.artifactId,
+        content: "# Two"
+      },
+      ownerPrincipal
+    );
+
+    const restored = await service.restoreArtifactVersion(
+      {
+        artifactId: created.artifactId,
+        versionNumber: 1
+      },
+      ownerPrincipal
+    );
+
+    expect(restored.versionNumber).toBe(3);
+    expect(repository.versions.get(created.artifactId)).toHaveLength(3);
+    expect(storage.text(restored.contentObjectKey)).toBe("# One");
+    expect(repository.auditEvents.at(-1)?.action).toBe("artifact.version_restored");
+    expect(repository.auditEvents.at(-1)?.metadata).toMatchObject({
+      restoredFromVersionNumber: 1,
+      versionNumber: 3
+    });
+  });
+
   it("removes newly written source content when version persistence fails", async () => {
     const { repository, storage, service } = createTestHarness();
 

@@ -15,6 +15,7 @@ describe("MCP tool handlers", () => {
     const tools = listMcpTools();
 
     expect(tools.map((tool) => tool.name)).toContain("create_artifact");
+    expect(tools.map((tool) => tool.name)).toContain("restore_artifact_version");
     expect(tools.find((tool) => tool.name === "create_artifact")?.inputSchema).toMatchObject({
       type: "object"
     });

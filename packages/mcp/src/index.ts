@@ -1,6 +1,7 @@
 import {
   createArtifactInputSchema,
   createProjectInputSchema,
+  restoreArtifactVersionInputSchema,
   setArtifactAccessInputSchema,
   updateArtifactInputSchema,
   type ArtifactService,
@@ -74,6 +75,11 @@ export const mcpTools = {
     description: "Append a new immutable version to an artifact.",
     schema: updateArtifactInputSchema,
     handler: (input, ctx) => ctx.artifactService.updateArtifact(input, ctx.principal)
+  }),
+  restore_artifact_version: def({
+    description: "Restore an old artifact version by creating a new head version from it.",
+    schema: restoreArtifactVersionInputSchema,
+    handler: (input, ctx) => ctx.artifactService.restoreArtifactVersion(input, ctx.principal)
   }),
   get_artifact: def({
     description: "Read artifact metadata for an authorized principal.",

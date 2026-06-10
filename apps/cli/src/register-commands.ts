@@ -24,6 +24,7 @@ interface GlobalOpts {
 const GROUP_DESCRIPTIONS: Record<string, string> = {
   profile: "User profile",
   project: "Projects",
+  workspace: "Workspaces",
   artifact: "Artifacts",
   "artifact access": "Artifact access settings",
   path: "Resolve resources by URL path",

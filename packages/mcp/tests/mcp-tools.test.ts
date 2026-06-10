@@ -13,9 +13,15 @@ const apiKeyPrincipal: Principal = {
 describe("MCP tool handlers", () => {
   it("exposes MCP tool metadata with JSON schemas", () => {
     const tools = listMcpTools();
+    const toolNames = tools.map((tool) => tool.name);
 
-    expect(tools.map((tool) => tool.name)).toContain("create_artifact");
-    expect(tools.map((tool) => tool.name)).toContain("restore_artifact_version");
+    expect(toolNames).toContain("create_artifact");
+    expect(toolNames).toContain("restore_artifact_version");
+    expect(toolNames).toContain("create_share_link");
+    expect(toolNames).toContain("list_audit_events");
+    expect(toolNames).toContain("resolve_path");
+    expect(toolNames).toContain("list_workspaces");
+    expect(toolNames).toContain("list_workspace_artifacts");
     expect(tools.find((tool) => tool.name === "create_artifact")?.inputSchema).toMatchObject({
       type: "object"
     });

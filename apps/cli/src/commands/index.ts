@@ -25,6 +25,13 @@ import { projectCreateCommand, projectListCommand, projectSlugAvailabilityComman
 import { setupCommand } from "./setup.js";
 import { shareCreateCommand, shareListCommand, shareRevokeCommand } from "./share.js";
 import { whoamiCommand } from "./whoami.js";
+import {
+  workspaceAuditCommand,
+  workspaceInviteCommand,
+  workspaceListCommand,
+  workspaceMembersCommand,
+  workspaceRevokeInviteCommand
+} from "./workspace.js";
 
 export const allCommands: CommandSpec[] = [
   setupCommand,
@@ -37,6 +44,11 @@ export const allCommands: CommandSpec[] = [
   projectListCommand,
   projectCreateCommand,
   projectSlugAvailabilityCommand,
+  workspaceListCommand,
+  workspaceMembersCommand,
+  workspaceInviteCommand,
+  workspaceRevokeInviteCommand,
+  workspaceAuditCommand,
   artifactListCommand,
   artifactGetCommand,
   artifactCreateCommand,

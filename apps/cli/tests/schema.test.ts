@@ -34,7 +34,12 @@ describe("CLI schema", () => {
       "share create",
       "share list",
       "share revoke",
-      "whoami"
+      "whoami",
+      "workspace audit",
+      "workspace invite",
+      "workspace list",
+      "workspace members",
+      "workspace revoke-invite"
     ]);
   });
 

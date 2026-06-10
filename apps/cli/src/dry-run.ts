@@ -35,6 +35,8 @@ const PATH_PARAM_OPTION_KEYS: Record<string, string[]> = {
   projectSlug: ["projectSlug", "project"],
   slug: ["slug"],
   artifactId: ["artifactId"],
+  workspaceId: ["workspaceId"],
+  invitationId: ["invitationId"],
   versionNumber: ["version"],
   shareLinkId: ["shareLinkId"]
 };

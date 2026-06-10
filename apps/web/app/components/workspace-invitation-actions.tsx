@@ -8,11 +8,15 @@ export function WorkspaceInvitationActions(props: { invitationId: string }) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [acceptUrl, setAcceptUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function post(action: "revoke" | "resend") {
     setPending(true);
     setMessage(null);
     setError(null);
+    setAcceptUrl(null);
+    setCopied(false);
 
     try {
       const response = await fetch(
@@ -29,6 +33,10 @@ export function WorkspaceInvitationActions(props: { invitationId: string }) {
         return;
       }
 
+      const body = (await response.json().catch(() => ({}))) as { invitation?: { acceptUrl?: string } };
+      if (action === "resend") {
+        setAcceptUrl(body.invitation?.acceptUrl ?? null);
+      }
       setMessage(action === "resend" ? "Invitation resent." : "Invitation revoked.");
       router.refresh();
     } catch (error) {
@@ -36,6 +44,16 @@ export function WorkspaceInvitationActions(props: { invitationId: string }) {
     } finally {
       setPending(false);
     }
+  }
+
+  async function copyInviteLink() {
+    if (!acceptUrl) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(acceptUrl);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
@@ -49,6 +67,22 @@ export function WorkspaceInvitationActions(props: { invitationId: string }) {
         </button>
       </div>
       {message ? <p className="pill success">{message}</p> : null}
+      {acceptUrl ? (
+        <div className="stack tight">
+          <p className="muted small">Send this renewed link to the invitee. It will not be shown again after you leave this page.</p>
+          <div className="row-actions">
+            <input
+              className="input"
+              onClick={(event) => event.currentTarget.select()}
+              readOnly
+              value={acceptUrl}
+            />
+            <button className="ghost-button" onClick={() => void copyInviteLink()} type="button">
+              {copied ? "Copied" : "Copy invite link"}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {error ? <p className="error small">{error}</p> : null}
     </div>
   );

@@ -11,11 +11,15 @@ export function WorkspaceInviteForm(props: { workspaceId: string }) {
   const [role, setRole] = useState<InvitableWorkspaceRole>("member");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [acceptUrl, setAcceptUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setSuccess(null);
+    setAcceptUrl(null);
+    setCopied(false);
 
     try {
       const response = await fetch(`/api/workspaces/${encodeURIComponent(props.workspaceId)}/invitations`, {
@@ -31,13 +35,25 @@ export function WorkspaceInviteForm(props: { workspaceId: string }) {
         return;
       }
 
+      const body = (await response.json().catch(() => ({}))) as { invitation?: { acceptUrl?: string } };
       setEmail("");
-      setSuccess("Invitation sent.");
+      setAcceptUrl(body.invitation?.acceptUrl ?? null);
+      setSuccess("Invitation created.");
       router.refresh();
     } catch (error) {
       setSuccess(null);
       setError(error instanceof Error ? `Could not send invitation: ${error.message}` : "Could not send invitation.");
     }
+  }
+
+  async function copyInviteLink() {
+    if (!acceptUrl) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(acceptUrl);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
@@ -66,6 +82,22 @@ export function WorkspaceInviteForm(props: { workspaceId: string }) {
       </label>
       {error ? <p className="error">{error}</p> : null}
       {success ? <p className="pill success">{success}</p> : null}
+      {acceptUrl ? (
+        <div className="stack tight">
+          <p className="muted small">Send this link to the invitee. It will not be shown again after you leave this page.</p>
+          <div className="row-actions">
+            <input
+              className="input"
+              onClick={(event) => event.currentTarget.select()}
+              readOnly
+              value={acceptUrl}
+            />
+            <button className="ghost-button" onClick={() => void copyInviteLink()} type="button">
+              {copied ? "Copied" : "Copy invite link"}
+            </button>
+          </div>
+        </div>
+      ) : null}
       <button className="primary-button" type="submit">
         Send invitation
       </button>

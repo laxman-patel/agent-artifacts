@@ -123,7 +123,7 @@ export default async function WorkspaceSettingsPage(props: { params: Promise<{ w
         <section className="card flat stack">
           <div className="section-header">
             <h2>Invite teammate</h2>
-            <p className="muted">Send an email invitation to join this team.</p>
+            <p className="muted">Create an invitation link, then send it to the invitee.</p>
           </div>
           <div>
             <WorkspaceInviteForm workspaceId={workspace.id} />

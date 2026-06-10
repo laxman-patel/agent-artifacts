@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { readSessionCookie } from "@agent-artifacts/shared";
 import { NextResponse } from "next/server";
 
 // Coarse login redirect for /dashboard and /settings only; artifact pages gate themselves (share links, partial visibility).
@@ -12,7 +13,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (!needsAuthProtection(pathname)) return NextResponse.next();
 
-  const hasSession = Boolean(request.cookies.get("better-auth.session_token")?.value);
+  const hasSession = Boolean(readSessionCookie(request.cookies));
   if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);

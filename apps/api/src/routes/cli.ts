@@ -1,5 +1,5 @@
 import type { Hono } from "hono";
-import { readCookie } from "@agent-artifacts/shared";
+import { readSessionCookie } from "@agent-artifacts/shared";
 import { z } from "zod";
 import { createCliAuthCode, consumeCliAuthCode } from "../cli-auth.js";
 import { handle } from "../http/handler.js";
@@ -22,7 +22,7 @@ export function registerCliRoutes(app: Hono<{ Variables: AppVariables }>) {
       const principal = await requireHumanPrincipal(c);
 
       const body = cliAuthorizeInputSchema.parse(await c.req.json());
-      const sessionToken = readCookie(c.req.header("cookie"), "better-auth.session_token");
+      const sessionToken = readSessionCookie(c.req.header("cookie"));
       if (!sessionToken) {
         return c.json({ error: "unauthorized", message: "Session cookie required." }, 401);
       }

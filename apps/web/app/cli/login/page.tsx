@@ -1,3 +1,4 @@
+import { readSessionCookie } from "@agent-artifacts/shared";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { CliLoginAuthorize } from "./cli-login-authorize";
@@ -36,7 +37,7 @@ export default async function CliLoginPage({ searchParams }: CliLoginPageProps) 
   }
 
   const cookieStore = await cookies();
-  const sessionToken = cookieStore.get("better-auth.session_token")?.value;
+  const sessionToken = readSessionCookie(cookieStore);
 
   const nextPath = `/cli/login?port=${encodeURIComponent(port)}&state=${encodeURIComponent(state)}`;
 

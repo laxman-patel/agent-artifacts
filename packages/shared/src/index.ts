@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export { readCookie } from "./cookie.js";
+export { readCookie, readSessionCookie, SESSION_COOKIE_NAMES } from "./cookie.js";
 
 export const artifactTypeSchema = z.enum(["html", "md", "jsx"]);
 export type ArtifactType = z.infer<typeof artifactTypeSchema>;

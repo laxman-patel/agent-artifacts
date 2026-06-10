@@ -18,7 +18,14 @@ interface ApiCallOptions {
 
 type ArtifactRoute = { ownerUsername: string; projectSlug: string; slug: string };
 type OwnerRoute = { ownerUsername: string; slug: string };
-type ArtifactVersion = { id: string; versionNumber: number; changelog: string | null; createdAt: string };
+type ArtifactVersion = {
+  id: string;
+  versionNumber: number;
+  contentSha256: string;
+  contentBytes: number;
+  changelog: string | null;
+  createdAt: string;
+};
 type ShareLinkSummary = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
 type AuditEvent = { id: string; workspaceId?: string | null; artifactId: string | null; actorPrincipalType: string; actorPrincipalId: string; action: string; targetType: string; targetId: string; metadata: Record<string, unknown>; createdAt: string };
 type BillingEntitlements = {

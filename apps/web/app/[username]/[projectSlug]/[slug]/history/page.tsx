@@ -5,6 +5,12 @@ import { artifactPath, cookieHeader, fetchArtifactPermissions, fetchArtifactVers
 import { ArtifactRestoreButton } from "../../../../components/artifact-restore-button";
 import { RestrictedArtifactView } from "../../../../components/restricted-artifact-view";
 
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${bytes} bytes`;
+}
+
 export default async function ArtifactHistoryPage(props: {
   params: Promise<{ username: string; projectSlug: string; slug: string }>;
 }) {
@@ -69,6 +75,10 @@ export default async function ArtifactHistoryPage(props: {
                   <div>
                     <strong>Version {version.versionNumber}</strong>
                     <p className="meta-line small">{new Date(version.createdAt).toLocaleString()}</p>
+                    <p className="meta-line small">
+                      {formatBytes(version.contentBytes)} · SHA-256{" "}
+                      <code>{version.contentSha256}</code>
+                    </p>
                     {version.changelog ? <p className="muted">{version.changelog}</p> : null}
                   </div>
                   <div className="row-actions">

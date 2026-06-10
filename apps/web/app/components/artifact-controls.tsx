@@ -20,7 +20,7 @@ import {
 import { readApiFormError, type ApiFormError } from "../../lib/api-error";
 import { FormErrorMessage } from "./form-error-message";
 
-type Version = { id: string; versionNumber: number; changelog: string | null; createdAt: string };
+type Version = { id: string; versionNumber: number; contentSha256: string; contentBytes: number; changelog: string | null; createdAt: string };
 type Access = { publicView: boolean; publicEdit: boolean; viewerEmails: string[] };
 type ShareLink = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
 
@@ -55,6 +55,12 @@ function ago(iso: string): string {
 
 function compactDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function compactBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${bytes} B`;
 }
 
 function MicroLabel({ children }: { children: ReactNode }) {
@@ -583,6 +589,7 @@ export function ArtifactControls({
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[12px] text-foreground/45">
                         {version.changelog ?? (index === 0 ? "Latest version" : "")}
+                        {` · ${compactBytes(version.contentBytes)} · ${version.contentSha256.slice(0, 8)}`}
                       </span>
                       <span className="shrink-0 font-mono text-[10px] text-foreground/35">{ago(version.createdAt)}</span>
                     </Link>

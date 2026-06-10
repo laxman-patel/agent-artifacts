@@ -36,11 +36,12 @@ function GithubGlyph() {
 
 type AuthOAuthButtonsProps = {
   googleLabel: string;
+  githubLabel: string;
   googleBusy: boolean;
   onGoogleClick: () => void;
 };
 
-export function AuthOAuthButtons({ googleLabel, googleBusy, onGoogleClick }: AuthOAuthButtonsProps) {
+export function AuthOAuthButtons({ googleLabel, githubLabel, googleBusy, onGoogleClick }: AuthOAuthButtonsProps) {
   return (
     <div className="space-y-3">
       <button
@@ -71,7 +72,7 @@ export function AuthOAuthButtons({ googleLabel, googleBusy, onGoogleClick }: Aut
           aria-describedby="github-coming-soon"
         >
           <GithubGlyph />
-          <span>Continue with GitHub</span>
+          <span>{githubLabel}</span>
         </button>
       </div>
     </div>

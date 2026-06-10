@@ -282,7 +282,8 @@ export function LoginForm() {
           <div className="mt-5">
             <AuthOAuthButtons
               googleBusy={isBusy}
-              googleLabel={isBusy ? "Opening Google" : "Continue with Google"}
+              googleLabel={isBusy ? "Opening Google" : "Sign in with Google"}
+              githubLabel="Sign in with GitHub"
               onGoogleClick={() => void signInGoogle()}
             />
           </div>
@@ -327,7 +328,8 @@ export function LoginForm() {
             ) : (
               <AuthOAuthButtons
                 googleBusy={isBusy}
-                googleLabel={isBusy ? "Opening Google" : "Continue with Google"}
+                googleLabel={isBusy ? "Opening Google" : "Sign up with Google"}
+                githubLabel="Sign up with GitHub"
                 onGoogleClick={() => void signUpGoogle()}
               />
             )}

@@ -52,13 +52,12 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
     const token = globals.tokenStdin ? await readTokenFromStdin() : globals.token;
     const config = resolveConfig({ ...globals, token });
     const client = new ApiClient(config);
-    const body = spec.bodySchema
-      ? spec.bodySchema.parse(
-          parseJsonInput(opts.json as string | undefined, opts.jsonFile as string | undefined, {
-            example: spec.example
-          })
-        )
+    const rawBody = spec.bodySchema
+      ? parseJsonInput(opts.json as string | undefined, opts.jsonFile as string | undefined, {
+          example: spec.example
+        })
       : undefined;
+    const body = spec.bodySchema ? spec.bodySchema.parse(spec.prepareBody?.(rawBody, opts) ?? rawBody) : undefined;
     if (config.dryRun && spec.mutates) {
       emitSuccess(buildDryRunPreview(spec, body, opts), config.format);
       return;

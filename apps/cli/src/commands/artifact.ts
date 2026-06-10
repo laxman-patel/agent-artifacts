@@ -96,6 +96,7 @@ export const artifactUpdateCommand: CommandSpec = {
     { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: updateArtifactInputSchema,
+  prepareBody: (body, options) => ({ ...(body as Record<string, unknown>), artifactId: readArtifactId(options) }),
   http: { method: "POST", pathTemplate: "/api/artifacts/{artifactId}/versions" },
   mutates: true,
   example: 'artifacts artifact update --artifact-id ARTIFACT_ID --json \'{"content":"# Updated"}\'',

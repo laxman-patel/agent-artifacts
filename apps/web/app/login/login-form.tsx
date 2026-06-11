@@ -259,7 +259,7 @@ export function LoginForm() {
   const visibleError = error ?? (oauthError ? "Google sign-in did not complete. Try again." : null);
   const showSignupClaimOnly = sessionReady && isAuthenticated && !hasUsername;
 
-  if (!sessionReady && isAuthenticated) {
+  if (!sessionReady) {
     return (
       <section className="relative z-10 w-full max-w-[22rem] border border-border bg-background p-6 shadow-[0_18px_48px_oklch(0.08_0_0_/_0.28)]" aria-busy="true">
         <AuthHeading title={mode === "signup" ? "Sign up" : "Sign in"} />

@@ -10,7 +10,23 @@ import {
 } from "@paper-design/shaders";
 import { useEffect, useMemo, useState } from "react";
 
-export function HeroDitherShader() {
+import { cn } from "@/lib/utils";
+
+type HeroDitherShaderProps = {
+  backColor?: string;
+  className?: string;
+  fieldClassName?: string;
+  frontColor?: string;
+  speed?: number;
+};
+
+export function HeroDitherShader({
+  backColor = "#111111",
+  className,
+  fieldClassName = "hero-shader-field",
+  frontColor = "#FF570A",
+  speed = 0.28
+}: HeroDitherShaderProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -24,8 +40,8 @@ export function HeroDitherShader() {
 
   const uniforms = useMemo(
     () => ({
-      u_colorBack: getShaderColorFromString("#111111"),
-      u_colorFront: getShaderColorFromString("#c8c8c8"),
+      u_colorBack: getShaderColorFromString(backColor),
+      u_colorFront: getShaderColorFromString(frontColor),
       u_shape: DitheringShapes.warp,
       u_type: DitheringTypes["8x8"],
       u_pxSize: 2,
@@ -39,12 +55,12 @@ export function HeroDitherShader() {
       u_worldWidth: 0,
       u_worldHeight: 0
     }),
-    []
+    [backColor, frontColor]
   );
 
   return (
     <div
-      className="hero-shader-field relative h-[18rem] w-full max-w-full overflow-hidden sm:h-[21rem] lg:h-full lg:max-w-none"
+      className={cn(fieldClassName, "relative h-[18rem] w-full max-w-full overflow-hidden sm:h-[21rem] lg:h-full lg:max-w-none", className)}
       aria-label="Abstract dithered signal field"
     >
       <ShaderMount
@@ -52,7 +68,7 @@ export function HeroDitherShader() {
         height="100%"
         fragmentShader={ditheringFragmentShader}
         uniforms={uniforms}
-        speed={reducedMotion ? 0 : 0.28}
+        speed={reducedMotion ? 0 : speed}
         frame={reducedMotion ? 9400 : 0}
         minPixelRatio={1}
         maxPixelCount={900000}

@@ -170,6 +170,16 @@
   image-rendering: pixelated;
 }
 
+.auth-shader-field {
+  image-rendering: pixelated;
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, black 0%, rgb(0 0 0 / 0.62) 36%, rgb(0 0 0 / 0.12) 66%, transparent 100%);
+  mask-image: radial-gradient(circle at 50% 42%, black 0%, rgb(0 0 0 / 0.62) 36%, rgb(0 0 0 / 0.12) 66%, transparent 100%);
+}
+
+.auth-shader-field canvas {
+  image-rendering: pixelated;
+}
+
 .demo-video-frame {
   box-shadow: 0 18px 48px oklch(0.08 0 0 / 0.22);
 }

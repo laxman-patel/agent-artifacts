@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { HeroDitherShader } from "../components/hero-dither-shader";
 import { MarketingFooter, MarketingNav, SectionShell } from "../components/marketing-chrome";
 import { LoginForm } from "./login-form";
 
@@ -30,6 +31,14 @@ export default function LoginPage() {
       <MarketingNav />
 
       <SectionShell id="content" last className="flex-1" contentClassName="grid min-h-[calc(100dvh-9.75rem)] place-items-center pb-16 pt-24 sm:pt-28 lg:pb-20 lg:pt-32">
+        <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.18] mix-blend-screen" aria-hidden>
+          <HeroDitherShader
+            className="h-full min-h-[28rem]"
+            fieldClassName="auth-shader-field"
+            frontColor="#FF570A"
+            speed={0.18}
+          />
+        </div>
         <Suspense fallback={<LoginPanelFallback />}>
           <LoginForm />
         </Suspense>

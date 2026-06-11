@@ -2,6 +2,12 @@ import { Logger } from "@logtail/next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { randomUUID } from "node:crypto";
+import type { BillingPlan as BillingPlanShape, BillingUsageMeterName, BillingUsageSnapshot } from "@agent-artifacts/billing";
+import type { AgentScope as AgentScopeValue, ArtifactType, PrincipalType, ShareLinkRole, WorkspaceKind, WorkspaceRole } from "@agent-artifacts/shared";
+
+export type BillingPlan = BillingPlanShape;
+export type AgentScope = AgentScopeValue;
+export type { WorkspaceKind, WorkspaceRole } from "@agent-artifacts/shared";
 
 export type ApiResult<T> =
   | { ok: true; status: number; body: T }
@@ -27,33 +33,10 @@ type ArtifactVersion = {
   changelog: string | null;
   createdAt: string;
 };
-type ShareLinkSummary = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
-type AuditEvent = { id: string; workspaceId?: string | null; artifactId: string | null; actorPrincipalType: string; actorPrincipalId: string; action: string; targetType: string; targetId: string; metadata: Record<string, unknown>; createdAt: string };
-type BillingEntitlements = {
-  maxProjects: number | null; maxActiveArtifacts: number | null; maxContentBytes: number; includedStorageBytes: number;
-  includedDeliveryBytes: number; includedVersionWrites: number; includedSeats: number; privateArtifacts: boolean;
-  emailAllowlist: boolean; shareLinks: boolean; publicEditLinks: boolean; overageBilling: boolean;
-  auditRetentionDays: number; versionHistoryDays: number;
-};
-export type BillingPlan = {
-  id: "free" | "builder" | "studio";
-  name: string;
-  displayName: string;
-  monthlyPriceUsd: number;
-  description: string;
-  entitlements: BillingEntitlements;
-};
-type BillingUsage = { projects: number; activeArtifacts: number; storageBytes: number; versionWritesThisMonth: number; deliveryBytesThisMonth: number };
-type BillingMeter = { eventName: string; unit: string; overagePriceUsd: number };
-export type AgentScope =
-  | "artifacts:read"
-  | "artifacts:create"
-  | "artifacts:update"
-  | "artifacts:delete"
-  | "artifacts:share"
-  | "artifacts:access:read"
-  | "artifacts:access:write"
-  | "agents:manage";
+type ShareLinkSummary = { id: string; role: ShareLinkRole; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
+type AuditEvent = { id: string; workspaceId?: string | null; artifactId: string | null; actorPrincipalType: PrincipalType; actorPrincipalId: string; action: string; targetType: string; targetId: string; metadata: Record<string, unknown>; createdAt: string };
+type BillingUsage = BillingUsageSnapshot;
+type BillingMeter = { eventName: BillingUsageMeterName; unit: string; overagePriceUsd: number };
 export type ApiKeySummary = {
   id: string;
   userId: string;
@@ -69,8 +52,6 @@ export interface ProfileMeResponse {
   profile: { username: string; displayName: string | null; createdAt: string; updatedAt: string } | null;
 }
 
-export type WorkspaceKind = "personal" | "team";
-export type WorkspaceRole = "owner" | "admin" | "member" | "viewer" | "billing_admin";
 export type InvitableWorkspaceRole = "admin" | "member" | "viewer" | "billing_admin";
 
 export interface WorkspaceSummary {
@@ -112,12 +93,12 @@ export interface ProjectSummary {
 }
 
 export interface ArtifactOwnerSummary {
-  id: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; projectId: string; projectSlug: string; slug: string; title: string; type: string; updatedAt: string;
+  id: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; projectId: string; projectSlug: string; slug: string; title: string; type: ArtifactType; updatedAt: string;
 }
 
 export interface ArtifactMeta {
   id: string; ownerUserId: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; projectId: string; projectSlug: string; slug: string;
-  title: string; description: string | null; type: "html" | "md" | "jsx"; publicView: boolean; publicEdit: boolean;
+  title: string; description: string | null; type: ArtifactType; publicView: boolean; publicEdit: boolean;
   latestVersionId: string | null; updatedAt: string;
 }
 

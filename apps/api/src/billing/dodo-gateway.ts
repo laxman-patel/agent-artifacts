@@ -1,5 +1,5 @@
 import DodoPayments from "dodopayments";
-import type { BillingGateway, BillingUsageMeterName } from "@agent-artifacts/billing";
+import type { BillingGateway, BillingSubscriptionSnapshot, BillingUsageMeterName } from "@agent-artifacts/billing";
 
 export class DodoBillingGateway implements BillingGateway {
   constructor(private readonly client: DodoPayments) {}
@@ -43,6 +43,29 @@ export class DodoBillingGateway implements BillingGateway {
       ]
     });
   }
+
+  async getSubscription(subscriptionId: string): Promise<BillingSubscriptionSnapshot> {
+    const subscriptions = (this.client as unknown as {
+      subscriptions?: {
+        retrieve?: (id: string) => Promise<Record<string, unknown>>;
+        get?: (id: string) => Promise<Record<string, unknown>>;
+      };
+    }).subscriptions;
+    const subscription = await (subscriptions?.retrieve
+      ? subscriptions.retrieve(subscriptionId)
+      : subscriptions?.get
+        ? subscriptions.get(subscriptionId)
+        : Promise.reject(new Error("Dodo subscriptions API is not available.")));
+
+    return {
+      id: String(subscription.subscription_id ?? subscription.id ?? subscriptionId),
+      status: String(subscription.status ?? "active"),
+      productId: stringValue(subscription.product_id ?? nestedValue(subscription.product, "product_id") ?? nestedValue(subscription.product, "id")),
+      customerId: stringValue(subscription.customer_id ?? nestedValue(subscription.customer, "customer_id") ?? nestedValue(subscription.customer, "id")),
+      currentPeriodEnd: dateValue(subscription.current_period_end ?? subscription.next_billing_date),
+      cancelAtPeriodEnd: booleanValue(subscription.cancel_at_period_end ?? subscription.cancel_at_next_billing_date)
+    };
+  }
 }
 
 export class UnavailableBillingGateway implements BillingGateway {
@@ -57,4 +80,28 @@ export class UnavailableBillingGateway implements BillingGateway {
   async ingestUsageEvent(): Promise<void> {
     throw new Error("Dodo Payments is not configured.");
   }
+
+  async getSubscription(): Promise<BillingSubscriptionSnapshot> {
+    throw new Error("Dodo Payments is not configured.");
+  }
+}
+
+function nestedValue(value: unknown, key: string): unknown {
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>)[key] : undefined;
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function dateValue(value: unknown): Date | null {
+  if (typeof value !== "string" || value.length === 0) {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function booleanValue(value: unknown): boolean {
+  return value === true;
 }

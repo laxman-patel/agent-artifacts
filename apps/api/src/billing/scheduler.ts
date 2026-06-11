@@ -31,6 +31,17 @@ export function startBillingScheduler(env: ServerEnv = loadServerEnv()): (() => 
         const billingService = getBillingService();
         await billingService.recordStorageSnapshotsForActiveAccounts();
         logger.info("billing_storage_snapshots_recorded");
+        try {
+          const reconciledSubscriptions = await billingService.reconcilePaidSubscriptions({
+            builderProductId: env.DODO_BUILDER_PRODUCT_ID,
+            studioProductId: env.DODO_STUDIO_PRODUCT_ID
+          });
+          logger.info("billing_subscriptions_reconciled", { reconciledSubscriptions });
+        } catch (error) {
+          logger.warn("billing_subscriptions_reconcile_failed", {
+            message: error instanceof Error ? error.message : String(error)
+          });
+        }
         const ownerIds = await billingService.listBillableOwnerIds();
         const deletedAuditEvents = await getAuditService().pruneExpiredAuditEventsForOwners(ownerIds);
         logger.info("billing_retention_pruned", { deletedAuditEvents });

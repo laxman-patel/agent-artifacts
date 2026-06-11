@@ -287,6 +287,39 @@ describe("BillingService", () => {
     ]);
   });
 
+  it("reconciles paid subscription accounts from Dodo snapshots", async () => {
+    const repository = new MemoryBillingRepository();
+    repository.accounts.set("user_1", {
+      userId: "user_1",
+      planId: "builder",
+      status: "active",
+      dodoCustomerId: "cus_1",
+      dodoSubscriptionId: "sub_1",
+      dodoProductId: "prod_builder",
+      currentPeriodEnd: new Date("2026-06-01T00:00:00.000Z")
+    });
+    const gateway = new MemoryBillingGateway();
+    gateway.subscriptions.set("sub_1", {
+      id: "sub_1",
+      status: "expired",
+      productId: "prod_builder",
+      customerId: "cus_1",
+      currentPeriodEnd: new Date("2026-06-05T00:00:00.000Z"),
+      cancelAtPeriodEnd: false
+    });
+    const service = new BillingService(repository, gateway);
+
+    await expect(service.reconcilePaidSubscriptions({
+      builderProductId: "prod_builder",
+      studioProductId: "prod_studio"
+    })).resolves.toBe(1);
+
+    expect(repository.accounts.get("user_1")).toMatchObject({
+      status: "expired",
+      currentPeriodEnd: new Date("2026-06-05T00:00:00.000Z")
+    });
+  });
+
   it("blocks free-only limits before paid features or overages are used", async () => {
     const repository = new MemoryBillingRepository();
     repository.usage.set("user_1", {
@@ -339,7 +372,16 @@ function sign(payload: string, timestamp: string, secret: string): string {
 }
 
 class MemoryBillingRepository implements BillingRepository {
-  readonly accounts = new Map<string, { userId: string; planId: BillingPlanId; status: string; dodoCustomerId: string | null; dodoSubscriptionId?: string }>();
+  readonly accounts = new Map<string, {
+    userId: string;
+    planId: BillingPlanId;
+    status: string;
+    dodoCustomerId: string | null;
+    dodoSubscriptionId?: string | null;
+    dodoProductId?: string | null;
+    currentPeriodEnd?: Date | null;
+    cancelAtPeriodEnd?: boolean;
+  }>();
   readonly processedEvents = new Set<string>();
   readonly usage = new Map<string, Awaited<ReturnType<BillingRepository["getUsage"]>>>();
   deferProcessedWebhookChecks = false;
@@ -359,7 +401,16 @@ class MemoryBillingRepository implements BillingRepository {
     return [...this.accounts.values()].find((account) => account.dodoCustomerId === customerId);
   }
 
-  async upsertAccount(account: { userId: string; planId: BillingPlanId; status: string; dodoCustomerId: string | null; dodoSubscriptionId?: string }) {
+  async upsertAccount(account: {
+    userId: string;
+    planId: BillingPlanId;
+    status: string;
+    dodoCustomerId: string | null;
+    dodoSubscriptionId?: string | null;
+    dodoProductId?: string | null;
+    currentPeriodEnd?: Date | null;
+    cancelAtPeriodEnd?: boolean;
+  }) {
     this.upsertAccountCalls += 1;
     this.accounts.set(account.userId, account);
   }
@@ -379,7 +430,16 @@ class MemoryBillingRepository implements BillingRepository {
     this.processedEvents.add(eventId);
   }
 
-  async upsertAccountForWebhook(eventId: string, _eventType: string, account: { userId: string; planId: BillingPlanId; status: string; dodoCustomerId: string | null; dodoSubscriptionId?: string }) {
+  async upsertAccountForWebhook(eventId: string, _eventType: string, account: {
+    userId: string;
+    planId: BillingPlanId;
+    status: string;
+    dodoCustomerId: string | null;
+    dodoSubscriptionId?: string | null;
+    dodoProductId?: string | null;
+    currentPeriodEnd?: Date | null;
+    cancelAtPeriodEnd?: boolean;
+  }) {
     if (this.processedEvents.has(eventId)) {
       return false;
     }
@@ -420,10 +480,22 @@ class MemoryBillingRepository implements BillingRepository {
       .filter((account) => account.planId !== "free" && (account.status === "active" || account.status === "trialing"))
       .map((account) => account.userId);
   }
+
+  async listSubscriptionAccounts() {
+    return [...this.accounts.values()].filter((account) => account.planId !== "free" && Boolean(account.dodoSubscriptionId));
+  }
 }
 
 class MemoryBillingGateway implements BillingGateway {
   readonly events: Array<{ customerId: string; eventName: string; eventId: string; quantity: number; metadata: Record<string, string> }> = [];
+  readonly subscriptions = new Map<string, {
+    id: string;
+    status: string;
+    productId?: string | null;
+    customerId?: string | null;
+    currentPeriodEnd?: Date | null;
+    cancelAtPeriodEnd?: boolean;
+  }>();
 
   async createCheckoutSession() {
     return { checkoutUrl: "https://checkout.example", sessionId: "checkout_1" };
@@ -435,5 +507,13 @@ class MemoryBillingGateway implements BillingGateway {
 
   async ingestUsageEvent(event: { customerId: string; eventName: string; eventId: string; quantity: number; metadata: Record<string, string> }) {
     this.events.push(event);
+  }
+
+  async getSubscription(subscriptionId: string) {
+    const subscription = this.subscriptions.get(subscriptionId);
+    if (!subscription) {
+      throw new Error(`Missing subscription ${subscriptionId}`);
+    }
+    return subscription;
   }
 }

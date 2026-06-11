@@ -1,5 +1,5 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, isNotNull, sql } from "drizzle-orm";
 import type { Database } from "@agent-artifacts/db";
 import {
   artifactVersions,
@@ -198,6 +198,7 @@ export interface BillingRepository {
   markWebhookProcessed(eventId: string, eventType?: string): Promise<void>;
   getUsage(userId: string): Promise<BillingUsageSnapshot>;
   listBillableOwnerIds(): Promise<string[]>;
+  listSubscriptionAccounts(): Promise<BillingAccount[]>;
   recordUsageEvent?(event: {
     id: string;
     ownerUserId: string;
@@ -218,6 +219,16 @@ export interface BillingGateway {
     quantity: number;
     metadata: Record<string, string>;
   }): Promise<void>;
+  getSubscription(subscriptionId: string): Promise<BillingSubscriptionSnapshot>;
+}
+
+export interface BillingSubscriptionSnapshot {
+  id: string;
+  status: string;
+  productId?: string | null;
+  customerId?: string | null;
+  currentPeriodEnd?: Date | null;
+  cancelAtPeriodEnd?: boolean;
 }
 
 export interface ResolvedEntitlements {
@@ -379,6 +390,30 @@ export class BillingService {
     }
 
     return this.gateway.createPortalSession({ customerId: account.dodoCustomerId, returnUrl: input.returnUrl });
+  }
+
+  async reconcilePaidSubscriptions(products: { builderProductId?: string; studioProductId?: string }): Promise<number> {
+    const accounts = await this.repository.listSubscriptionAccounts();
+    let reconciled = 0;
+    for (const account of accounts) {
+      if (!account.dodoSubscriptionId) {
+        continue;
+      }
+      const subscription = await this.gateway.getSubscription(account.dodoSubscriptionId);
+      const productId = subscription.productId ?? account.dodoProductId ?? undefined;
+      await this.repository.upsertAccount({
+        ...account,
+        planId: planIdForProduct(productId, products),
+        status: normalizeSubscriptionStatus(subscription.status),
+        dodoCustomerId: subscription.customerId ?? account.dodoCustomerId,
+        dodoSubscriptionId: subscription.id,
+        dodoProductId: productId ?? account.dodoProductId ?? null,
+        currentPeriodEnd: subscription.currentPeriodEnd ?? account.currentPeriodEnd ?? null,
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? account.cancelAtPeriodEnd ?? false
+      });
+      reconciled += 1;
+    }
+    return reconciled;
   }
 
   async handleDodoSubscriptionEvent(
@@ -670,6 +705,20 @@ function statusForDodoEvent(eventType: string, cancelAtPeriodEnd = false): Billi
   }
 }
 
+function normalizeSubscriptionStatus(status: string): BillingSubscriptionStatus {
+  switch (status) {
+    case "active":
+    case "trialing":
+    case "on_hold":
+    case "cancelled":
+    case "expired":
+    case "failed":
+      return status;
+    default:
+      return "active";
+  }
+}
+
 function isPaidStatus(status: string): boolean {
   return status === "active" || status === "trialing";
 }
@@ -827,6 +876,14 @@ export class DrizzleBillingRepository implements BillingRepository {
         )
       );
     return rows.map((row) => row.userId);
+  }
+
+  async listSubscriptionAccounts(): Promise<BillingAccount[]> {
+    const rows = await this.db
+      .select()
+      .from(billingAccounts)
+      .where(and(sql`${billingAccounts.planId} <> 'free'`, isNotNull(billingAccounts.dodoSubscriptionId)));
+    return rows.map((row) => this.toAccount(row));
   }
 
   async recordUsageEvent(event: {

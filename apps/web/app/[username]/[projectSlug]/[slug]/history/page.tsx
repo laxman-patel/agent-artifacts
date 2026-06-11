@@ -79,6 +79,9 @@ export default async function ArtifactHistoryPage(props: {
                       {formatBytes(version.contentBytes)} · SHA-256{" "}
                       <code>{version.contentSha256}</code>
                     </p>
+                    <p className="meta-line small">
+                      Parent: {version.parentVersionId ? <code>{version.parentVersionId}</code> : "root"}
+                    </p>
                     {version.changelog ? <p className="muted">{version.changelog}</p> : null}
                   </div>
                   <div className="row-actions">

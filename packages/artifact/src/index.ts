@@ -8,6 +8,7 @@ export {
   SlugUnavailableError,
   ArtifactNotFoundError,
   ArtifactConflictError,
+  ArtifactIntegrityError,
   ArtifactForbiddenError,
   contentTypeForArtifact,
   type CreateArtifactInput,

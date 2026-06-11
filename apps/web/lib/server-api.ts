@@ -21,6 +21,7 @@ type OwnerRoute = { ownerUsername: string; slug: string };
 type ArtifactVersion = {
   id: string;
   versionNumber: number;
+  parentVersionId: string | null;
   contentSha256: string;
   contentBytes: number;
   changelog: string | null;

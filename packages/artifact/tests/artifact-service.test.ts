@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ArtifactConflictError,
   ArtifactForbiddenError,
+  ArtifactIntegrityError,
   DrizzleArtifactRoleResolver,
   ArtifactService,
   type ArtifactRecord,
@@ -341,6 +342,29 @@ describe("ArtifactService", () => {
     expect(billingGuard.deliveryEvents).toEqual([
       { ownerUserId: "user_1", artifactId: created.artifactId, versionNumber: 2, contentBytes: 5 }
     ]);
+  });
+
+  it("rejects content reads when stored bytes do not match the version hash", async () => {
+    const { storage, service } = createTestHarness();
+    const created = await service.createArtifact(
+      {
+        ownerUsername: "laxman",
+        projectSlug: "default",
+        slug: "integrity",
+        type: "md",
+        title: "Integrity",
+        content: "# Original"
+      },
+      ownerPrincipal
+    );
+
+    await storage.putObject({
+      key: created.contentObjectKey,
+      body: "# Tampered",
+      contentType: "text/markdown; charset=utf-8"
+    });
+
+    await expect(service.getArtifactContent(created.artifactId, ownerPrincipal)).rejects.toBeInstanceOf(ArtifactIntegrityError);
   });
 
   it("enforces scopes for agent mutations and email rules for restricted reads", async () => {

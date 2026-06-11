@@ -154,6 +154,13 @@ export class ArtifactConflictError extends Error {
   }
 }
 
+export class ArtifactIntegrityError extends Error {
+  constructor(message = "Artifact content integrity check failed.") {
+    super(message);
+    this.name = "ArtifactIntegrityError";
+  }
+}
+
 export { ArtifactForbiddenError } from "@agent-artifacts/shared";
 
 export interface ArtifactRecord {

@@ -10,6 +10,7 @@ import { createTwoFilesPatch } from "diff";
 import {
   ArtifactConflictError,
   ArtifactForbiddenError,
+  ArtifactIntegrityError,
   ArtifactNotFoundError,
   SlugUnavailableError,
   contentTypeForArtifact,
@@ -300,8 +301,7 @@ export class ArtifactService {
 
     const latestVersion = await this.requireVersion(artifact.id);
     const sourceVersion = await this.requireVersion(artifact.id, parsed.versionNumber);
-    const sourceObject = await this.storage.getObject(sourceVersion.contentObjectKey);
-    const restoredContent = textDecoder.decode(sourceObject.body);
+    const restoredContent = await this.readVerifiedVersionContent(sourceVersion);
     const namespaceSlug = artifact.workspaceId ? artifact.workspaceSlug : artifact.ownerUsername;
     if (!namespaceSlug) {
       throw new ArtifactNotFoundError();
@@ -461,7 +461,7 @@ export class ArtifactService {
     const artifact = await this.requireArtifactById(artifactId);
     await this.assertArtifactAction(artifact, principal, "artifact.view");
     const version = await this.requireVersion(artifact.id, versionNumber);
-    const object = await this.storage.getObject(version.contentObjectKey);
+    const content = await this.readVerifiedVersionContent(version);
     this.recordBillingMetering(
       "recordDelivery",
       this.billing?.recordDelivery?.({
@@ -475,7 +475,7 @@ export class ArtifactService {
     return {
       artifact,
       version,
-      content: textDecoder.decode(object.body),
+      content,
       // Authoritative: derive Content-Type from the artifact's declared type column.
       // Any value stored in S3 metadata is ignored to prevent content-type spoofing.
       contentType: contentTypeForArtifact(artifact.type)
@@ -621,13 +621,10 @@ export class ArtifactService {
     const fromVersion = await this.requireVersion(artifact.id, fromVersionNumber);
     const toVersion = await this.requireVersion(artifact.id, toVersionNumber);
 
-    const [fromObject, toObject] = await Promise.all([
-      this.storage.getObject(fromVersion.contentObjectKey),
-      this.storage.getObject(toVersion.contentObjectKey)
+    const [left, right] = await Promise.all([
+      this.readVerifiedVersionContent(fromVersion),
+      this.readVerifiedVersionContent(toVersion)
     ]);
-
-    const left = textDecoder.decode(fromObject.body);
-    const right = textDecoder.decode(toObject.body);
 
     const unifiedDiff = createTwoFilesPatch(`v${fromVersionNumber}`, `v${toVersionNumber}`, left, right, "", "");
 
@@ -731,6 +728,22 @@ export class ArtifactService {
     await this.storage.deleteObject?.(contentObjectKey).catch((error: unknown) => {
       console.error("Artifact content cleanup failed", error);
     });
+  }
+
+  private async readVerifiedVersionContent(version: ArtifactVersionRecord): Promise<string> {
+    const object = await this.storage.getObject(version.contentObjectKey);
+    const actualSha256 = createHash("sha256").update(object.body).digest("hex");
+    if (actualSha256 !== version.contentSha256) {
+      console.error("Artifact content integrity check failed", {
+        artifactId: version.artifactId,
+        versionNumber: version.versionNumber,
+        contentObjectKey: version.contentObjectKey,
+        expectedSha256: version.contentSha256,
+        actualSha256
+      });
+      throw new ArtifactIntegrityError();
+    }
+    return textDecoder.decode(object.body);
   }
 
   private recordBillingMetering(operation: string, promise: Promise<void> | undefined): void {

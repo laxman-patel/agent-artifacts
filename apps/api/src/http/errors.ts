@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import {
   ArtifactConflictError,
+  ArtifactIntegrityError,
   ArtifactNotFoundError,
   ProfileNotFoundError,
   ProjectNotFoundError,
@@ -49,6 +50,10 @@ export function artifactErrorResponse(c: Context, error: unknown) {
     error instanceof UsernameTakenError
   ) {
     return c.json({ error: "conflict", message: error.message }, 409);
+  }
+
+  if (error instanceof ArtifactIntegrityError) {
+    return c.json({ error: "integrity_check_failed", message: error.message }, 500);
   }
 
   if (error instanceof ProjectNotFoundError) {

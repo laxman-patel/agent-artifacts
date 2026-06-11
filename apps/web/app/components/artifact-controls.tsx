@@ -20,7 +20,15 @@ import {
 import { readApiFormError, type ApiFormError } from "../../lib/api-error";
 import { FormErrorMessage } from "./form-error-message";
 
-type Version = { id: string; versionNumber: number; contentSha256: string; contentBytes: number; changelog: string | null; createdAt: string };
+type Version = {
+  id: string;
+  versionNumber: number;
+  parentVersionId: string | null;
+  contentSha256: string;
+  contentBytes: number;
+  changelog: string | null;
+  createdAt: string;
+};
 type Access = { publicView: boolean; publicEdit: boolean; viewerEmails: string[] };
 type ShareLink = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
 

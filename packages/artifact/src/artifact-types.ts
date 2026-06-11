@@ -175,7 +175,7 @@ export interface ArtifactRecord {
   title: string;
   description: string | null;
   type: ArtifactType;
-  state: "active" | "archived" | "deleted";
+  state: "active" | "deleted";
   latestVersionId: string | null;
   publicView: boolean;
   publicEdit: boolean;

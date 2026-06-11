@@ -179,7 +179,7 @@ export const apiKeys = pgTable(
 );
 
 export const artifactType = pgEnum("artifact_type", ["html", "md", "jsx"]);
-export const artifactState = pgEnum("artifact_state", ["active", "archived", "deleted"]);
+export const artifactState = pgEnum("artifact_state", ["active", "deleted"]);
 export const artifactRole = pgEnum("artifact_role", ["owner", "admin", "editor", "viewer"]);
 export const shareLinkRole = pgEnum("share_link_role", ["viewer", "editor"]);
 export const billingPlan = pgEnum("billing_plan", ["free", "builder", "studio"]);
@@ -209,10 +209,7 @@ export const workspaceInvitationState = pgEnum("workspace_invitation_state", ["p
 export const permissionSubjectType = pgEnum("permission_subject_type", [
   "anyone",
   "user",
-  "email",
-  "agent",
-  "api_key",
-  "share_link"
+  "email"
 ]);
 
 export const workspaces = pgTable(

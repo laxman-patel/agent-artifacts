@@ -193,9 +193,7 @@ export interface BillingRepository {
   getAccountByDodoSubscriptionId(subscriptionId: string): Promise<BillingAccount | undefined>;
   getAccountByDodoCustomerId(customerId: string): Promise<BillingAccount | undefined>;
   upsertAccount(account: BillingAccount): Promise<void>;
-  upsertAccountForWebhook?(eventId: string, eventType: string, account: BillingAccount): Promise<boolean>;
-  hasProcessedWebhook(eventId: string): Promise<boolean>;
-  markWebhookProcessed(eventId: string, eventType?: string): Promise<void>;
+  upsertAccountForWebhook(eventId: string, eventType: string, account: BillingAccount): Promise<boolean>;
   getUsage(userId: string): Promise<BillingUsageSnapshot>;
   listBillableOwnerIds(): Promise<string[]>;
   listSubscriptionAccounts(): Promise<BillingAccount[]>;
@@ -269,7 +267,7 @@ function nextPaidPlanId(planId: BillingPlanId): BillingPlanId | undefined {
 
 const SUBSCRIPTION_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000;
 
-export function resolveEntitlements(
+function resolveEntitlements(
   account: (BillingAccount | { planId: BillingPlanId; status: string; currentPeriodEnd?: Date | null }) | undefined,
   now = new Date()
 ): ResolvedEntitlements {
@@ -286,7 +284,7 @@ export function resolveEntitlements(
   };
 }
 
-export function createCheckoutSessionInput(input: {
+function createCheckoutSessionInput(input: {
   planId: Exclude<BillingPlanId, "free">;
   productId: string;
   user: { id: string; email: string; name?: string | null };
@@ -456,14 +454,7 @@ export class BillingService {
       cancelAtPeriodEnd: event.data.cancel_at_next_billing_date ?? false
     };
 
-    if (this.repository.upsertAccountForWebhook) {
-      await this.repository.upsertAccountForWebhook(event.eventId, event.type, account);
-      return;
-    }
-
-    if (await this.repository.hasProcessedWebhook(event.eventId)) return;
-    await this.repository.upsertAccount(account);
-    await this.repository.markWebhookProcessed(event.eventId, event.type);
+    await this.repository.upsertAccountForWebhook(event.eventId, event.type, account);
   }
 
   private async findExistingDodoAccount(input: { subscriptionId?: string; customerId?: string }): Promise<BillingAccount | undefined> {
@@ -776,15 +767,6 @@ export class DrizzleBillingRepository implements BillingRepository {
           updatedAt: new Date()
         }
       });
-  }
-
-  async hasProcessedWebhook(eventId: string): Promise<boolean> {
-    const [event] = await this.db.select({ id: billingWebhookEvents.id }).from(billingWebhookEvents).where(eq(billingWebhookEvents.id, eventId)).limit(1);
-    return event !== undefined;
-  }
-
-  async markWebhookProcessed(eventId: string, eventType = "unknown"): Promise<void> {
-    await this.db.insert(billingWebhookEvents).values({ id: eventId, eventType }).onConflictDoNothing();
   }
 
   async upsertAccountForWebhook(eventId: string, eventType: string, account: BillingAccount): Promise<boolean> {

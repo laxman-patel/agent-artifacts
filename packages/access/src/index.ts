@@ -2,7 +2,6 @@ import { canPerformArtifactAction, roleRank } from "@agent-artifacts/policy";
 import type { ArtifactAction, ArtifactRole, Principal } from "@agent-artifacts/shared";
 import { ArtifactForbiddenError, artifactRoleSchema } from "@agent-artifacts/shared";
 
-export { ArtifactForbiddenError } from "@agent-artifacts/shared";
 export { workspaceRoleToArtifactRole } from "./workspace-role-map.js";
 
 const NAMESPACE_ACTIONS = new Set<ArtifactAction>(["artifact.create", "project.view"]);
@@ -85,7 +84,7 @@ export function highestRole(roles: ArtifactRole[]): ArtifactRole | undefined {
     .at(0);
 }
 
-export async function authorize(
+async function authorize(
   resolver: ArtifactRoleResolver,
   input: AuthorizeInput
 ): Promise<AccessDecision> {
@@ -122,7 +121,7 @@ export async function authorize(
   return { allowed: true, effectiveRole: isOwnerAccount ? "owner" : role };
 }
 
-export function assertAuthorized(
+function assertAuthorized(
   decision: AccessDecision
 ): asserts decision is { allowed: true; effectiveRole?: ArtifactRole } {
   if (!decision.allowed) {

@@ -5,9 +5,6 @@ export { readCookie, readSessionCookie, SESSION_COOKIE_NAMES } from "./cookie.js
 export const artifactTypeSchema = z.enum(["html", "md", "jsx"]);
 export type ArtifactType = z.infer<typeof artifactTypeSchema>;
 
-export const artifactStateSchema = z.enum(["active", "archived", "deleted"]);
-export type ArtifactState = z.infer<typeof artifactStateSchema>;
-
 export const artifactRoleSchema = z.enum(["owner", "admin", "editor", "viewer"]);
 export type ArtifactRole = z.infer<typeof artifactRoleSchema>;
 
@@ -16,16 +13,6 @@ export type ShareLinkRole = z.infer<typeof shareLinkRoleSchema>;
 
 export const principalTypeSchema = z.enum(["user", "agent", "api_key", "oauth_client", "service"]);
 export type PrincipalType = z.infer<typeof principalTypeSchema>;
-
-export const permissionSubjectTypeSchema = z.enum([
-  "anyone",
-  "user",
-  "email",
-  "agent",
-  "api_key",
-  "share_link"
-]);
-export type PermissionSubjectType = z.infer<typeof permissionSubjectTypeSchema>;
 
 export const artifactActionSchema = z.enum([
   "artifact.view",
@@ -55,17 +42,16 @@ export const agentScopeSchema = z.enum([
 ]);
 export type AgentScope = z.infer<typeof agentScopeSchema>;
 
-export const principalSchema = z.object({
-  type: principalTypeSchema,
-  id: z.string().min(1),
-  ownerUserId: z.string().min(1).optional(),
-  email: z.email().optional(),
-  scopes: z.array(agentScopeSchema).default([]),
+export interface Principal {
+  type: PrincipalType;
+  id: string;
+  ownerUserId?: string;
+  email?: string;
+  scopes: AgentScope[];
   // Per-artifact role grants resolved from share-link cookies. Augments the
   // effective role computed from the artifact's own permission rules.
-  artifactRoleGrants: z.record(z.string(), artifactRoleSchema).optional()
-});
-export type Principal = z.infer<typeof principalSchema>;
+  artifactRoleGrants?: Record<string, ArtifactRole>;
+}
 
 export const slugSchema = z
   .string()
@@ -163,20 +149,6 @@ export function buildWorkspaceProjectArtifactUrl(
   artifactSlug: string
 ): string {
   return `${buildWorkspaceProjectUrl(appUrl, workspaceSlug, projectSlug)}/${artifactSlug}`;
-}
-
-export function buildProjectUrl(appUrl: string, username: string, projectSlug: string): string {
-  return buildWorkspaceProjectUrl(appUrl, username, projectSlug);
-}
-
-export function buildProjectArtifactUrl(
-  appUrl: string,
-  username: string,
-  projectSlug: string,
-  artifactSlug: string
-): string {
-  const base = appUrl.replace(/\/+$/, "");
-  return `${base}/${username}/${projectSlug}/${artifactSlug}`;
 }
 
 export class ArtifactForbiddenError extends Error {

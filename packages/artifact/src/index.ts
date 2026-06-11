@@ -45,7 +45,3 @@ export {
   type CreatedShareLink, type ShareLinkSummary
 } from "./share-link-service.js";
 export { DrizzleArtifactRoleResolver } from "./drizzle-role-resolver.js";
-export {
-  createArtifactAccess, MemoryArtifactRoleResolver,
-  type ArtifactAccess, type ArtifactRoleResolver
-} from "@agent-artifacts/access";

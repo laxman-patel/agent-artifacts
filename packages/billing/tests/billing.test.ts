@@ -10,8 +10,6 @@ import {
   DODO_USAGE_METERS,
   EntitlementLimitError,
   FREE_PLAN_ID,
-  createCheckoutSessionInput,
-  resolveEntitlements,
   verifyDodoWebhookSignature
 } from "../src/index.js";
 
@@ -49,25 +47,48 @@ describe("billing entitlements", () => {
     });
   });
 
-  it("falls back to free entitlements unless a paid subscription is active", () => {
-    expect(resolveEntitlements(undefined).plan.id).toBe(FREE_PLAN_ID);
-    expect(resolveEntitlements({ planId: "builder", status: "active" }).plan.id).toBe("builder");
-    expect(resolveEntitlements({ planId: "builder", status: "cancelled" }).plan.id).toBe(FREE_PLAN_ID);
+  it("falls back to free entitlements unless a paid subscription is active", async () => {
+    const repository = new MemoryBillingRepository();
+    const service = new BillingService(repository, new MemoryBillingGateway());
+
+    expect((await service.getAccountEntitlements("missing")).plan.id).toBe(FREE_PLAN_ID);
+    repository.accounts.set("paid", {
+      userId: "paid",
+      planId: "builder",
+      status: "active",
+      dodoCustomerId: "cus_paid"
+    });
+    repository.accounts.set("cancelled", {
+      userId: "cancelled",
+      planId: "builder",
+      status: "cancelled",
+      dodoCustomerId: "cus_cancelled"
+    });
+
+    expect((await service.getAccountEntitlements("paid")).plan.id).toBe("builder");
+    expect((await service.getAccountEntitlements("cancelled")).plan.id).toBe(FREE_PLAN_ID);
   });
 
-  it("falls back to free entitlements when the paid period is stale", () => {
-    const now = new Date("2026-06-10T00:00:00Z");
+  it("falls back to free entitlements when the paid period is stale", async () => {
+    const repository = new MemoryBillingRepository();
+    const service = new BillingService(repository, new MemoryBillingGateway());
+    repository.accounts.set("grace", {
+      userId: "grace",
+      planId: "builder",
+      status: "active",
+      dodoCustomerId: "cus_grace",
+      currentPeriodEnd: new Date(Date.now() - 24 * 60 * 60 * 1000)
+    });
+    repository.accounts.set("stale", {
+      userId: "stale",
+      planId: "builder",
+      status: "active",
+      dodoCustomerId: "cus_stale",
+      currentPeriodEnd: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+    });
 
-    expect(resolveEntitlements({
-      planId: "builder",
-      status: "active",
-      currentPeriodEnd: new Date("2026-06-08T00:00:00Z")
-    }, now).plan.id).toBe("builder");
-    expect(resolveEntitlements({
-      planId: "builder",
-      status: "active",
-      currentPeriodEnd: new Date("2026-06-01T00:00:00Z")
-    }, now).plan.id).toBe(FREE_PLAN_ID);
+    expect((await service.getAccountEntitlements("grace")).plan.id).toBe("builder");
+    expect((await service.getAccountEntitlements("stale")).plan.id).toBe(FREE_PLAN_ID);
   });
 });
 
@@ -82,15 +103,18 @@ describe("Dodo product and meter configuration", () => {
     ]);
   });
 
-  it("builds a checkout session request with user metadata and plan product id", () => {
-    const input = createCheckoutSessionInput({
+  it("builds a checkout session request with user metadata and plan product id", async () => {
+    const gateway = new MemoryBillingGateway();
+    const service = new BillingService(new MemoryBillingRepository(), gateway);
+
+    await service.createCheckoutSession({
       planId: "builder",
       productId: "prod_builder",
       user: { id: "user_1", email: "owner@example.com", name: "Owner" },
       returnUrl: "https://agent-artifacts.com/settings/billing"
     });
 
-    expect(input).toMatchObject({
+    expect(gateway.checkoutInputs[0]).toMatchObject({
       product_cart: [{ product_id: "prod_builder", quantity: 1 }],
       customer: { email: "owner@example.com", name: "Owner" },
       metadata: { user_id: "user_1", plan_id: "builder" },
@@ -488,6 +512,7 @@ class MemoryBillingRepository implements BillingRepository {
 
 class MemoryBillingGateway implements BillingGateway {
   readonly events: Array<{ customerId: string; eventName: string; eventId: string; quantity: number; metadata: Record<string, string> }> = [];
+  readonly checkoutInputs: Record<string, unknown>[] = [];
   readonly subscriptions = new Map<string, {
     id: string;
     status: string;
@@ -497,7 +522,8 @@ class MemoryBillingGateway implements BillingGateway {
     cancelAtPeriodEnd?: boolean;
   }>();
 
-  async createCheckoutSession() {
+  async createCheckoutSession(input: Record<string, unknown>) {
+    this.checkoutInputs.push(input);
     return { checkoutUrl: "https://checkout.example", sessionId: "checkout_1" };
   }
 

@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { Principal } from "@agent-artifacts/shared";
 import {
   MemoryArtifactRoleResolver,
-  assertAuthorized,
-  authorize,
   createArtifactAccess
 } from "../src/index.js";
 
@@ -25,9 +23,10 @@ const intruder: Principal = {
 
 describe("authorize", () => {
   const resolver = new MemoryArtifactRoleResolver();
+  const access = createArtifactAccess(resolver);
 
   it("allows namespace create for the owner account", async () => {
-    const decision = await authorize(resolver, {
+    const decision = await access.authorize({
       principal: owner,
       action: "artifact.create",
       context: { kind: "namespace", ownerUserId: "user_owner" }
@@ -38,7 +37,7 @@ describe("authorize", () => {
   });
 
   it("denies namespace create for another user", async () => {
-    const decision = await authorize(resolver, {
+    const decision = await access.authorize({
       principal: intruder,
       action: "artifact.create",
       context: { kind: "namespace", ownerUserId: "user_owner" }
@@ -58,7 +57,7 @@ describe("authorize", () => {
       scopes: ["artifacts:create"]
     };
 
-    const decision = await authorize(resolver, {
+    const decision = await access.authorize({
       principal: agent,
       action: "artifact.create",
       context: { kind: "namespace", ownerUserId: "user_owner" }
@@ -68,7 +67,7 @@ describe("authorize", () => {
   });
 
   it("denies artifact actions on namespace context", async () => {
-    const decision = await authorize(resolver, {
+    const decision = await access.authorize({
       principal: owner,
       action: "artifact.view",
       context: { kind: "namespace", ownerUserId: "user_owner" }
@@ -93,7 +92,7 @@ describe("authorize", () => {
       artifactRoleGrants: { art_1: "editor" }
     };
 
-    const decision = await authorize(resolver, {
+    const decision = await access.authorize({
       principal: guest,
       action: "artifact.update",
       context: { kind: "artifact", artifact }
@@ -115,12 +114,12 @@ describe("createArtifactAccess", () => {
       })
     ).rejects.toMatchObject({ name: "ArtifactForbiddenError" });
 
-    const decision = await access.authorize({
-      principal: intruder,
-      action: "artifact.create",
-      context: { kind: "namespace", ownerUserId: "user_owner" }
-    });
-
-    expect(() => assertAuthorized(decision)).toThrow();
+    await expect(
+      access.assertAuthorized({
+        principal: intruder,
+        action: "artifact.create",
+        context: { kind: "namespace", ownerUserId: "user_owner" }
+      })
+    ).rejects.toMatchObject({ name: "ArtifactForbiddenError" });
   });
 });

@@ -1,12 +1,4 @@
 export {
-  canPerformWorkspaceAction,
-  hasWorkspaceRole,
-  workspaceRoleRank,
-  type WorkspacePolicyDecision
-} from "./policy.js";
-export {
-  assertWorkspaceAuthorized,
-  authorizeWorkspaceAction,
   createWorkspaceAccess,
   MemoryWorkspaceRoleResolver,
   type WorkspaceAccess,

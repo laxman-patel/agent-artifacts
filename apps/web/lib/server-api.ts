@@ -200,10 +200,7 @@ export const fetchProfileMe = (cookie: string) => apiCall<ProfileMeResponse>("/a
 export const fetchOwnedProjects = (cookie: string) => apiCall<{ projects: ProjectSummary[] }>("/api/profile/projects", { cookie });
 export const fetchPublicProjects = (username: string, cookie?: string) =>
   apiCall<{ projects: ProjectSummary[] }>(`/api/by-path/${encodeURIComponent(username)}`, { cookie });
-export const fetchOwnedArtifacts = (cookie: string) => apiCall<{ artifacts: ArtifactOwnerSummary[] }>("/api/profile/artifacts", { cookie });
 export const fetchWorkspaces = (cookie: string) => apiCall<{ workspaces: WorkspaceSummary[] }>("/api/workspaces", { cookie });
-export const createWorkspace = (cookie: string, body: { slug: string; name: string }) =>
-  apiCall<{ workspace: WorkspaceSummary }>("/api/workspaces", { cookie, method: "POST", body });
 export const fetchWorkspaceMembers = (workspaceId: string, cookie: string) =>
   apiCall<{ members: WorkspaceMemberSummary[] }>(`/api/workspaces/${encodeURIComponent(workspaceId)}/members`, { cookie });
 export const fetchWorkspaceSeatUsage = (workspaceId: string, cookie: string) =>

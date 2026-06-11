@@ -128,6 +128,25 @@ export function registerArtifactRoutes(app: Hono<{ Variables: AppVariables }>) {
     })
   );
 
+  app.get("/api/artifacts/:artifactId/thumbnail", (c) =>
+    handle(c, async () => {
+      const principal = await resolvePrincipal(c);
+      const result = await getArtifactService().getArtifactThumbnail(c.req.param("artifactId"), principal);
+
+      return {
+        text: result.content,
+        status: 200,
+        headers: {
+          "content-type": result.contentType,
+          "x-content-type-options": "nosniff",
+          "content-disposition": `inline; filename="artifact-${result.artifact.id}-thumbnail"`,
+          "cache-control": "private, max-age=300",
+          "x-artifact-id": result.artifact.id
+        }
+      };
+    })
+  );
+
   app.get("/api/artifacts/:artifactId/access", (c) =>
     handle(c, async () => {
       const principal = await requirePrincipal(c);

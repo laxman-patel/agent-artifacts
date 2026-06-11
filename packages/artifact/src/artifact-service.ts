@@ -5,7 +5,7 @@ import type { WorkspaceAccess } from "@agent-artifacts/workspace";
 import type { ArtifactAction, ArtifactType, Principal } from "@agent-artifacts/shared";
 import { buildWorkspaceProjectArtifactUrl } from "@agent-artifacts/shared";
 import type { ArtifactStorage } from "@agent-artifacts/storage";
-import { createVersionSourceKey } from "@agent-artifacts/storage";
+import { createVersionSourceKey, createVersionThumbnailKey } from "@agent-artifacts/storage";
 import { createTwoFilesPatch } from "diff";
 import {
   ArtifactConflictError,
@@ -35,6 +35,7 @@ import { validateSlug } from "./slug.js";
 
 const textDecoder = new TextDecoder();
 const textEncoder = new TextEncoder();
+const THUMBNAIL_PREVIEW_CHARS = 24_000;
 
 type ArtifactBillingGuard = Pick<
   BillingService,
@@ -155,6 +156,7 @@ export class ArtifactService {
           description: input.artifact.description,
           type: input.artifact.type,
           latestVersionId: versionId,
+          thumbnailObjectKey: content.thumbnailObjectKey,
           createdByPrincipalType: input.principal.type,
           createdByPrincipalId: input.principal.id,
           publicView: input.artifact.access.publicView,
@@ -165,6 +167,7 @@ export class ArtifactService {
           artifactId,
           versionNumber: 1,
           contentObjectKey: content.contentObjectKey,
+          thumbnailObjectKey: content.thumbnailObjectKey,
           contentSha256: content.contentSha256,
           contentBytes: content.contentBytes,
           changelog: input.artifact.changelog,
@@ -173,7 +176,7 @@ export class ArtifactService {
         }
       });
     } catch (error) {
-      await this.deleteContent(content.contentObjectKey);
+      await this.deleteObjects(content.contentObjectKey, content.thumbnailObjectKey);
       throw error;
     }
 
@@ -248,6 +251,7 @@ export class ArtifactService {
           versionNumber: nextVersionNumber,
           parentVersionId: latestVersion.id,
           contentObjectKey: content.contentObjectKey,
+          thumbnailObjectKey: content.thumbnailObjectKey,
           contentSha256: content.contentSha256,
           contentBytes: content.contentBytes,
           changelog: parsed.changelog,
@@ -256,7 +260,7 @@ export class ArtifactService {
         }
       });
     } catch (error) {
-      await this.deleteContent(content.contentObjectKey);
+      await this.deleteObjects(content.contentObjectKey, content.thumbnailObjectKey);
       throw error;
     }
 
@@ -328,6 +332,7 @@ export class ArtifactService {
           versionNumber: nextVersionNumber,
           parentVersionId: latestVersion.id,
           contentObjectKey: content.contentObjectKey,
+          thumbnailObjectKey: content.thumbnailObjectKey,
           contentSha256: content.contentSha256,
           contentBytes: content.contentBytes,
           changelog: `Restored from v${sourceVersion.versionNumber}`,
@@ -336,7 +341,7 @@ export class ArtifactService {
         }
       });
     } catch (error) {
-      await this.deleteContent(content.contentObjectKey);
+      await this.deleteObjects(content.contentObjectKey, content.thumbnailObjectKey);
       throw error;
     }
 
@@ -504,7 +509,7 @@ export class ArtifactService {
       }
     }
 
-    return visible;
+    return this.withThumbnailUrls(visible);
   }
 
   async listOwnedArtifacts(principal: Principal): Promise<ArtifactRecord[]> {
@@ -512,7 +517,7 @@ export class ArtifactService {
       throw new ArtifactForbiddenError("Only signed-in users can list owned artifacts.");
     }
 
-    return this.repository.listArtifactsForOwner(principal.id);
+    return this.withThumbnailUrls(await this.repository.listArtifactsForOwner(principal.id));
   }
 
   async listArtifactsInProject(
@@ -534,7 +539,7 @@ export class ArtifactService {
       }
     }
 
-    return visible;
+    return this.withThumbnailUrls(visible);
   }
 
   async listArtifactsInWorkspaceProject(
@@ -556,7 +561,26 @@ export class ArtifactService {
       }
     }
 
-    return visible;
+    return this.withThumbnailUrls(visible);
+  }
+
+  async getArtifactThumbnail(
+    artifactId: string,
+    principal: Principal
+  ): Promise<{ artifact: ArtifactRecord; content: string; contentType: string }> {
+    const artifact = await this.requireArtifactById(artifactId);
+    await this.assertArtifactAction(artifact, principal, "artifact.view");
+
+    if (!artifact.thumbnailObjectKey) {
+      throw new ArtifactNotFoundError();
+    }
+
+    const object = await this.storage.getObject(artifact.thumbnailObjectKey);
+    return {
+      artifact,
+      content: textDecoder.decode(object.body),
+      contentType: contentTypeForArtifact(artifact.type)
+    };
   }
 
   async getArtifactAccess(artifactId: string, principal: Principal): Promise<ArtifactAccessSnapshot> {
@@ -706,10 +730,11 @@ export class ArtifactService {
     versionNumber: number;
     type: ArtifactType;
     content: string;
-  }): Promise<{ contentObjectKey: string; contentSha256: string; contentBytes: number }> {
+  }): Promise<{ contentObjectKey: string; thumbnailObjectKey: string; contentSha256: string; contentBytes: number }> {
     const encodedContent = textEncoder.encode(input.content);
     const contentSha256 = createHash("sha256").update(encodedContent).digest("hex");
     const contentObjectKey = createVersionSourceKey(input);
+    const thumbnailObjectKey = createVersionThumbnailKey(input);
 
     await this.storage.putObject({
       key: contentObjectKey,
@@ -717,17 +742,32 @@ export class ArtifactService {
       contentType: contentTypeForArtifact(input.type)
     });
 
+    try {
+      await this.storage.putObject({
+        key: thumbnailObjectKey,
+        body: textEncoder.encode(createThumbnailContent(input.content)),
+        contentType: contentTypeForArtifact(input.type)
+      });
+    } catch (error) {
+      await this.deleteObjects(contentObjectKey);
+      throw error;
+    }
+
     return {
       contentObjectKey,
+      thumbnailObjectKey,
       contentSha256,
       contentBytes: encodedContent.byteLength
     };
   }
 
-  private async deleteContent(contentObjectKey: string): Promise<void> {
-    await this.storage.deleteObject?.(contentObjectKey).catch((error: unknown) => {
-      console.error("Artifact content cleanup failed", error);
-    });
+  private async deleteObjects(...objectKeys: Array<string | null | undefined>): Promise<void> {
+    for (const objectKey of objectKeys) {
+      if (!objectKey) continue;
+      await this.storage.deleteObject?.(objectKey).catch((error: unknown) => {
+        console.error("Artifact object cleanup failed", { objectKey, error });
+      });
+    }
   }
 
   private async readVerifiedVersionContent(version: ArtifactVersionRecord): Promise<string> {
@@ -751,6 +791,16 @@ export class ArtifactService {
     void promise.catch((error: unknown) => {
       console.error(`Billing ${operation} failed`, error);
     });
+  }
+
+  private withThumbnailUrls(artifacts: ArtifactRecord[]): ArtifactRecord[] {
+    const baseUrl = this.appUrl.replace(/\/+$/, "");
+    return artifacts.map((artifact) => ({
+      ...artifact,
+      thumbnailUrl: artifact.thumbnailObjectKey
+        ? `${baseUrl}/api/artifacts/${encodeURIComponent(artifact.id)}/thumbnail?v=${artifact.updatedAt.getTime()}`
+        : null
+    }));
   }
 
   private async audit(
@@ -780,4 +830,8 @@ export class ArtifactService {
 
 function byteLength(content: string): number {
   return textEncoder.encode(content).byteLength;
+}
+
+function createThumbnailContent(content: string): string {
+  return content.trim().slice(0, THUMBNAIL_PREVIEW_CHARS);
 }

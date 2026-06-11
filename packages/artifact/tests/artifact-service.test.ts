@@ -70,6 +70,9 @@ describe("ArtifactService", () => {
     expect(created.versionNumber).toBe(1);
     expect(created.url).toBe("https://www.agents-artifacts/laxman/default/weekly-report");
     expect(storage.text(created.contentObjectKey)).toBe("# Hello");
+    const artifact = repository.artifacts.get(created.artifactId);
+    expect(artifact?.thumbnailObjectKey).toBeTruthy();
+    expect(storage.text(artifact?.thumbnailObjectKey ?? "")).toBe("# Hello");
     expect(repository.auditEvents).toHaveLength(1);
     expect(repository.auditEvents[0]?.action).toBe("artifact.created");
   });
@@ -263,7 +266,7 @@ describe("ArtifactService", () => {
     ]);
   });
 
-  it("removes newly written source content when version persistence fails", async () => {
+  it("removes newly written source and thumbnail content when version persistence fails", async () => {
     const { repository, storage, service } = createTestHarness();
 
     const created = await service.createArtifact(
@@ -289,7 +292,7 @@ describe("ArtifactService", () => {
       )
     ).rejects.toBeInstanceOf(ArtifactConflictError);
 
-    expect(storage.objects.size).toBe(1);
+    expect(storage.objects.size).toBe(2);
   });
 
   it("treats owner agents as owner principals for workspace-scoped artifacts", async () => {
@@ -734,6 +737,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
       type: input.artifact.type,
       state: "active",
       latestVersionId: input.artifact.latestVersionId,
+      thumbnailObjectKey: input.artifact.thumbnailObjectKey ?? null,
       publicView: input.artifact.publicView,
       publicEdit: input.artifact.publicEdit,
       createdByPrincipalType: input.artifact.createdByPrincipalType,
@@ -758,6 +762,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
     }
 
     artifact.latestVersionId = input.version.id;
+    artifact.thumbnailObjectKey = input.version.thumbnailObjectKey ?? null;
     artifact.updatedAt = new Date();
     this.versions.set(input.version.artifactId, [...(this.versions.get(input.version.artifactId) ?? []), this.toVersion(input.version)]);
   }
@@ -806,6 +811,7 @@ class MemoryArtifactRepository implements ArtifactRepository {
       versionNumber: input.versionNumber,
       parentVersionId: input.parentVersionId ?? null,
       contentObjectKey: input.contentObjectKey,
+      thumbnailObjectKey: input.thumbnailObjectKey ?? null,
       contentSha256: input.contentSha256,
       contentBytes: input.contentBytes,
       changelog: input.changelog ?? null,

@@ -93,7 +93,7 @@ export interface ProjectSummary {
 }
 
 export interface ArtifactOwnerSummary {
-  id: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; projectId: string; projectSlug: string; slug: string; title: string; type: ArtifactType; updatedAt: string;
+  id: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; projectId: string; projectSlug: string; slug: string; title: string; type: ArtifactType; updatedAt: string; thumbnailUrl?: string | null;
 }
 
 export interface ArtifactMeta {

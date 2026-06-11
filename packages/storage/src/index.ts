@@ -52,6 +52,28 @@ export function createVersionSourceKey(input: {
   return `users/${input.ownerUserId}/artifacts/${input.artifactId}/versions/${input.versionNumber}/source-${attemptId}`;
 }
 
+export function createVersionThumbnailKey(input: {
+  ownerUserId: string;
+  artifactId: string;
+  versionNumber: number;
+  attemptId?: string;
+}): string {
+  if (!ID_PATTERN.test(input.ownerUserId)) {
+    throw new Error("createVersionThumbnailKey: ownerUserId must match [a-zA-Z0-9_-]{1,64}");
+  }
+  if (!ID_PATTERN.test(input.artifactId)) {
+    throw new Error("createVersionThumbnailKey: artifactId must match [a-zA-Z0-9_-]{1,64}");
+  }
+  if (!Number.isInteger(input.versionNumber) || input.versionNumber <= 0) {
+    throw new Error("createVersionThumbnailKey: versionNumber must be a positive integer");
+  }
+  const attemptId = input.attemptId ?? randomUUID();
+  if (!ID_PATTERN.test(attemptId)) {
+    throw new Error("createVersionThumbnailKey: attemptId must match [a-zA-Z0-9_-]{1,64}");
+  }
+  return `users/${input.ownerUserId}/artifacts/${input.artifactId}/versions/${input.versionNumber}/thumbnail-${attemptId}`;
+}
+
 export class S3ArtifactStorage implements ArtifactStorage {
   private readonly client: S3Client;
 

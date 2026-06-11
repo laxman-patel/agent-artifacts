@@ -163,6 +163,7 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
           .update(artifacts)
           .set({
             latestVersionId: input.version.id,
+            thumbnailObjectKey: input.version.thumbnailObjectKey ?? null,
             updatedAt: new Date()
           })
           .where(and(...conditions))
@@ -230,6 +231,7 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
         type: artifacts.type,
         state: artifacts.state,
         latestVersionId: artifacts.latestVersionId,
+        thumbnailObjectKey: artifacts.thumbnailObjectKey,
         publicView: artifacts.publicView,
         publicEdit: artifacts.publicEdit,
         createdByPrincipalType: artifacts.createdByPrincipalType,

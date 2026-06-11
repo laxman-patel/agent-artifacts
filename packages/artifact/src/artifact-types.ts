@@ -177,6 +177,8 @@ export interface ArtifactRecord {
   type: ArtifactType;
   state: "active" | "deleted";
   latestVersionId: string | null;
+  thumbnailObjectKey: string | null;
+  thumbnailUrl?: string | null;
   publicView: boolean;
   publicEdit: boolean;
   createdByPrincipalType: Principal["type"];
@@ -192,6 +194,7 @@ export interface ArtifactVersionRecord {
   versionNumber: number;
   parentVersionId: string | null;
   contentObjectKey: string;
+  thumbnailObjectKey: string | null;
   contentSha256: string;
   contentBytes: number;
   changelog: string | null;
@@ -210,6 +213,7 @@ export interface PersistCreateArtifactInput {
     description?: string;
     type: ArtifactType;
     latestVersionId: string;
+    thumbnailObjectKey?: string | null;
     createdByPrincipalType: Principal["type"];
     createdByPrincipalId: string;
     publicView: boolean;
@@ -225,6 +229,7 @@ export interface PersistCreateVersionInput {
     versionNumber: number;
     parentVersionId?: string;
     contentObjectKey: string;
+    thumbnailObjectKey?: string | null;
     contentSha256: string;
     contentBytes: number;
     changelog?: string;

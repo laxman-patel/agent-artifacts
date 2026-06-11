@@ -21,11 +21,13 @@ type Status = "pending" | "loading" | "ready" | "empty" | "error";
 export function ArtifactThumbnail({
   artifactId,
   cacheKey = artifactId,
+  thumbnailUrl,
   type,
   content
 }: {
   artifactId: string;
   cacheKey?: string;
+  thumbnailUrl?: string | null;
   type: string;
   content?: string;
 }) {
@@ -45,6 +47,30 @@ export function ArtifactThumbnail({
   );
 
   useEffect(() => {
+    if (content !== undefined || !thumbnailUrl || fetchedRef.current) return;
+
+    fetchedRef.current = true;
+    setStatus("loading");
+
+    void fetch(thumbnailUrl, { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.text();
+      })
+      .then((text) => {
+        const trimmed = text.trim();
+        if (trimmed.length > 0) thumbnailContentCache.set(cacheKey, trimmed);
+        setLoaded(trimmed);
+        setStatus(trimmed.length === 0 ? "empty" : "ready");
+      })
+      .catch((error) => {
+        console.error("Artifact thumbnail failed to preload", { artifactId, error });
+        setStatus("error");
+      });
+  }, [artifactId, cacheKey, content, thumbnailUrl]);
+
+  useEffect(() => {
+    if (thumbnailUrl) return;
     if (content !== undefined || fetchedRef.current || !node) return;
 
     const observer = new IntersectionObserver(
@@ -75,7 +101,7 @@ export function ArtifactThumbnail({
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [artifactId, cacheKey, content, node]);
+  }, [artifactId, cacheKey, content, node, thumbnailUrl]);
 
   const kind = artifactKind(type);
   // Fall back to an approximate tile size for the first paint so a preview is

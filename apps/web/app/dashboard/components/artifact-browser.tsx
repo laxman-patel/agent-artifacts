@@ -46,6 +46,7 @@ function ArtifactTile({
           <ArtifactThumbnail
             artifactId={artifact.id}
             cacheKey={`${artifact.id}:${artifact.updatedAt}`}
+            thumbnailUrl={artifact.thumbnailUrl}
             type={artifact.type}
             content={previewContent}
           />

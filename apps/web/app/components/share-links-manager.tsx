@@ -18,6 +18,20 @@ interface Props {
   initialLinks: ShareLink[];
 }
 
+function stableDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(iso));
+}
+
+function stableDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC"
+  }).format(new Date(iso));
+}
+
 export function ShareLinksManager({ artifactId, initialLinks }: Props) {
   const [links, setLinks] = useState(initialLinks.filter((l) => !l.revokedAt));
   const [role, setRole] = useState<"viewer" | "editor">("viewer");
@@ -103,9 +117,9 @@ export function ShareLinksManager({ artifactId, initialLinks }: Props) {
           {links.map((link) => (
             <li className="share-links-item" key={link.id}>
               <span className="small">
-                <strong>{link.role}</strong> · created {new Date(link.createdAt).toLocaleDateString()}
-                {link.expiresAt ? ` · expires ${new Date(link.expiresAt).toLocaleString()}` : " · no expiry"}
-                {link.lastUsedAt ? ` · last used ${new Date(link.lastUsedAt).toLocaleDateString()}` : ""}
+                <strong>{link.role}</strong> · created {stableDate(link.createdAt)}
+                {link.expiresAt ? ` · expires ${stableDateTime(link.expiresAt)}` : " · no expiry"}
+                {link.lastUsedAt ? ` · last used ${stableDate(link.lastUsedAt)}` : ""}
               </span>
               <button
                 className="ghost-button small"

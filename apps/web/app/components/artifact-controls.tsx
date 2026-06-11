@@ -58,11 +58,35 @@ function ago(iso: string): string {
   if (h < 24) return `${h}h ago`;
   const d = Math.round(h / 24);
   if (d < 7) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return stableDate(iso);
 }
 
 function compactDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return stableDateTime(iso);
+}
+
+function stableDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(iso));
+}
+
+function stableDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC"
+  }).format(new Date(iso));
+}
+
+function RelativeTime({ iso }: { iso: string }) {
+  const [label, setLabel] = useState(() => stableDate(iso));
+
+  useEffect(() => {
+    setLabel(ago(iso));
+  }, [iso]);
+
+  return <>{label}</>;
 }
 
 function compactBytes(bytes: number): string {
@@ -482,10 +506,10 @@ export function ArtifactControls({
                         <span className="capitalize">{link.role}</span>
                         <span className="ml-1 text-foreground/38">
                           {link.expiresAt ? `expires ${compactDate(link.expiresAt)}` : "no expiry"}
-                          {link.lastUsedAt ? ` · used ${ago(link.lastUsedAt)}` : ""}
+                          {link.lastUsedAt ? <> · used <RelativeTime iso={link.lastUsedAt} /></> : ""}
                         </span>
                       </span>
-                      <span className="shrink-0 font-mono text-[10px] text-foreground/35">made {ago(link.createdAt)}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-foreground/35">made <RelativeTime iso={link.createdAt} /></span>
                       <button
                         type="button"
                         onClick={() => void revokeShareLink(link.id)}
@@ -560,7 +584,7 @@ export function ArtifactControls({
         trailing={
           latest ? (
             <span className="shrink-0 font-mono text-[10px] text-foreground/40">
-              v{latest.versionNumber} · {ago(latest.createdAt)}
+              v{latest.versionNumber} · <RelativeTime iso={latest.createdAt} />
             </span>
           ) : undefined
         }
@@ -599,7 +623,7 @@ export function ArtifactControls({
                         {version.changelog ?? (index === 0 ? "Latest version" : "")}
                         {` · ${compactBytes(version.contentBytes)} · ${version.contentSha256.slice(0, 8)}`}
                       </span>
-                      <span className="shrink-0 font-mono text-[10px] text-foreground/35">{ago(version.createdAt)}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-foreground/35"><RelativeTime iso={version.createdAt} /></span>
                     </Link>
                     {canRestore ? (
                       <button

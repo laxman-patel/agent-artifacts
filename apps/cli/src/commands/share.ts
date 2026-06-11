@@ -19,13 +19,21 @@ export const shareCreateCommand: CommandSpec = {
   description: "Create a share link",
   options: [
     ARTIFACT_ID_OPTION,
-    { flag: "--json <payload>", description: 'JSON e.g. {"role":"viewer"}', required: true },
+    { flag: "--role <role>", description: "Share role: viewer or editor" },
+    { flag: "--expires-at <iso>", description: "Optional ISO timestamp when the link expires" },
+    { flag: "--json <payload>", description: 'JSON e.g. {"role":"viewer","expiresAt":"2026-06-30T12:00:00.000Z"}' },
     { flag: "--json-file <path>", description: "Read JSON from file (use - for stdin)" }
   ],
   bodySchema: shareLinkBodySchema,
+  jsonBodyOptional: true,
+  prepareBody: (body, options) => ({
+    ...(typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {}),
+    ...(typeof options.role === "string" ? { role: options.role } : {}),
+    ...(typeof options.expiresAt === "string" ? { expiresAt: options.expiresAt } : {})
+  }),
   http: { method: "POST", pathTemplate: "/api/artifacts/{artifactId}/share-links" },
   mutates: true,
-  example: 'artifacts share create --artifact-id ARTIFACT_ID --json \'{"role":"viewer"}\'',
+  example: "artifacts share create --artifact-id ARTIFACT_ID --role viewer --expires-at 2026-06-30T12:00:00.000Z",
   async run({ client, options, body }) {
     const artifactId = requireFlag(options, ARTIFACT_ID_FLAG);
     const data = await client.post(

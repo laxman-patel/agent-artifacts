@@ -45,6 +45,20 @@ describe("buildDryRunPreview", () => {
     expect(preview.http).toEqual({ method: "POST", path: "/api/artifacts/art_123/share-links" });
   });
 
+  it("builds share create body from direct flags", () => {
+    const body = shareCreateCommand.bodySchema?.parse(
+      shareCreateCommand.prepareBody?.(undefined, {
+        role: "editor",
+        expiresAt: "2026-06-30T12:00:00.000Z"
+      })
+    );
+
+    expect(body).toEqual({
+      role: "editor",
+      expiresAt: "2026-06-30T12:00:00.000Z"
+    });
+  });
+
   it("interpolates share revoke path", () => {
     const preview = buildDryRunPreview(shareRevokeCommand, {}, { shareLinkId: "share_123" });
     expect(preview.http).toEqual({ method: "POST", path: "/api/share-links/share_123/revoke" });

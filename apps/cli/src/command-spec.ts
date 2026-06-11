@@ -15,6 +15,7 @@ export interface CommandSpec {
     parse?: (value: string) => unknown;
   }[];
   bodySchema?: z.ZodTypeAny;
+  jsonBodyOptional?: boolean;
   prepareBody?: (body: unknown, options: Record<string, unknown>) => unknown;
   http?: { method: HttpMethod; pathTemplate: string };
   mutates: boolean;

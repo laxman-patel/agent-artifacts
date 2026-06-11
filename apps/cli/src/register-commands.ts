@@ -58,7 +58,8 @@ export function registerSpec(program: Command, spec: CommandSpec): void {
     if (spec.mutates && spec.http && !config.dryRun && !config.token) {
       throw new CliError("auth", "Not signed in. Run `artifacts login`.", 4);
     }
-    const rawBody = spec.bodySchema
+    const hasJsonInput = typeof opts.json === "string" || typeof opts.jsonFile === "string";
+    const rawBody = spec.bodySchema && (!spec.jsonBodyOptional || hasJsonInput)
       ? parseJsonInput(opts.json as string | undefined, opts.jsonFile as string | undefined, {
           example: spec.example
         })

@@ -7,6 +7,7 @@ import { useDismiss } from "../../lib/use-dismiss";
 import { ArtifactControls } from "./artifact-controls";
 
 type ArtifactType = "html" | "md" | "jsx";
+type ArtifactControlPanel = "main" | "settings" | "audit";
 
 const TYPE_LABEL: Record<ArtifactType, string> = {
   html: "HTML",
@@ -34,8 +35,12 @@ export function ArtifactControlMenu({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPublic, setIsPublic] = useState(publicView);
+  const [panel, setPanel] = useState<ArtifactControlPanel>("main");
   const ref = useRef<HTMLDivElement>(null);
-  useDismiss(ref, open, () => setOpen(false));
+  useDismiss(ref, open, () => {
+    setOpen(false);
+    setPanel("main");
+  });
 
   const versionLabel = viewedVersion ? `v${viewedVersion}` : "latest";
   const visibilityLabel = isPublic ? "Public" : "Restricted";
@@ -55,8 +60,14 @@ export function ArtifactControlMenu({
         <div className="flex max-w-full items-center p-0.5 pr-1">
           <button
             type="button"
-            onClick={() => router.back()}
-            aria-label="Go back"
+            onClick={() => {
+              if (open && panel !== "main") {
+                setPanel("main");
+                return;
+              }
+              router.back();
+            }}
+            aria-label={open && panel !== "main" ? "Back to artifact controls" : "Go back"}
             className="grid size-7 shrink-0 place-items-center rounded-[0.3rem] text-foreground/55 transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
           >
             <ArrowLeft className="size-3.5" />
@@ -95,7 +106,9 @@ export function ArtifactControlMenu({
               viewedVersion={viewedVersion}
               workspaceSlug={workspaceSlug}
               publicView={publicView}
+              panel={panel}
               onNavigate={() => setOpen(false)}
+              onPanelChange={setPanel}
               onPublicViewChange={setIsPublic}
             />
           </div>

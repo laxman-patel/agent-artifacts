@@ -1,7 +1,13 @@
-import { and, desc, eq, gte, lt } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import type { BillingService } from "@agent-artifacts/billing";
 import type { Database } from "@agent-artifacts/db";
-import { auditEvents } from "@agent-artifacts/db";
+import { auditEvents, userProfiles, users } from "@agent-artifacts/db";
+
+type AuditEventRecord = typeof auditEvents.$inferSelect;
+export type AuditEventWithActor = AuditEventRecord & {
+  actorDisplayName: string | null;
+  actorUsername: string | null;
+};
 
 export class AuditService {
   constructor(
@@ -15,7 +21,7 @@ export class AuditService {
     artifactId?: string;
     retentionOwnerUserId?: string;
     limit?: number;
-  }): Promise<(typeof auditEvents.$inferSelect)[]> {
+  }): Promise<AuditEventWithActor[]> {
     const limit = Math.min(Math.max(input.limit ?? 50, 1), 100);
     const conditions = [];
 
@@ -39,12 +45,14 @@ export class AuditService {
       return [];
     }
 
-    return this.db
+    const events = await this.db
       .select()
       .from(auditEvents)
       .where(and(...conditions))
       .orderBy(desc(auditEvents.createdAt))
       .limit(limit);
+
+    return this.withActorProfiles(events);
   }
 
   async pruneExpiredAuditEventsForOwners(ownerUserIds: string[]): Promise<number> {
@@ -72,5 +80,34 @@ export class AuditService {
       return undefined;
     }
     return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  }
+
+  private async withActorProfiles(events: AuditEventRecord[]): Promise<AuditEventWithActor[]> {
+    const userIds = [...new Set(events.filter((event) => event.actorPrincipalType === "user").map((event) => event.actorPrincipalId))];
+    if (userIds.length === 0) {
+      return events.map((event) => ({ ...event, actorDisplayName: null, actorUsername: null }));
+    }
+
+    const profiles = await this.db
+      .select({
+        userId: users.id,
+        name: users.name,
+        displayName: userProfiles.displayName,
+        username: userProfiles.username
+      })
+      .from(users)
+      .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
+      .where(inArray(users.id, userIds));
+
+    const byUserId = new Map(profiles.map((profile) => [profile.userId, profile]));
+
+    return events.map((event) => {
+      const profile = byUserId.get(event.actorPrincipalId);
+      return {
+        ...event,
+        actorDisplayName: profile?.displayName ?? profile?.name ?? null,
+        actorUsername: profile?.username ?? null
+      };
+    });
   }
 }

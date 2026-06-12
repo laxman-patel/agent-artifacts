@@ -22,6 +22,21 @@ type McpWorkspaceService = {
   listWorkspacesForUser(principal: Principal): Promise<unknown[]>;
 };
 
+type McpAuditEvent = {
+  id: string;
+  workspaceId?: string | null;
+  artifactId: string | null;
+  actorPrincipalType: string;
+  actorPrincipalId: string;
+  actorDisplayName?: string | null;
+  actorUsername?: string | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+};
+
 export interface McpHandlerContext {
   artifactService: ArtifactService;
   projectService: ProjectService;
@@ -196,22 +211,22 @@ export const mcpTools = {
           throw new ArtifactForbiddenError("Admin permission required.");
         }
         return {
-          events: await auditService.listAuditEvents({
+          events: (await auditService.listAuditEvents({
             artifactId: input.artifactId,
             retentionOwnerUserId: artifact.ownerUserId,
             limit: input.limit
-          })
+          })) as McpAuditEvent[]
         };
       }
       if (ctx.principal.type !== "user") {
         throw new ArtifactForbiddenError("Only signed-in users can list account audit events.");
       }
       return {
-        events: await auditService.listAuditEvents({
+        events: (await auditService.listAuditEvents({
           ownerUserId: ctx.principal.id,
           retentionOwnerUserId: ctx.principal.id,
           limit: input.limit
-        })
+        })) as McpAuditEvent[]
       };
     }
   }),

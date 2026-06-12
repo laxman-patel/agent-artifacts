@@ -11,6 +11,7 @@ import "./styles.css";
 import "./tailwind.css";
 
 const defaultSocialMetadata = genericOpenGraphMetadata("/");
+const shouldReportWebVitals = Boolean(process.env.NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN);
 
 export const metadata: Metadata = {
   metadataBase: new URL(publicAppUrl()),
@@ -30,7 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="site-body">
-        <BetterStackWebVitals />
+        {shouldReportWebVitals ? <BetterStackWebVitals /> : null}
         <div className="site-shell">
           <SiteHeader />
           {children}

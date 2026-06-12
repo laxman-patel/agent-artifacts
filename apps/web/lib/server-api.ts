@@ -110,6 +110,32 @@ export function cookieHeader(cookieStore: { getAll(): { name: string; value: str
   return cookieStore.getAll().map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
 }
 
+function isBetterStackServerConfigured(): boolean {
+  return Boolean(process.env.BETTER_STACK_SOURCE_TOKEN || process.env.BETTER_STACK_WEB_SOURCE_TOKEN);
+}
+
+async function logInternalApiWarning(event: string, fields: Record<string, unknown>): Promise<void> {
+  if (!isBetterStackServerConfigured()) {
+    console.warn(event, fields);
+    return;
+  }
+
+  const log = new Logger();
+  log.warn(event, fields);
+  await log.flush();
+}
+
+async function logInternalApiError(event: string, fields: Record<string, unknown>): Promise<void> {
+  if (!isBetterStackServerConfigured()) {
+    console.error(event, fields);
+    return;
+  }
+
+  const log = new Logger();
+  log.error(event, fields);
+  await log.flush();
+}
+
 async function apiCall<T>(path: string, opts: ApiCallOptions = {}): Promise<ApiResult<T>> {
   const incoming = await headers();
   const requestId = incoming.get("x-request-id") ?? randomUUID();
@@ -128,29 +154,25 @@ async function apiCall<T>(path: string, opts: ApiCallOptions = {}): Promise<ApiR
     });
 
     if (!response.ok) {
-      const log = new Logger();
       const errBody = await response.json().catch(() => ({}));
       const message = (errBody as { message?: string }).message ?? response.statusText;
-      log.warn("internal_api_error", {
+      await logInternalApiWarning("internal_api_error", {
         path,
         requestId,
         status: response.status,
         message
       });
-      await log.flush();
       return { ok: false, status: response.status, message };
     }
 
     const body = opts.parseOk ? await opts.parseOk(response) : opts.accept === "text" ? await response.text() : await response.json();
     return { ok: true, status: response.status, body: body as T };
   } catch (error) {
-    const log = new Logger();
-    log.error("internal_api_fetch_failed", {
+    await logInternalApiError("internal_api_fetch_failed", {
       path,
       requestId,
       message: error instanceof Error ? error.message : String(error)
     });
-    await log.flush();
     throw error;
   }
 }

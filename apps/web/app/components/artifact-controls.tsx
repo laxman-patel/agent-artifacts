@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   Activity,
+  ArrowLeft,
   ArrowUpRight,
   Check,
   ChevronDown,
@@ -31,6 +32,15 @@ type Version = {
 };
 type Access = { publicView: boolean; publicEdit: boolean; viewerEmails: string[] };
 type ShareLink = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
+type AuditEvent = {
+  id: string;
+  actorPrincipalType: string;
+  actorPrincipalId: string;
+  action: string;
+  targetType: string;
+  createdAt: string;
+};
+type Panel = "main" | "settings" | "audit";
 
 // DESIGN.md reserves the Artifact Rose hue (≈15) as the review/risk accent,
 // used as an alert only when state requires it. Delete qualifies: a readable
@@ -42,8 +52,8 @@ const DANGER_SOLID = "oklch(0.55 0.15 15)";
 // icon · label · trailing detail, identical height and hover treatment.
 const ROW =
   "flex w-full items-center gap-2.5 rounded-[0.3rem] px-2 py-1.5 text-[13px] text-foreground/72 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/95";
-const SELECT =
-  "w-full appearance-none rounded-[0.3rem] border border-[var(--wb-line-strong)] bg-[var(--wb-canvas)] py-1.5 pr-6 text-[12px] text-foreground/85 outline-none transition-colors hover:border-foreground/25 disabled:opacity-50";
+const DROPDOWN_BUTTON =
+  "inline-flex w-full items-center gap-2 rounded-[0.3rem] border border-[var(--wb-line-strong)] bg-[var(--wb-canvas)] px-2.5 py-1.5 text-left text-[12px] text-foreground/85 outline-none transition-colors hover:border-foreground/25 disabled:cursor-not-allowed disabled:opacity-50";
 
 // Compact, glance-able age. Falls back to a date past a week so the label
 // never grows unbounded inside the narrow panel.
@@ -107,18 +117,6 @@ function Divider() {
   return <div className="my-1.5 h-px bg-[var(--wb-line)]" />;
 }
 
-// Internal navigation that leaves the render surface; the arrow signals
-// "this takes you somewhere" without claiming a new tab.
-function MenuLink({ href, icon: Icon, label, onClick }: { href: string; icon: LucideIcon; label: string; onClick: () => void }) {
-  return (
-    <Link href={href} onClick={onClick} className={ROW}>
-      <Icon className="size-3.5 shrink-0 text-foreground/45" />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      <ArrowUpRight className="size-3.5 shrink-0 text-foreground/30" />
-    </Link>
-  );
-}
-
 function Disclosure({
   icon: Icon,
   label,
@@ -147,15 +145,67 @@ function Disclosure({
   );
 }
 
-// Wraps a native select with an optional leading icon and a quiet chevron so
-// form controls share one look. The select itself stays native for free
-// keyboard and mobile behavior.
-function SelectShell({ icon: Icon, className = "", children }: { icon?: LucideIcon; className?: string; children: ReactNode }) {
+function DropdownSelect<TValue extends string>({
+  ariaLabel,
+  className = "",
+  disabled,
+  icon: Icon,
+  onChange,
+  options,
+  value
+}: {
+  ariaLabel: string;
+  className?: string;
+  disabled?: boolean;
+  icon?: LucideIcon;
+  onChange: (value: TValue) => void;
+  options: Array<{ value: TValue; label: string; detail?: string }>;
+  value: TValue;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
   return (
-    <span className={`relative inline-flex items-center ${className}`}>
-      {Icon ? <Icon className="pointer-events-none absolute left-2.5 size-3.5 text-foreground/50" /> : null}
-      {children}
-      <ChevronDown className="pointer-events-none absolute right-2 size-3 text-foreground/40" />
+    <span className={`relative inline-block ${className}`}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={ariaLabel}
+        disabled={disabled}
+        onClick={() => setOpen((value) => !value)}
+        className={DROPDOWN_BUTTON}
+      >
+        {Icon ? <Icon className="size-3.5 shrink-0 text-foreground/50" /> : null}
+        <span className="min-w-0 flex-1 truncate">{selected?.label ?? value}</span>
+        <ChevronDown className="size-3 shrink-0 text-foreground/40" />
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute left-0 top-[calc(100%+0.25rem)] z-20 w-max min-w-full rounded-[0.35rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile-raised)] p-1 shadow-[0_14px_32px_oklch(0.08_0_0/0.48)]"
+        >
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="menuitemradio"
+              aria-checked={option.value === value}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+              className="flex w-full min-w-36 items-center gap-2 rounded-[0.25rem] px-2 py-1.5 text-left text-[12px] text-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/92"
+            >
+              <span className="min-w-0 flex-1 truncate">
+                {option.label}
+                {option.detail ? <span className="ml-1 text-foreground/38">{option.detail}</span> : null}
+              </span>
+              {option.value === value ? <Check className="size-3.5 text-[var(--wb-accent-orange)]" /> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </span>
   );
 }
@@ -200,6 +250,9 @@ export function ArtifactControls({
 
   const [linksOpen, setLinksOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [panel, setPanel] = useState<Panel>("main");
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[] | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -236,6 +289,21 @@ export function ArtifactControls({
       })
       .catch(() => setManager(false));
   }, [artifactId, onPublicViewChange]);
+
+  useEffect(() => {
+    if (panel !== "audit" || auditEvents !== null || auditError) return;
+
+    void fetch(`/api/audit-events?artifactId=${encodeURIComponent(artifactId)}&limit=50`, { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setAuditError(`Audit log unavailable (HTTP ${response.status})`);
+          return;
+        }
+        const body = (await response.json()) as { events?: AuditEvent[] };
+        setAuditEvents(body.events ?? []);
+      })
+      .catch(() => setAuditError("Audit log unavailable"));
+  }, [artifactId, auditError, auditEvents, panel]);
 
   async function patchAccess(patch: Partial<Access>) {
     if (!access) return;
@@ -414,44 +482,42 @@ export function ArtifactControls({
   const latest = versions?.[0];
 
   return (
-    <div>
+    <div className="overflow-hidden">
+      <div className={panel === "main" ? "wb-panel-slide" : "hidden"}>
       <MicroLabel>Share</MicroLabel>
 
       {manager === null || (manager && !access) ? (
         <div className="wb-skeleton h-[34px] rounded-[0.3rem]" />
       ) : manager && access ? (
         <div className="flex items-center gap-1.5">
-          <SelectShell icon={AccessIcon} className="min-w-0 flex-1">
-            <select
-              aria-label="General access"
-              disabled={saving}
-              value={currentPublicView ? "public" : "restricted"}
-              onChange={(event) => {
-                const next = event.target.value as "public" | "restricted";
-                void patchAccess(next === "public" ? { publicView: true } : { publicView: false, publicEdit: false });
-              }}
-              className={`${SELECT} pl-8`}
-            >
-              <option value="public">Anyone with the link</option>
-              <option value="restricted">Restricted</option>
-            </select>
-          </SelectShell>
+          <DropdownSelect
+            ariaLabel="General access"
+            className="min-w-0 flex-1"
+            disabled={saving}
+            icon={AccessIcon}
+            value={currentPublicView ? "public" : "restricted"}
+            onChange={(next: "public" | "restricted") => {
+              void patchAccess(next === "public" ? { publicView: true } : { publicView: false, publicEdit: false });
+            }}
+            options={[
+              { value: "public", label: "Anyone with the link" },
+              { value: "restricted", label: "Restricted" }
+            ]}
+          />
           {currentPublicView ? (
-            <SelectShell className="w-[6.5rem] shrink-0">
-              <select
-                aria-label="Link role"
-                disabled={saving}
-                value={currentRole}
-                onChange={(event) => {
-                  const role = event.target.value as "viewer" | "editor";
-                  void patchAccess({ publicView: true, publicEdit: role === "editor" });
-                }}
-                className={`${SELECT} pl-2.5`}
-              >
-                <option value="viewer">can view</option>
-                <option value="editor">signed-in edit</option>
-              </select>
-            </SelectShell>
+            <DropdownSelect
+              ariaLabel="Link role"
+              className="w-[7rem] shrink-0"
+              disabled={saving}
+              value={currentRole}
+              onChange={(role: "viewer" | "editor") => {
+                void patchAccess({ publicView: true, publicEdit: role === "editor" });
+              }}
+              options={[
+                { value: "viewer", label: "can view" },
+                { value: "editor", label: "can edit" }
+              ]}
+            />
           ) : null}
         </div>
       ) : (
@@ -536,20 +602,19 @@ export function ArtifactControls({
                     </div>
                   ) : null}
                   <div className="flex items-center gap-1.5 px-1 py-1">
-                    <SelectShell className="w-24 shrink-0">
-                      <select
-                        aria-label="New link role"
-                        value={shareRole}
-                        onChange={(event) => setShareRole(event.target.value as "viewer" | "editor")}
-                        className={`${SELECT} pl-2.5`}
-                      >
-                        <option value="viewer">Viewer</option>
-                        <option value="editor">Editor</option>
-                      </select>
-                    </SelectShell>
+                    <DropdownSelect
+                      ariaLabel="New link role"
+                      className="w-24 shrink-0"
+                      value={shareRole}
+                      onChange={setShareRole}
+                      options={[
+                        { value: "viewer", label: "Viewer" },
+                        { value: "editor", label: "Editor" }
+                      ]}
+                    />
                     <input
                       aria-label="Share link expiry"
-                      className={`${SELECT} min-w-0 flex-1 px-2.5`}
+                      className="min-w-0 flex-1 rounded-[0.3rem] border border-[var(--wb-line-strong)] bg-[var(--wb-canvas)] px-2.5 py-1.5 text-[12px] text-foreground/85 outline-none transition-colors hover:border-foreground/25"
                       onChange={(event) => setShareExpiresAt(event.target.value)}
                       type="datetime-local"
                       value={shareExpiresAt}
@@ -654,8 +719,16 @@ export function ArtifactControls({
 
       {manager ? (
         <>
-          <MenuLink href={`${base}/audit`} icon={Activity} label="Audit log" onClick={onNavigate} />
-          <MenuLink href={`${base}/settings`} icon={Settings} label="Artifact settings" onClick={onNavigate} />
+          <button type="button" onClick={() => setPanel("audit")} className={ROW}>
+            <Activity className="size-3.5 shrink-0 text-foreground/45" />
+            <span className="min-w-0 flex-1 truncate text-left">Audit log</span>
+            <ArrowUpRight className="size-3.5 shrink-0 text-foreground/30" />
+          </button>
+          <button type="button" onClick={() => setPanel("settings")} className={ROW}>
+            <Settings className="size-3.5 shrink-0 text-foreground/45" />
+            <span className="min-w-0 flex-1 truncate text-left">Artifact settings</span>
+            <ArrowUpRight className="size-3.5 shrink-0 text-foreground/30" />
+          </button>
 
           <Divider />
 
@@ -708,6 +781,78 @@ export function ArtifactControls({
           )}
         </>
       ) : null}
+        </div>
+
+        <div className={panel === "settings" ? "wb-panel-slide" : "hidden"}>
+          <button type="button" onClick={() => setPanel("main")} className={ROW}>
+            <ArrowLeft className="size-3.5 shrink-0 text-foreground/45" />
+            <span className="min-w-0 flex-1 truncate text-left">Back to artifact controls</span>
+          </button>
+          <Divider />
+          <MicroLabel>Artifact settings</MicroLabel>
+          <div className="rounded-[0.3rem] bg-foreground/[0.03] p-2">
+            <dl className="space-y-2 text-[12px]">
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-foreground/42">Visibility</dt>
+                <dd className="text-right text-foreground/78">
+                  {currentPublicView ? "Anyone with the link" : "Restricted"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-foreground/42">Link role</dt>
+                <dd className="text-right text-foreground/78">{currentPublicView ? currentRole : "None"}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-foreground/42">Share links</dt>
+                <dd className="text-right text-foreground/78">{shareLinks?.length ?? 0} active</dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-[11px] leading-4 text-foreground/40">
+              Change access, share links, versions, and deletion from this control box without leaving the artifact.
+            </p>
+          </div>
+          <button type="button" onClick={() => setConfirmingDelete(true)} className={`${ROW} mt-2`} style={{ color: DANGER }}>
+            <Trash2 className="size-3.5 shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-left">Prepare delete confirmation</span>
+          </button>
+        </div>
+
+        <div className={panel === "audit" ? "wb-panel-slide" : "hidden"}>
+          <button type="button" onClick={() => setPanel("main")} className={ROW}>
+            <ArrowLeft className="size-3.5 shrink-0 text-foreground/45" />
+            <span className="min-w-0 flex-1 truncate text-left">Back to artifact controls</span>
+          </button>
+          <Divider />
+          <MicroLabel>Audit log</MicroLabel>
+          <div className="wb-scroll max-h-64 overflow-y-auto rounded-[0.3rem] bg-foreground/[0.03] p-1">
+            {auditError ? (
+              <p className="px-1.5 py-1 text-[12px]" style={{ color: DANGER }}>{auditError}</p>
+            ) : auditEvents === null ? (
+              <div className="space-y-1">
+                <div className="wb-skeleton h-7 rounded-[0.25rem]" />
+                <div className="wb-skeleton h-7 rounded-[0.25rem]" />
+              </div>
+            ) : auditEvents.length === 0 ? (
+              <p className="px-1.5 py-1 text-[12px] text-foreground/40">No audit events for this artifact yet.</p>
+            ) : (
+              <ol className="space-y-1">
+                {auditEvents.map((event) => (
+                  <li key={event.id} className="rounded-[0.25rem] px-1.5 py-1.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="truncate text-[12px] font-medium text-foreground/78">{event.action}</strong>
+                      <span className="shrink-0 font-mono text-[10px] text-foreground/35">
+                        <RelativeTime iso={event.createdAt} />
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate font-mono text-[10px] text-foreground/35">
+                      {event.actorPrincipalType}:{event.actorPrincipalId} · {event.targetType}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </div>
     </div>
   );
 }

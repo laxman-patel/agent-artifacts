@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { readSessionCookie } from "@agent-artifacts/shared";
 import { cookies } from "next/headers";
-import { artifactPath, cookieHeader, fetchArtifactContent, fetchArtifactPermissions, loadArtifactGate } from "../../../../lib/server-api";
+import { artifactPath, cookieHeader, fetchArtifactContent, loadArtifactGate } from "../../../../lib/server-api";
 import {
   GENERIC_OG_DESCRIPTION,
   genericOpenGraphMetadata,
@@ -13,7 +12,6 @@ import { MarkdownViewer } from "../../../components/markdown-viewer";
 import { JsxViewer } from "../../../components/jsx-viewer";
 import { RestrictedArtifactView } from "../../../components/restricted-artifact-view";
 import { ArtifactControlMenu } from "../../../components/artifact-control-menu";
-import { ArtifactPublishForm } from "../../../components/artifact-publish-form";
 import "../../../workbench.css";
 
 type ArtifactPageParams = { username: string; projectSlug: string; slug: string };
@@ -76,7 +74,6 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
   const searchParams = await props.searchParams;
   const cookieStore = await cookies();
   const header = cookieHeader(cookieStore);
-  const hasSession = Boolean(readSessionCookie(cookieStore));
   const path = artifactPath({
     ownerUsername: params.username,
     projectSlug: params.projectSlug,
@@ -94,10 +91,7 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
   const parsedVersion = searchParams.version ? Number.parseInt(searchParams.version, 10) : undefined;
   const viewedVersion = typeof parsedVersion === "number" && Number.isFinite(parsedVersion) ? parsedVersion : null;
 
-  const [contentResult, permissionsResult] = await Promise.all([
-    fetchArtifactContent(meta.id, header, viewedVersion ?? undefined),
-    hasSession ? fetchArtifactPermissions(meta.id, header) : Promise.resolve(null)
-  ]);
+  const contentResult = await fetchArtifactContent(meta.id, header, viewedVersion ?? undefined);
 
   if (!contentResult.ok) {
     return (
@@ -111,7 +105,6 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
 
   const { content } = contentResult.body;
   const base = artifactPath(meta);
-  const canPublishNewVersion = viewedVersion === null && permissionsResult?.ok === true && permissionsResult.body.canUpdate;
   return (
     <main className="wb-stage relative flex h-dvh w-full flex-col">
       <ArtifactControlMenu
@@ -123,16 +116,6 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
         workspaceSlug={meta.workspaceSlug}
         publicView={meta.publicView}
       />
-
-      {canPublishNewVersion ? (
-        <ArtifactPublishForm
-          artifactId={meta.id}
-          artifactType={meta.type}
-          base={base}
-          initialContent={content}
-          expectedLatestVersion={contentResult.body.versionNumber}
-        />
-      ) : null}
 
       <div className="wb-stage-body">
         {meta.type === "html" && (

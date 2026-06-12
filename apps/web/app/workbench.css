@@ -275,11 +275,26 @@
 [data-open="true"] > .wb-control-chevron {
   transform: rotate(180deg);
 }
+.wb-panel-slide {
+  animation: wb-panel-slide 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes wb-panel-slide {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .wb-control-panel,
-  .wb-control-chevron {
+  .wb-control-chevron,
+  .wb-panel-slide {
     transition: none;
+    animation: none;
   }
   .wb-skeleton::after {
     animation: none;

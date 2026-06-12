@@ -54,6 +54,7 @@ function ArtifactTile({
       href={artifactPath(artifact)}
       style={{ "--artifact-accent": kind.accent } as CSSProperties}
       className="artifact-card group flex flex-col rounded-[11px] focus-visible:outline-none"
+      suppressHydrationWarning
     >
       <div className="rounded-[11px] border border-border p-1 transition-colors group-focus-visible:border-foreground/45">
         <div className="artifact-preview relative aspect-[4/3] overflow-hidden rounded-md border">
@@ -71,10 +72,13 @@ function ArtifactTile({
         </div>
       </div>
       <div className="mt-2.5 min-w-0 px-1">
-        <p className="truncate text-[13px] font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground">
+        <p
+          className="truncate text-[13px] font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground"
+          suppressHydrationWarning
+        >
           {artifact.title}
         </p>
-        <p className="mt-1 truncate font-mono text-[11px] text-foreground/40">
+        <p className="mt-1 truncate font-mono text-[11px] text-foreground/40" suppressHydrationWarning>
           {meta} · <RelativeTime iso={artifact.updatedAt} />
         </p>
       </div>
@@ -107,7 +111,10 @@ export function ArtifactBrowser({
     <div className="mx-auto w-full max-w-[1600px] px-6 pb-24 pt-16 sm:px-10 lg:pt-12">
       <header className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--wb-line)] pb-6">
         <div className="min-w-0">
-          <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
+          <h1
+            className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95"
+            suppressHydrationWarning
+          >
             {title}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] text-foreground/45">
@@ -124,6 +131,7 @@ export function ArtifactBrowser({
           <Link
             href={createHref}
             className="inline-flex h-8 shrink-0 items-center gap-2 rounded-none border border-foreground/30 bg-[oklch(0.96_0_0)] px-3 font-pixel text-[13px] font-normal uppercase leading-none tracking-[-0.035em] text-primary-foreground shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.42),0_1px_0_oklch(1_0_0_/_0.18)] transition-colors hover:bg-[oklch(0.92_0_0)]"
+            suppressHydrationWarning
           >
             <span>Create artifact</span>
             <Plus className="size-4 text-[var(--wb-accent-orange)]" strokeWidth={2} />
@@ -139,7 +147,7 @@ export function ArtifactBrowser({
       ) : (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-5 gap-y-7">
           {artifacts.map((artifact) => (
-            <li key={artifact.id}>
+            <li key={artifact.id} suppressHydrationWarning>
               <ArtifactTile
                 artifact={artifact}
                 showProject={scope === "workspace"}

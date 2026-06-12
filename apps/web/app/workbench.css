@@ -289,10 +289,49 @@
   }
 }
 
+/* ── Centered modal (create project, etc.) ──────────────────────────── */
+/* Scrim and card are conditionally mounted, so @starting-style supplies
+ * the first-frame values that make the entrance run on mount. */
+.wb-modal-scrim {
+  opacity: 1;
+  transition: opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@starting-style {
+  .wb-modal-scrim {
+    opacity: 0;
+  }
+}
+.wb-modal-card {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@starting-style {
+  .wb-modal-card {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+.wb-modal-pop {
+  transform-origin: top left;
+  animation: wb-modal-pop 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes wb-modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wb-control-panel,
   .wb-control-chevron,
-  .wb-panel-slide {
+  .wb-panel-slide,
+  .wb-modal-scrim,
+  .wb-modal-card,
+  .wb-modal-pop {
     transition: none;
     animation: none;
   }

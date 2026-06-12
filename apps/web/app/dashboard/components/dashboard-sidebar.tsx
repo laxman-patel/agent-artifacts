@@ -6,6 +6,8 @@ import {
   BookOpen,
   Boxes,
   Brain,
+  Check,
+  ChevronDown,
   Code2,
   Database,
   Folder,
@@ -21,7 +23,8 @@ import {
   Zap,
   type LucideIcon
 } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { ProfileMeResponse, ProjectSummary, WorkspaceSummary } from "../../../lib/server-api";
 import { AccountMenu } from "./account-menu";
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -125,19 +128,18 @@ export function DashboardSidebar({
   const home = `/dashboard/${workspace.slug}`;
   const [creatingProject, setCreatingProject] = useState(false);
   const [projectTitle, setProjectTitle] = useState("");
-  const [projectSlug, setProjectSlug] = useState("");
-  const [projectDescription, setProjectDescription] = useState("");
   const [projectIcon, setProjectIcon] = useState<ProjectIconId>(DEFAULT_PROJECT_ICON.id);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [projectPending, setProjectPending] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
-  const selectedProjectIcon = projectIconFromId(projectIcon, projectTitle || projectSlug || workspace.slug);
+  const selectedProjectIcon = projectIconFromId(projectIcon, projectTitle || workspace.slug);
   const SelectedProjectIcon = selectedProjectIcon.icon;
+  const previewSlug = slugify(projectTitle) || "project-name";
 
   function resetProjectDialog() {
     setProjectTitle("");
-    setProjectSlug("");
-    setProjectDescription("");
     setProjectIcon(DEFAULT_PROJECT_ICON.id);
+    setIconPickerOpen(false);
     setProjectError(null);
   }
 
@@ -147,23 +149,32 @@ export function DashboardSidebar({
     resetProjectDialog();
   }
 
-  function updateProjectTitle(value: string) {
-    const previousAutoSlug = slugify(projectTitle);
-    const nextAutoSlug = slugify(value);
-    setProjectTitle(value);
-    setProjectSlug((current) => (current.length === 0 || current === previousAutoSlug ? nextAutoSlug : current));
-  }
+  useEffect(() => {
+    if (!creatingProject) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (iconPickerOpen) {
+        setIconPickerOpen(false);
+        return;
+      }
+      closeProjectDialog();
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [creatingProject, iconPickerOpen, projectPending]);
 
   async function createProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const title = projectTitle.trim();
     if (!title) return;
-    const slug = slugify(projectSlug || title);
+    const slug = slugify(title);
     if (!slug) {
-      setProjectError("Add a valid project slug.");
+      setProjectError("Enter a name with at least one letter or number.");
       return;
     }
-    const description = projectDescription.trim();
 
     setProjectPending(true);
     setProjectError(null);
@@ -173,12 +184,7 @@ export function DashboardSidebar({
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          title,
-          slug,
-          icon: projectIcon,
-          description: description.length > 0 ? description : undefined
-        })
+        body: JSON.stringify({ title, slug, icon: projectIcon })
       });
 
       if (!response.ok) {
@@ -230,121 +236,134 @@ export function DashboardSidebar({
           </button>
         </div>
 
-        {creatingProject ? (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-black/68 px-4" role="presentation">
-            <form
-              className="workbench w-full max-w-3xl rounded-[0.7rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile-raised)] p-5 text-foreground shadow-[0_26px_80px_oklch(0.07_0_0/0.62)]"
-              onSubmit={(event) => void createProject(event)}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="create-project-title"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/35">New project</p>
-                  <h2 id="create-project-title" className="mt-2 font-pixel text-[1.65rem] font-normal tracking-[-0.045em] text-foreground/92">
-                    Add project details.
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Close create project dialog"
-                  onClick={closeProjectDialog}
-                  className="inline-flex size-8 items-center justify-center rounded-[0.35rem] text-foreground/45 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+        {creatingProject && typeof document !== "undefined"
+          ? createPortal(
+              <div
+                className="wb-modal-scrim dark fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-[oklch(0.08_0_0/0.62)] px-4 py-10 text-foreground backdrop-blur-md"
+                role="presentation"
+                onMouseDown={(event) => {
+                  if (event.target === event.currentTarget) closeProjectDialog();
+                }}
+              >
+                <form
+                  className="wb-modal-card workbench relative w-full max-w-[27rem] rounded-[0.625rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile-raised)] p-6 text-foreground shadow-[0_30px_90px_oklch(0.05_0_0/0.7)]"
+                  onSubmit={(event) => void createProject(event)}
+                  onMouseDown={() => setIconPickerOpen(false)}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="create-project-title"
                 >
-                  <X className="size-4" />
-                </button>
-              </div>
-
-              <div className="mt-5 grid gap-5 md:grid-cols-[12rem_1fr]">
-                <div className="space-y-3">
-                  <div className="grid aspect-square place-items-center rounded-[0.35rem] border border-[var(--wb-line-strong)] bg-[var(--wb-canvas)]">
-                    <SelectedProjectIcon className="size-16 text-[var(--wb-accent-orange)]" strokeWidth={1.65} aria-hidden="true" />
-                  </div>
-                  <p className="text-center font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/38">
-                    {selectedProjectIcon.label}
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="block space-y-1.5">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">Project name</span>
-                    <input
-                      autoFocus
-                      className="input h-10 w-full rounded-[0.35rem] px-3 text-sm text-foreground/88 placeholder:text-foreground/25"
-                      onChange={(event) => updateProjectTitle(event.target.value)}
-                      placeholder="Browser Flow Project"
-                      value={projectTitle}
-                    />
-                  </label>
-
-                  <div className="grid gap-4 sm:grid-cols-[1fr_1.35fr]">
-                    <label className="block space-y-1.5">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">Slug</span>
-                      <input
-                        className="input h-9 w-full rounded-[0.35rem] px-3 font-mono text-[12px] text-foreground/82 placeholder:text-foreground/25"
-                        onChange={(event) => setProjectSlug(slugify(event.target.value))}
-                        placeholder="browser-flow-project"
-                        value={projectSlug}
-                      />
-                    </label>
-                    <label className="block space-y-1.5">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">Description</span>
-                      <input
-                        className="input h-9 w-full rounded-[0.35rem] px-3 text-[12px] text-foreground/82 placeholder:text-foreground/25"
-                        onChange={(event) => setProjectDescription(event.target.value)}
-                        placeholder="Short project details"
-                        value={projectDescription}
-                      />
-                    </label>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/35">New project</p>
+                      <h2 id="create-project-title" className="mt-2 font-pixel text-[1.5rem] font-normal leading-none tracking-[-0.045em] text-foreground/92">
+                        Name your project.
+                      </h2>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Close create project dialog"
+                      onClick={closeProjectDialog}
+                      className="-mr-1.5 -mt-1.5 inline-flex size-8 items-center justify-center rounded-[0.35rem] text-foreground/40 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                    >
+                      <X className="size-4" />
+                    </button>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">Icon</p>
-                    <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
-                      {PROJECT_ICON_OPTIONS.map((option) => {
-                        const Icon = option.icon;
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            aria-label={`Use ${option.label} icon`}
-                            aria-pressed={projectIcon === option.id}
-                            data-selected={projectIcon === option.id}
-                            onClick={() => setProjectIcon(option.id)}
-                            className="inline-flex aspect-square items-center justify-center rounded-[0.35rem] border border-[var(--wb-line)] bg-[var(--wb-canvas)] text-foreground/48 transition-colors hover:border-foreground/24 hover:text-foreground/78 data-[selected=true]:border-[var(--wb-accent-orange)] data-[selected=true]:bg-[color-mix(in_oklch,var(--wb-accent-orange)_10%,var(--wb-canvas))] data-[selected=true]:text-[var(--wb-accent-orange)]"
-                          >
-                            <Icon className="size-4" aria-hidden="true" />
-                          </button>
-                        );
-                      })}
+                  <div className="mt-6 flex items-center gap-4">
+                    <div className="relative shrink-0" onMouseDown={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        aria-haspopup="menu"
+                        aria-expanded={iconPickerOpen}
+                        aria-label={`Project icon: ${selectedProjectIcon.label}. Change icon`}
+                        onClick={() => setIconPickerOpen((open) => !open)}
+                        data-open={iconPickerOpen}
+                        className="group relative grid size-[4.75rem] place-items-center rounded-[0.45rem] border border-[var(--wb-line-strong)] bg-[var(--wb-canvas)] text-[var(--wb-accent-orange)] transition-colors hover:border-[color-mix(in_oklch,var(--wb-accent-orange)_45%,var(--wb-line-strong))] data-[open=true]:border-[var(--wb-accent-orange)]"
+                      >
+                        <SelectedProjectIcon className="size-9" strokeWidth={1.75} aria-hidden="true" />
+                        <span className="absolute bottom-1 right-1 inline-flex size-4 items-center justify-center rounded-[0.25rem] bg-foreground/[0.08] text-foreground/55 transition-colors group-hover:text-foreground/80">
+                          <ChevronDown className="size-3 transition-transform group-data-[open=true]:rotate-180" strokeWidth={2.25} />
+                        </span>
+                      </button>
+
+                      {iconPickerOpen ? (
+                        <div
+                          role="menu"
+                          aria-label="Choose project icon"
+                          className="wb-modal-pop absolute left-0 top-[calc(100%+0.4rem)] z-10 w-[13.5rem] rounded-[0.45rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile-raised)] p-2 shadow-[0_18px_44px_oklch(0.05_0_0/0.6)]"
+                        >
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {PROJECT_ICON_OPTIONS.map((option) => {
+                              const Icon = option.icon;
+                              const selected = projectIcon === option.id;
+                              return (
+                                <button
+                                  key={option.id}
+                                  type="button"
+                                  role="menuitemradio"
+                                  aria-checked={selected}
+                                  aria-label={`${option.label} icon`}
+                                  title={option.label}
+                                  data-selected={selected}
+                                  onClick={() => {
+                                    setProjectIcon(option.id);
+                                    setIconPickerOpen(false);
+                                  }}
+                                  className="relative inline-flex aspect-square items-center justify-center rounded-[0.35rem] border border-[var(--wb-line)] bg-[var(--wb-canvas)] text-foreground/72 transition-colors hover:border-foreground/25 hover:text-foreground data-[selected=true]:border-[var(--wb-accent-orange)] data-[selected=true]:bg-[color-mix(in_oklch,var(--wb-accent-orange)_12%,transparent)] data-[selected=true]:text-[var(--wb-accent-orange)]"
+                                >
+                                  <Icon className="size-4" aria-hidden="true" />
+                                  {selected ? <Check className="absolute right-0.5 top-0.5 size-2.5" strokeWidth={3} aria-hidden="true" /> : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <label className="block">
+                        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">Project name</span>
+                        <input
+                          autoFocus
+                          className="input mt-1.5 h-10 w-full rounded-[0.35rem] px-3 text-sm text-foreground/90 placeholder:text-foreground/25"
+                          onChange={(event) => setProjectTitle(event.target.value)}
+                          placeholder="Browser Flow"
+                          value={projectTitle}
+                        />
+                      </label>
+                      <p className="mt-2 truncate font-mono text-[11px] text-foreground/35">
+                        <span className="text-foreground/25">{workspace.slug}/</span>
+                        <span className="text-foreground/55">{previewSlug}</span>
+                      </p>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {projectError ? <p className="mt-4 text-[12px] text-[var(--wb-accent-orange)]">{projectError}</p> : null}
+                  {projectError ? <p className="mt-4 text-[12px] text-[var(--wb-accent-orange)]">{projectError}</p> : null}
 
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={closeProjectDialog}
-                  className="inline-flex h-9 items-center justify-center rounded-[0.35rem] px-3 text-[12px] text-foreground/52 transition-colors hover:bg-foreground/[0.05] hover:text-foreground/86"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={projectPending || projectTitle.trim().length === 0}
-                  className="primary-button inline-flex h-9 items-center justify-center gap-2 rounded-[0.35rem] border px-3 font-pixel text-[13px] uppercase tracking-[-0.035em] disabled:cursor-wait disabled:opacity-55"
-                >
-                  {projectPending ? "Creating..." : "Create project"}
-                  <Plus className="size-4" />
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : null}
+                  <div className="mt-6 flex justify-end gap-2 border-t border-[var(--wb-line)] pt-4">
+                    <button
+                      type="button"
+                      onClick={closeProjectDialog}
+                      className="inline-flex h-9 items-center justify-center rounded-[0.35rem] px-3 text-[12px] text-foreground/52 transition-colors hover:bg-foreground/[0.05] hover:text-foreground/86"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={projectPending || projectTitle.trim().length === 0}
+                      className="inline-flex h-9 items-center justify-center gap-2 rounded-none border border-foreground/30 bg-[oklch(0.96_0_0)] px-4 font-pixel text-[13px] font-normal uppercase leading-none tracking-[-0.035em] text-primary-foreground shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.42),0_1px_0_oklch(1_0_0_/_0.18)] transition-colors hover:bg-[oklch(0.92_0_0)] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      {projectPending ? "Creating..." : "Create project"}
+                      <Plus className="size-4 text-[var(--wb-accent-orange)]" strokeWidth={2} />
+                    </button>
+                  </div>
+                </form>
+              </div>,
+              document.body
+            )
+          : null}
 
         {projects.length === 0 ? (
           <p className="px-2 py-1.5 text-[13px] leading-relaxed text-foreground/40">

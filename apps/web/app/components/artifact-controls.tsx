@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   Activity,
-  ArrowLeft,
   ArrowUpRight,
   Check,
   ChevronDown,
@@ -34,8 +33,10 @@ type Access = { publicView: boolean; publicEdit: boolean; viewerEmails: string[]
 type ShareLink = { id: string; role: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null };
 type AuditEvent = {
   id: string;
+  actorDisplayName: string | null;
   actorPrincipalType: string;
   actorPrincipalId: string;
+  actorUsername: string | null;
   action: string;
   targetType: string;
   createdAt: string;
@@ -103,6 +104,38 @@ function compactBytes(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
   return `${bytes} B`;
+}
+
+function auditActionLabel(action: string): string {
+  switch (action) {
+    case "artifact.created":
+      return "Created artifact";
+    case "artifact.updated":
+      return "Published a new version";
+    case "artifact.version_restored":
+      return "Restored a version";
+    case "artifact.access_updated":
+      return "Changed access";
+    case "artifact.deleted":
+      return "Deleted artifact";
+    case "share_link.created":
+      return "Created a share link";
+    case "share_link.revoked":
+      return "Revoked a share link";
+    default:
+      return action
+        .replace(/^artifact\./, "")
+        .replace(/^share_link\./, "")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+}
+
+function actorLabel(event: AuditEvent): string {
+  if (event.actorUsername) return `user: @${event.actorUsername}`;
+  if (event.actorDisplayName) return `user: ${event.actorDisplayName}`;
+  if (event.actorPrincipalType === "user") return "user: unknown";
+  return `${event.actorPrincipalType}: ${event.actorPrincipalId}`;
 }
 
 function MicroLabel({ children }: { children: ReactNode }) {
@@ -217,7 +250,9 @@ export function ArtifactControls({
   viewedVersion,
   workspaceSlug,
   publicView,
+  panel,
   onNavigate,
+  onPanelChange,
   onPublicViewChange
 }: {
   artifactId: string;
@@ -226,7 +261,9 @@ export function ArtifactControls({
   viewedVersion: number | null;
   workspaceSlug: string;
   publicView: boolean;
+  panel: Panel;
   onNavigate: () => void;
+  onPanelChange: (panel: Panel) => void;
   onPublicViewChange: (next: boolean) => void;
 }) {
   const router = useRouter();
@@ -250,7 +287,6 @@ export function ArtifactControls({
 
   const [linksOpen, setLinksOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
-  const [panel, setPanel] = useState<Panel>("main");
   const [auditEvents, setAuditEvents] = useState<AuditEvent[] | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
 
@@ -483,7 +519,8 @@ export function ArtifactControls({
 
   return (
     <div className="overflow-hidden">
-      <div className={panel === "main" ? "wb-panel-slide" : "hidden"}>
+      {panel === "main" ? (
+      <div className="wb-panel-slide">
       <MicroLabel>Share</MicroLabel>
 
       {manager === null || (manager && !access) ? (
@@ -719,12 +756,12 @@ export function ArtifactControls({
 
       {manager ? (
         <>
-          <button type="button" onClick={() => setPanel("audit")} className={ROW}>
+          <button type="button" onClick={() => onPanelChange("audit")} className={ROW}>
             <Activity className="size-3.5 shrink-0 text-foreground/45" />
             <span className="min-w-0 flex-1 truncate text-left">Audit log</span>
             <ArrowUpRight className="size-3.5 shrink-0 text-foreground/30" />
           </button>
-          <button type="button" onClick={() => setPanel("settings")} className={ROW}>
+          <button type="button" onClick={() => onPanelChange("settings")} className={ROW}>
             <Settings className="size-3.5 shrink-0 text-foreground/45" />
             <span className="min-w-0 flex-1 truncate text-left">Artifact settings</span>
             <ArrowUpRight className="size-3.5 shrink-0 text-foreground/30" />
@@ -782,13 +819,10 @@ export function ArtifactControls({
         </>
       ) : null}
         </div>
+      ) : null}
 
-        <div className={panel === "settings" ? "wb-panel-slide" : "hidden"}>
-          <button type="button" onClick={() => setPanel("main")} className={ROW}>
-            <ArrowLeft className="size-3.5 shrink-0 text-foreground/45" />
-            <span className="min-w-0 flex-1 truncate text-left">Back to artifact controls</span>
-          </button>
-          <Divider />
+      {panel === "settings" ? (
+        <div className="wb-panel-slide">
           <MicroLabel>Artifact settings</MicroLabel>
           <div className="rounded-[0.3rem] bg-foreground/[0.03] p-2">
             <dl className="space-y-2 text-[12px]">
@@ -816,13 +850,10 @@ export function ArtifactControls({
             <span className="min-w-0 flex-1 truncate text-left">Prepare delete confirmation</span>
           </button>
         </div>
+      ) : null}
 
-        <div className={panel === "audit" ? "wb-panel-slide" : "hidden"}>
-          <button type="button" onClick={() => setPanel("main")} className={ROW}>
-            <ArrowLeft className="size-3.5 shrink-0 text-foreground/45" />
-            <span className="min-w-0 flex-1 truncate text-left">Back to artifact controls</span>
-          </button>
-          <Divider />
+      {panel === "audit" ? (
+        <div className="wb-panel-slide">
           <MicroLabel>Audit log</MicroLabel>
           <div className="wb-scroll max-h-64 overflow-y-auto rounded-[0.3rem] bg-foreground/[0.03] p-1">
             {auditError ? (
@@ -838,14 +869,14 @@ export function ArtifactControls({
               <ol className="space-y-1">
                 {auditEvents.map((event) => (
                   <li key={event.id} className="rounded-[0.25rem] px-1.5 py-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <strong className="truncate text-[12px] font-medium text-foreground/78">{event.action}</strong>
-                      <span className="shrink-0 font-mono text-[10px] text-foreground/35">
+                    <div className="flex items-start justify-between gap-3">
+                      <strong className="truncate text-[12px] font-medium text-foreground/78">{auditActionLabel(event.action)}</strong>
+                      <time className="shrink-0 pt-[1px] font-mono text-[9px] leading-4 text-foreground/34" dateTime={event.createdAt}>
                         <RelativeTime iso={event.createdAt} />
-                      </span>
+                      </time>
                     </div>
                     <p className="mt-0.5 truncate font-mono text-[10px] text-foreground/35">
-                      {event.actorPrincipalType}:{event.actorPrincipalId} · {event.targetType}
+                      {actorLabel(event)} · {event.targetType}
                     </p>
                   </li>
                 ))}
@@ -853,6 +884,7 @@ export function ArtifactControls({
             )}
           </div>
         </div>
+      ) : null}
     </div>
   );
 }

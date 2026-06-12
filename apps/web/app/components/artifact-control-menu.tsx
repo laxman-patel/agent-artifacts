@@ -71,7 +71,7 @@ export function ArtifactControlMenu({
             onClick={() => setOpen((value) => !value)}
             className="flex min-w-0 flex-1 items-center gap-2 rounded-[0.3rem] px-2 py-1 text-left transition-colors hover:bg-foreground/[0.05]"
           >
-            <span className="flex min-w-0 flex-col">
+            <span className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-[13px] font-medium leading-tight text-foreground/90">{title}</span>
               <span className="truncate font-mono text-[10px] leading-tight text-foreground/45">
                 {TYPE_LABEL[type]} · {versionLabel} · {visibilityLabel}

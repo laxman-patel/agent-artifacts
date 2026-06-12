@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Plus } from "lucide-react";
 import { artifactPath } from "../../../lib/paths";
 import type { ArtifactOwnerSummary } from "../../../lib/server-api";
@@ -21,6 +21,20 @@ function relativeTime(iso: string): string {
   const months = Math.round(days / 30);
   if (months < 12) return `${months}mo ago`;
   return `${Math.round(months / 12)}y ago`;
+}
+
+function stableDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(iso));
+}
+
+function RelativeTime({ iso }: { iso: string }) {
+  const [label, setLabel] = useState(() => stableDate(iso));
+
+  useEffect(() => {
+    setLabel(relativeTime(iso));
+  }, [iso]);
+
+  return <>{label}</>;
 }
 
 function ArtifactTile({
@@ -61,7 +75,7 @@ function ArtifactTile({
           {artifact.title}
         </p>
         <p className="mt-1 truncate font-mono text-[11px] text-foreground/40">
-          {meta} · {relativeTime(artifact.updatedAt)}
+          {meta} · <RelativeTime iso={artifact.updatedAt} />
         </p>
       </div>
     </Link>

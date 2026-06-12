@@ -89,7 +89,7 @@ export interface WorkspaceInvitationSummary {
 }
 
 export interface ProjectSummary {
-  id: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; slug: string; title: string; description: string | null; updatedAt: string;
+  id: string; ownerUsername: string; workspaceId: string; workspaceSlug: string; slug: string; icon: string | null; title: string; description: string | null; updatedAt: string;
 }
 
 export interface ArtifactOwnerSummary {

@@ -313,6 +313,7 @@ export const projects = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     slug: varchar("slug", { length: 80 }).notNull(),
+    icon: text("icon"),
     title: text("title").notNull(),
     description: text("description"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

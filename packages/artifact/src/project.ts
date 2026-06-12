@@ -19,6 +19,7 @@ export const createProjectInputSchema = z.object({
   ownerUsername: z.string().min(1),
   slug: z.string().min(1),
   title: z.string().min(1).max(200),
+  icon: z.string().min(1).max(8).optional(),
   description: z.string().max(1000).optional()
 });
 
@@ -27,6 +28,7 @@ export type CreateProjectInput = z.infer<typeof createProjectInputSchema>;
 export const createWorkspaceProjectInputSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1).max(200),
+  icon: z.string().min(1).max(8).optional(),
   description: z.string().max(1000).optional()
 });
 
@@ -41,6 +43,7 @@ export interface ProjectRecord {
   workspaceName: string;
   workspaceKind: WorkspaceKind;
   slug: string;
+  icon: string | null;
   title: string;
   description: string | null;
   createdAt: Date;
@@ -54,6 +57,7 @@ export interface ProjectSummary {
   workspaceId: string;
   workspaceSlug: string;
   normalizedSlug: string;
+  icon: string;
   title: string;
   url: string;
 }
@@ -83,6 +87,7 @@ export interface PersistCreateProjectInput {
   ownerUserId: string;
   workspaceId: string;
   slug: string;
+  icon?: string;
   title: string;
   description?: string;
 }
@@ -244,6 +249,7 @@ export class ProjectService {
       ownerUserId,
       workspaceId: workspace.id,
       slug: normalizedSlug,
+      icon: input.icon ?? iconForProject(input.title, normalizedSlug),
       title: input.title,
       description: input.description
     });
@@ -255,6 +261,7 @@ export class ProjectService {
       workspaceId: workspace.id,
       workspaceSlug: workspace.slug,
       normalizedSlug,
+      icon: input.icon ?? iconForProject(input.title, normalizedSlug),
       title: input.title,
       url: buildWorkspaceProjectUrl(this.appUrl, workspace.slug, normalizedSlug)
     };
@@ -368,6 +375,7 @@ export class DrizzleProjectRepository implements ProjectRepository {
       ownerUserId: input.ownerUserId,
       workspaceId: input.workspaceId,
       slug: input.slug,
+      icon: input.icon ?? null,
       title: input.title,
       description: input.description ?? null,
       createdAt: now,
@@ -399,6 +407,7 @@ export class DrizzleProjectRepository implements ProjectRepository {
         workspaceName: workspaces.name,
         workspaceKind: workspaces.kind,
         slug: projects.slug,
+        icon: projects.icon,
         title: projects.title,
         description: projects.description,
         createdAt: projects.createdAt,
@@ -407,4 +416,15 @@ export class DrizzleProjectRepository implements ProjectRepository {
       .from(projects)
       .innerJoin(workspaces, eq(workspaces.id, projects.workspaceId));
   }
+}
+
+const PROJECT_ICONS = ["✦", "✿", "✸", "◆", "●", "◐", "▲", "◈", "✚", "✹", "◇", "◒"];
+
+function iconForProject(title: string, slug: string): string {
+  const source = `${title}:${slug}`;
+  let hash = 0;
+  for (const char of source) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return PROJECT_ICONS[hash % PROJECT_ICONS.length] ?? "✦";
 }

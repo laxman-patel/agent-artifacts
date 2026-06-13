@@ -109,6 +109,15 @@ export AGENT_ARTIFACTS_TOKEN="..."         # required when --no-input is set (no
 artifacts whoami --format json
 ```
 
+Publish a local artifact file without building the JSON payload by hand:
+
+```bash
+artifacts push --owner alice --project-slug default --file ./report.md
+artifacts push --owner alice --project-slug default --file ./prototype.tsx --title "Prototype v1" --private
+```
+
+`push` infers `type`, `title`, and `slug` from `.md`, `.markdown`, `.html`, `.htm`, `.jsx`, and `.tsx` files. Override them with `--type`, `--title`, and `--slug` when the inferred values are not what you want.
+
 Preview destructive or mutating calls without side effects:
 
 ```bash
@@ -152,6 +161,7 @@ Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https:
 
 | Command | API |
 |---------|-----|
+| `artifacts push --owner ... --project-slug ... --file ./report.md` | `POST /api/artifacts` |
 | `artifacts login` | Browser OAuth via web app |
 | `artifacts logout` | Clear local credentials |
 | `artifacts whoami` | `GET /api/profile/me` |

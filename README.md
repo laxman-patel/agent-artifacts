@@ -22,6 +22,7 @@ export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
 
 artifacts login
 artifacts schema
+artifacts push --owner alice --project-slug default --file ./report.md
 artifacts artifact list
 ```
 

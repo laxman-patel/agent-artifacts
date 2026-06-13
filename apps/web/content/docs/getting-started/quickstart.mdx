@@ -1,0 +1,70 @@
+---
+title: Quickstart
+description: Install the CLI, authenticate, and publish your first artifact.
+---
+
+## Prerequisites
+
+- Bun for local development.
+- A running Artifacts web/API deployment, or the local monorepo dev stack.
+- A signed-in user for browser login, or a bearer token for non-interactive automation.
+
+## Install the CLI
+
+For the published CLI:
+
+```bash
+npx @agent-artifacts/cli@latest setup
+```
+
+From this monorepo:
+
+```bash
+bun install
+bun run cli:build
+bun run cli:install
+```
+
+## Point the CLI at an environment
+
+Local development normally uses the API directly and the web app for browser login:
+
+```bash
+export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
+export AGENT_ARTIFACTS_WEB_URL="http://localhost:3000"
+```
+
+Production bundles can bake these URLs into the binary, but flags and environment variables still win at runtime.
+
+## Authenticate
+
+Use browser login for interactive local work:
+
+```bash
+artifacts login
+artifacts whoami
+```
+
+Use a bearer token for CI, scheduled jobs, or agents running with `--no-input`:
+
+```bash
+export AGENT_ARTIFACTS_TOKEN="..."
+export AGENT_ARTIFACTS_NO_INPUT=1
+artifacts whoami --format json
+```
+
+## Publish a file
+
+```bash
+artifacts push --owner alice --project-slug default --file ./report.md
+```
+
+`push` infers artifact type, title, and slug from `.md`, `.markdown`, `.html`, `.htm`, `.jsx`, and `.tsx` files. Override with `--type`, `--title`, or `--slug` when needed.
+
+## Update it later
+
+```bash
+artifacts push --owner alice --project-slug default --file ./report.md --slug report
+```
+
+Updates append immutable versions. The artifact URL stays stable while history, diffs, and restore actions remain available.

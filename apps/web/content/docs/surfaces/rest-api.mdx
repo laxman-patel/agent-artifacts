@@ -1,0 +1,30 @@
+---
+title: REST API
+description: The HTTP surface behind the web app, CLI, and custom integrations.
+---
+
+## Base Paths
+
+The API exposes application routes under `/api/*` and health checks at `/health`. The web app rewrites `/api/*` to the internal API in local and deployed environments so browser cookies stay scoped to the web origin.
+
+## Authentication
+
+Browser sessions use Better Auth routes under `/api/auth/*`. Automation can use bearer credentials, which also skip CSRF checks intended for browser form submissions.
+
+## Core Resources
+
+- Profile routes return the current principal and visible personal resources.
+- Workspace routes manage team membership and invitations.
+- Project routes create and resolve project namespaces.
+- Artifact routes create artifacts, read content, append versions, restore versions, manage access, and list history.
+- Share-link routes create, list, and revoke scoped links.
+- Audit routes expose account and artifact activity.
+- Billing routes expose subscription and storage-metering flows.
+
+## Path Resolution
+
+Path routes resolve readable owner/project/artifact slugs into canonical resources. Use them when a human-facing URL is the input and an integration needs the underlying object.
+
+## Error Shape
+
+The CLI normalizes API failures into its output envelope, but direct API clients should still treat authentication, authorization, validation, conflicts, and network failures as distinct cases.

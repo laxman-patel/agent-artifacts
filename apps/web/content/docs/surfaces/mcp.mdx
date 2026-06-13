@@ -1,0 +1,47 @@
+---
+title: MCP
+description: Let compatible agents create, update, and inspect artifacts through tools.
+---
+
+## Endpoint
+
+The MCP server is exposed at:
+
+```txt
+/mcp
+```
+
+In local development, clients usually connect through the web origin:
+
+```txt
+http://localhost:3000/mcp
+```
+
+Next.js rewrites that request to the API service.
+
+## OAuth Discovery
+
+MCP clients can discover authorization metadata from:
+
+```txt
+/.well-known/oauth-protected-resource
+/.well-known/oauth-authorization-server
+```
+
+Standard clients should dynamically register, complete browser consent, exchange the authorization code for a token, then call tools.
+
+## Available Tool Areas
+
+The MCP server exposes tools for:
+
+- Reading the current principal.
+- Creating and listing projects.
+- Checking project and artifact slug availability.
+- Creating, updating, restoring, and resolving artifacts.
+- Creating, listing, and revoking share links.
+- Listing artifact or account audit events.
+- Listing workspaces and workspace artifacts.
+
+## Authorization
+
+MCP calls use the same principal and policy checks as web, CLI, and REST. A tool cannot bypass artifact permissions just because it is called by an agent.

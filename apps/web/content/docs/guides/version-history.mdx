@@ -1,0 +1,33 @@
+---
+title: Version History
+description: Compare, restore, and reason about changes to an artifact over time.
+---
+
+## Immutable Updates
+
+Updating an artifact never overwrites the old content. It appends a new immutable version and moves the artifact head forward.
+
+## Compare Versions
+
+Use the web history and diff views when reviewing generated changes. Diffs are useful for:
+
+- Checking whether an agent preserved important sections.
+- Reviewing edits to a report before sharing.
+- Understanding how an interactive prototype changed between iterations.
+
+## Restore a Version
+
+Restoring an old version creates a new head version from that snapshot. The old version remains immutable, and the restore action remains visible in history.
+
+## Programmatic Updates
+
+The CLI can update via `push` or direct JSON payloads:
+
+```bash
+artifacts push --owner alice --project-slug default --file ./report.md --slug report
+echo '{"content":"# v2","changelog":"tighten intro"}' | artifacts artifact update --artifact-id ART_ID --json-file -
+```
+
+## Audit Trail
+
+Version creation, restore, and access changes are audit-worthy events. Use audit history for compliance review and debugging agent behavior.

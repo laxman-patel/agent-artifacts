@@ -1,0 +1,42 @@
+---
+title: Artifacts
+description: The durable object model behind generated reports, prototypes, and tools.
+---
+
+## Artifact
+
+An artifact is a stable logical object with one owner, one project, one slug, and one render type. It is the thing people share: a Markdown report, HTML page, JSX prototype, review surface, explainer, or one-off editor.
+
+The public path is:
+
+```txt
+/{ownerUsername}/{projectSlug}/{artifactSlug}
+```
+
+## Version
+
+Every create or update writes a new immutable version. Versions are content-hashed, monotonically numbered, and parent-linked so humans and agents can inspect changes over time.
+
+Version history powers:
+
+- Diffs between two snapshots.
+- Restore by creating a new head version from an old version.
+- Audit trails for who changed what and when.
+
+## Render Type
+
+Artifacts currently support:
+
+- Markdown for specs, reports, checklists, and research.
+- HTML for rich standalone reports and visual pages.
+- JSX/TSX for interactive Preact-backed prototypes and tools.
+
+Each render path is treated as untrusted generated content and is displayed through controlled preview surfaces.
+
+## Project
+
+A project groups artifacts under an owner namespace. Use projects to keep related outputs together: a product launch, a customer investigation, a design sprint, or an agent workflow.
+
+## Workspace
+
+A workspace is the collaboration boundary for teams. Workspaces collect projects and artifacts that should be discoverable by the same group while still enforcing the same access policy checks as personal artifacts.

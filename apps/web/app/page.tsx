@@ -14,7 +14,7 @@ type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean
 
 const navItems: { label: string; href: string; active?: boolean }[] = [
   { label: "pricing", href: "/pricing" },
-  { label: "docs", href: "#how" },
+  { label: "docs", href: "/docs" },
   { label: "support", href: "mailto:support@agent-artifacts.com" }
 ];
 

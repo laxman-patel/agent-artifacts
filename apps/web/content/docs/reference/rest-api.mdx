@@ -1,0 +1,70 @@
+---
+title: REST API Reference
+description: High-level HTTP route map for custom Artifacts integrations.
+---
+
+## Health
+
+```txt
+GET /health
+```
+
+Returns service health for the API container.
+
+## Authentication and OAuth
+
+```txt
+GET|POST /api/auth/*
+GET /.well-known/oauth-protected-resource
+GET /.well-known/oauth-authorization-server
+```
+
+The OAuth metadata routes support MCP clients and other OAuth-aware integrations.
+
+## Profile
+
+```txt
+GET /api/profile/me
+GET /api/profile/projects
+GET /api/profile/artifacts
+```
+
+Use profile routes to discover the current principal and visible resources.
+
+## Projects
+
+```txt
+POST /api/projects
+GET /api/by-path/:ownerUsername/:projectSlug
+GET /api/slug-preview/:username/:projectSlug/:slug
+```
+
+Projects group artifacts and provide the middle segment of artifact URLs.
+
+## Artifacts
+
+```txt
+POST /api/artifacts
+GET /api/artifacts/:id
+GET /api/artifacts/:id/content
+POST /api/artifacts/:id/versions
+POST /api/artifacts/:id/restore
+GET /api/by-path/:ownerUsername/:projectSlug/:slug
+```
+
+Artifact routes create the logical artifact, append immutable versions, read content, and resolve human URLs.
+
+## Sharing, Access, and Audit
+
+```txt
+POST /api/artifacts/:id/share-links
+GET /api/artifacts/:id/share-links
+DELETE /api/share-links/:id
+GET /api/audit-events
+```
+
+Use these routes for collaboration controls and review trails. Direct clients should expect entitlement and permission checks.
+
+## Workspaces and Billing
+
+Workspace routes manage team membership and invitations. Billing routes handle subscription actions and storage metering for paid features.

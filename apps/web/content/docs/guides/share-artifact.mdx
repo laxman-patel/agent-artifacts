@@ -1,0 +1,34 @@
+---
+title: Share an Artifact
+description: Make generated work visible without giving away more access than intended.
+---
+
+## Decide the Audience
+
+Use public access when the artifact is meant for anyone with the URL. Use private access for drafts, internal reports, security-sensitive outputs, and customer-specific work.
+
+## Share Links
+
+Share links grant scoped access to an artifact. They can be viewer or editor links and can be revoked later.
+
+```bash
+artifacts share create --artifact-id ARTIFACT_ID --json '{"role":"viewer"}'
+```
+
+Share links may require a paid entitlement depending on the account plan.
+
+## Revoke a Link
+
+```bash
+artifacts share revoke --share-link-id SHARE_LINK_ID
+```
+
+Revocation should be preferred over deleting an artifact when the artifact itself is still useful.
+
+## Manage Access in the Web App
+
+Open artifact settings to review current access, share links, and destructive actions. The web app is the best place for human review because it shows the artifact, metadata, and policy state together.
+
+## Audit Sensitive Sharing
+
+Use audit history to inspect share-link creation, revocation, access-policy changes, and version updates.

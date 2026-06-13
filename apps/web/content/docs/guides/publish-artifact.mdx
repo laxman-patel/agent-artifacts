@@ -1,0 +1,52 @@
+---
+title: Publish an Artifact
+description: Choose the right publishing path for reports, prototypes, and generated tools.
+---
+
+## Choose a Surface
+
+Use the CLI when an agent or script has a local file. Use REST when a backend service already owns the integration. Use MCP when the calling agent supports authenticated tool calls and should discover the platform directly.
+
+## Pick a Project
+
+Publish into a stable project slug so related outputs are easy to find:
+
+```bash
+artifacts project create --json '{"ownerUsername":"alice","slug":"research","title":"Research"}'
+```
+
+## Push a File
+
+```bash
+artifacts push --owner alice --project-slug research --file ./summary.md
+```
+
+For interactive prototypes:
+
+```bash
+artifacts push --owner alice --project-slug research --file ./prototype.tsx --title "Filter prototype"
+```
+
+## Use Explicit Metadata
+
+Override inferred metadata when a filename is not the right public name:
+
+```bash
+artifacts push \
+  --owner alice \
+  --project-slug research \
+  --file ./final.md \
+  --slug q2-market-map \
+  --title "Q2 Market Map"
+```
+
+## Avoid Accidental Prompts
+
+Agents and CI should set:
+
+```bash
+export AGENT_ARTIFACTS_NO_INPUT=1
+export AGENT_ARTIFACTS_TOKEN="..."
+```
+
+Missing required inputs then fail fast instead of opening a browser login flow.

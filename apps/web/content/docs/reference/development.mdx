@@ -1,0 +1,51 @@
+---
+title: Development
+description: Run the monorepo locally and verify docs changes.
+---
+
+## Requirements
+
+- Bun for package management and scripts.
+- Node.js 24 or newer.
+- A configured `.env` based on `.env.example`.
+- Database migrations applied before using the app.
+
+## Install and Run
+
+```bash
+bun install
+bun run db:migrate
+bun run dev
+```
+
+The root dev script runs the web and API apps together through Turbo.
+
+## Important URLs
+
+```txt
+Web: http://localhost:3000
+API: http://127.0.0.1:3001
+MCP: http://localhost:3000/mcp
+Docs: http://localhost:3000/docs
+```
+
+## Docs Generation
+
+Fumadocs MDX generates a local `.source` directory from `apps/web/content/docs`. The web `typecheck` and `lint` scripts run generation first:
+
+```bash
+bun run --filter @agent-artifacts/web typecheck
+```
+
+## E2E Smoke Tests
+
+Start the dev servers first, install browsers once, then run:
+
+```bash
+bunx playwright install
+bun run --filter @agent-artifacts/web test:e2e
+```
+
+## Observability
+
+Better Stack logging is enabled when source tokens are configured. Without those tokens, the apps still boot and log locally.

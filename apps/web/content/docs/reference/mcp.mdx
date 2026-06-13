@@ -1,0 +1,66 @@
+---
+title: MCP Reference
+description: Tool map for agent-native artifact workflows.
+---
+
+## Connection
+
+```txt
+POST /mcp
+```
+
+Local clients should usually connect through the web app origin so rewrites and OAuth metadata match the browser-visible URL.
+
+## Principal
+
+```txt
+get_current_principal
+```
+
+Returns the authenticated principal for the request.
+
+## Projects
+
+```txt
+check_project_slug_availability
+create_project
+list_projects
+```
+
+Use these tools to prepare a namespace before publishing artifacts.
+
+## Artifacts
+
+```txt
+check_slug_availability
+create_artifact
+update_artifact
+restore_artifact_version
+resolve_path
+```
+
+These are the main tools for durable generated work. Create writes the first immutable version; update appends the next one.
+
+## Sharing
+
+```txt
+create_share_link
+list_share_links
+revoke_share_link
+```
+
+Share-link tools enforce artifact permissions and account entitlements.
+
+## Workspaces and Audit
+
+```txt
+list_workspaces
+list_workspace_artifacts
+list_audit_events
+```
+
+Use these tools when an agent needs to discover team context or inspect change history.
+
+## Error Handling
+
+Tools return authorization and entitlement failures as tool errors. Agents should not retry forbidden actions without changing credentials or requested scope.

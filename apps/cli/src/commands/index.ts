@@ -9,6 +9,7 @@ import {
   artifactDiffCommand,
   artifactGetCommand,
   artifactListCommand,
+  artifactPushCommand,
   artifactRestoreCommand,
   artifactSlugAvailabilityCommand,
   artifactUpdateCommand,
@@ -36,6 +37,7 @@ import {
 
 export const allCommands: CommandSpec[] = [
   setupCommand,
+  artifactPushCommand,
   loginCommand,
   logoutCommand,
   whoamiCommand,

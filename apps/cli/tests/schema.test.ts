@@ -33,6 +33,7 @@ describe("CLI schema", () => {
       "project create",
       "project list",
       "project slug-availability",
+      "push",
       "setup",
       "share create",
       "share list",
@@ -75,6 +76,18 @@ describe("CLI schema", () => {
     expect(get?.flags).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ flag: "--artifact-id <id>", required: true })
+      ])
+    );
+  });
+
+  it("documents the file-native push command", () => {
+    const push = listCliCommandSpecs().find((c) => c.command === "push");
+    expect(push?.http).toEqual({ method: "POST", path: "/api/artifacts" });
+    expect(push?.flags).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ flag: "--file <path>", required: true }),
+        expect.objectContaining({ flag: "--owner <username>", required: true }),
+        expect.objectContaining({ flag: "--project-slug <slug>", required: true })
       ])
     );
   });

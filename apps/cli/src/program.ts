@@ -38,6 +38,7 @@ Discovery:
 Examples:
   artifacts login
   artifacts whoami --format json
+  artifacts push --owner alice --project-slug default --file ./report.md
   artifacts artifact list
   artifacts artifact create --json '{"ownerUsername":"alice","projectSlug":"default","slug":"readme","type":"md","title":"Readme","content":"# Hi"}'
 `

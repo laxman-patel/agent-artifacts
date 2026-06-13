@@ -6,6 +6,13 @@ import {
 } from "@agent-artifacts/artifact";
 import { requireFlag } from "../args.js";
 import {
+  inferArtifactType,
+  readArtifactFile,
+  slugFromArtifactTitle,
+  titleFromArtifactFile,
+  type ArtifactFileType
+} from "../artifact-file.js";
+import {
   ARTIFACT_ID_FLAG,
   ARTIFACT_ID_OPTION,
   LIST_LIMIT_OPTIONS,
@@ -20,10 +27,107 @@ import { extractArtifactId, nextActionsForArtifact, nextActionsForArtifactList }
 import { parseIntFlag } from "../parse-int-flag.js";
 
 const SLUG_EXAMPLE = "artifacts artifact slug-availability --owner alice --project-slug default --slug readme";
+const PUSH_EXAMPLE = "artifacts push --owner alice --project-slug default --file ./report.md";
+
+function parseArtifactType(value: string): ArtifactFileType {
+  if (value === "md" || value === "html" || value === "jsx") return value;
+  throw new CliError("invalid_request", "--type must be one of md, html, or jsx.", 2);
+}
 
 function readArtifactId(options: Record<string, unknown>): string {
   return requireFlag(options, ARTIFACT_ID_FLAG);
 }
+
+function readPushFilePath(options: Record<string, unknown>): string {
+  return requireFlag(options, {
+    optionKey: "file",
+    label: "path",
+    flag: "--file",
+    example: PUSH_EXAMPLE
+  });
+}
+
+function preparePushBody(options: Record<string, unknown>) {
+  const filePath = readPushFilePath(options);
+  const content = readArtifactFile(filePath);
+  const title = typeof options.title === "string" && options.title.trim().length > 0
+    ? options.title.trim()
+    : titleFromArtifactFile(filePath, content);
+  const slug = typeof options.slug === "string" && options.slug.trim().length > 0
+    ? options.slug.trim()
+    : slugFromArtifactTitle(title);
+
+  return {
+    ownerUsername: requireFlag(options, {
+      optionKey: "owner",
+      label: "username",
+      flag: "--owner",
+      example: PUSH_EXAMPLE
+    }),
+    projectSlug: requireFlag(options, {
+      optionKey: "projectSlug",
+      label: "slug",
+      flag: "--project-slug",
+      example: PUSH_EXAMPLE
+    }),
+    slug,
+    type: (options.type as ArtifactFileType | undefined) ?? inferArtifactType(filePath, content),
+    title,
+    ...(typeof options.description === "string" && options.description.trim().length > 0
+      ? { description: options.description.trim() }
+      : {}),
+    ...(typeof options.changelog === "string" && options.changelog.trim().length > 0
+      ? { changelog: options.changelog.trim() }
+      : {}),
+    content,
+    access: {
+      publicView: options.private === true ? false : true,
+      publicEdit: options.publicEdit === true
+    }
+  };
+}
+
+export const artifactPushCommand: CommandSpec = {
+  name: "push",
+  description: "Create an artifact from a local HTML, Markdown, or JSX file",
+  options: [
+    { flag: "--file <path>", description: "Local artifact file to publish", required: true },
+    OWNER_OPTION,
+    PROJECT_SLUG_OPTION,
+    { flag: "--slug <slug>", description: "Artifact slug (default: inferred from title or file name)" },
+    { flag: "--title <title>", description: "Artifact title (default: inferred from Markdown heading or file name)" },
+    { flag: "--type <type>", description: "Artifact type: md, html, or jsx (default: inferred)", parse: parseArtifactType },
+    { flag: "--description <text>", description: "Artifact description" },
+    { flag: "--changelog <text>", description: "Initial version changelog" },
+    { flag: "--private", description: "Create as restricted instead of public" },
+    { flag: "--public-edit", description: "Allow public edits when plan entitlements permit it" },
+    { flag: "--ensure", description: "On slug conflict, return the existing artifact with created: false" }
+  ],
+  bodySchema: createArtifactInputSchema,
+  jsonBodyOptional: true,
+  prepareBody: (_body, options) => preparePushBody(options),
+  http: { method: "POST", pathTemplate: "/api/artifacts" },
+  mutates: true,
+  example: PUSH_EXAMPLE,
+  async run({ client, body, options }) {
+    const parsed = createArtifactInputSchema.parse(body);
+    try {
+      const data = await client.post<Record<string, unknown>>("/api/artifacts", parsed);
+      return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
+    } catch (error) {
+      if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+        const existing = await client.get<Record<string, unknown>>(
+          `/api/by-path/${encodeURIComponent(parsed.ownerUsername)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+        );
+        return {
+          data: { ...existing, created: false },
+          nextActions: nextActionsForArtifact(extractArtifactId(existing))
+        };
+      }
+      throw error;
+    }
+  }
+};
 
 export const artifactListCommand: CommandSpec = {
   name: "artifact list",

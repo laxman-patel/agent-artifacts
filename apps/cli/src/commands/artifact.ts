@@ -28,6 +28,7 @@ import { parseIntFlag } from "../parse-int-flag.js";
 
 const SLUG_EXAMPLE = "artifacts artifact slug-availability --owner alice --project-slug default --slug readme";
 const PUSH_EXAMPLE = "artifacts push --owner alice --project-slug default --file ./report.md";
+const MAX_PUSH_SLUG_RETRIES = 100;
 
 function parseArtifactType(value: string): ArtifactFileType {
   if (value === "md" || value === "html" || value === "jsx") return value;
@@ -87,6 +88,40 @@ function preparePushBody(options: Record<string, unknown>) {
   };
 }
 
+function slugWithRetrySuffix(baseSlug: string, attempt: number): string {
+  return attempt === 0 ? baseSlug : `${baseSlug}-${attempt}`;
+}
+
+async function createPushedArtifactWithSlugRetries(
+  client: RunPushClient,
+  input: ReturnType<typeof createArtifactInputSchema.parse>
+): Promise<Record<string, unknown>> {
+  const baseSlug = input.slug;
+
+  for (let attempt = 0; attempt <= MAX_PUSH_SLUG_RETRIES; attempt++) {
+    const candidate = { ...input, slug: slugWithRetrySuffix(baseSlug, attempt) };
+    try {
+      const data = await client.post<Record<string, unknown>>("/api/artifacts", candidate);
+      return { ...data, created: true };
+    } catch (error) {
+      if (error instanceof CliError && error.kind === "conflict") {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new CliError(
+    "conflict",
+    `Could not find an available slug after ${MAX_PUSH_SLUG_RETRIES + 1} attempts starting with "${baseSlug}".`,
+    5
+  );
+}
+
+type RunPushClient = {
+  post<T>(path: string, body?: unknown): Promise<T>;
+};
+
 export const artifactPushCommand: CommandSpec = {
   name: "push",
   description: "Create an artifact from a local HTML, Markdown, or JSX file",
@@ -112,8 +147,10 @@ export const artifactPushCommand: CommandSpec = {
   async run({ client, body, options }) {
     const parsed = createArtifactInputSchema.parse(body);
     try {
-      const data = await client.post<Record<string, unknown>>("/api/artifacts", parsed);
-      return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
+      const data = options.ensure === true
+        ? { ...(await client.post<Record<string, unknown>>("/api/artifacts", parsed)), created: true }
+        : await createPushedArtifactWithSlugRetries(client, parsed);
+      return { data, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
     } catch (error) {
       if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
         const existing = await client.get<Record<string, unknown>>(

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "../src/client.js";
+import { CliError } from "../src/errors.js";
 import { inferArtifactType, slugFromArtifactTitle, titleFromArtifactFile } from "../src/artifact-file.js";
 import { runCli } from "../src/program.js";
 
@@ -106,6 +107,65 @@ describe("artifact file push", () => {
         publicEdit: true
       }
     });
+  });
+
+  it("retries with a numeric slug suffix when the inferred slug is taken", async () => {
+    const filePath = writeTempFile("weekly-report.md", "# Weekly Report\n\nShipped.");
+    const post = vi.spyOn(ApiClient.prototype, "post")
+      .mockRejectedValueOnce(new CliError("conflict", "Slug is not available.", 5))
+      .mockResolvedValueOnce({
+        artifactId: "artifact_789",
+        normalizedSlug: "weekly-report-1"
+      });
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    await runCli([
+      "node",
+      "artifacts",
+      "--token",
+      "test-token",
+      "push",
+      "--owner",
+      "alice",
+      "--project-slug",
+      "default",
+      "--file",
+      filePath
+    ]);
+
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post).toHaveBeenNthCalledWith(1, "/api/artifacts", expect.objectContaining({ slug: "weekly-report" }));
+    expect(post).toHaveBeenNthCalledWith(2, "/api/artifacts", expect.objectContaining({ slug: "weekly-report-1" }));
+  });
+
+  it("keeps incrementing slug suffixes until a candidate is available", async () => {
+    const filePath = writeTempFile("weekly-report.md", "# Weekly Report\n\nShipped.");
+    const post = vi.spyOn(ApiClient.prototype, "post")
+      .mockRejectedValueOnce(new CliError("conflict", "Slug is not available.", 5))
+      .mockRejectedValueOnce(new CliError("conflict", "Slug is not available.", 5))
+      .mockResolvedValueOnce({
+        artifactId: "artifact_999",
+        normalizedSlug: "weekly-report-2"
+      });
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    await runCli([
+      "node",
+      "artifacts",
+      "--token",
+      "test-token",
+      "push",
+      "--owner",
+      "alice",
+      "--project-slug",
+      "default",
+      "--file",
+      filePath
+    ]);
+
+    expect(post).toHaveBeenNthCalledWith(1, "/api/artifacts", expect.objectContaining({ slug: "weekly-report" }));
+    expect(post).toHaveBeenNthCalledWith(2, "/api/artifacts", expect.objectContaining({ slug: "weekly-report-1" }));
+    expect(post).toHaveBeenNthCalledWith(3, "/api/artifacts", expect.objectContaining({ slug: "weekly-report-2" }));
   });
 
   it("uses the same inference rules as web upload", () => {

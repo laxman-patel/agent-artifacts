@@ -5,6 +5,11 @@ description: The durable object model behind generated reports, prototypes, and 
 
 ## Artifact
 
+<Callout type="info" title="Stable object, changing versions">
+  An artifact is the permanent object people share. Versions are the immutable
+  content snapshots attached to it over time.
+</Callout>
+
 An artifact is a stable logical object with one owner, one project, one slug, and one render type. It is the thing people share: a Markdown report, HTML page, JSX prototype, review surface, explainer, or one-off editor.
 
 The public path is:
@@ -19,24 +24,48 @@ Every create or update writes a new immutable version. Versions are content-hash
 
 Version history powers:
 
-- Diffs between two snapshots.
-- Restore by creating a new head version from an old version.
-- Audit trails for who changed what and when.
+<Cards>
+  <Card title="Diff" description="Compare two snapshots before sharing or accepting an agent edit." />
+  <Card title="Restore" description="Create a new head version from an older immutable snapshot." />
+  <Card title="Audit" description="Review who created, restored, or changed an artifact over time." />
+</Cards>
 
 ## Render Type
 
 Artifacts currently support:
 
-- Markdown for specs, reports, checklists, and research.
-- HTML for rich standalone reports and visual pages.
-- JSX/TSX for interactive Preact-backed prototypes and tools.
+<Tabs items={["Markdown", "HTML", "JSX/TSX"]}>
+  <Tab>
+    Specs, reports, checklists, research notes, implementation plans, and PR
+    writeups.
+  </Tab>
+  <Tab>
+    Rich standalone reports, visual pages, dashboards, and explainers that need
+    safe previewing.
+  </Tab>
+  <Tab>
+    Interactive Preact-backed prototypes, throwaway editors, and one-use tools.
+  </Tab>
+</Tabs>
 
 Each render path is treated as untrusted generated content and is displayed through controlled preview surfaces.
 
-## Project
+## Organization
 
-A project groups artifacts under an owner namespace. Use projects to keep related outputs together: a product launch, a customer investigation, a design sprint, or an agent workflow.
-
-## Workspace
-
-A workspace is the collaboration boundary for teams. Workspaces collect projects and artifacts that should be discoverable by the same group while still enforcing the same access policy checks as personal artifacts.
+<Cards>
+  <Card
+    href="/docs/concepts/workspaces-projects"
+    title="Projects"
+    description="Group related artifacts under readable owner/project paths."
+  />
+  <Card
+    href="/docs/concepts/workspaces-projects"
+    title="Workspaces"
+    description="Move useful generated work into team contexts when it becomes shared source material."
+  />
+  <Card
+    href="/docs/concepts/access-model"
+    title="Access policies"
+    description="Apply the same principal and permission model across web, CLI, REST, and MCP."
+  />
+</Cards>

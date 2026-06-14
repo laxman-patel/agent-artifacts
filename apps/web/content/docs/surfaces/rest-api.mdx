@@ -5,7 +5,11 @@ description: The HTTP surface behind the web app, CLI, and custom integrations.
 
 ## Base Paths
 
-The API exposes application routes under `/api/*` and health checks at `/health`. The web app rewrites `/api/*` to the internal API in local and deployed environments so browser cookies stay scoped to the web origin.
+<Callout title="Web-origin friendly by default">
+  The API exposes application routes under `/api/*` and health checks at
+  `/health`. The web app rewrites `/api/*` to the internal API in local and
+  deployed environments so browser cookies stay scoped to the web origin.
+</Callout>
 
 ## Authentication
 
@@ -13,13 +17,14 @@ Browser sessions use Better Auth routes under `/api/auth/*`. Automation can use 
 
 ## Core Resources
 
-- Profile routes return the current principal and visible personal resources.
-- Workspace routes manage team membership and invitations.
-- Project routes create and resolve project namespaces.
-- Artifact routes create artifacts, read content, append versions, restore versions, manage access, and list history.
-- Share-link routes create, list, and revoke scoped links.
-- Audit routes expose account and artifact activity.
-- Billing routes expose subscription and storage-metering flows.
+<Cards>
+  <Card title="Profile" description="Return the current principal and visible personal resources." />
+  <Card title="Workspaces" description="Manage team membership, invitations, and shared contexts." />
+  <Card title="Projects" description="Create and resolve stable project namespaces." />
+  <Card title="Artifacts" description="Create, read content, append versions, restore, and manage access." />
+  <Card title="Share links" description="Create, list, and revoke scoped viewer or editor links." />
+  <Card title="Audit and billing" description="Inspect activity, subscriptions, and storage metering." />
+</Cards>
 
 ## Path Resolution
 

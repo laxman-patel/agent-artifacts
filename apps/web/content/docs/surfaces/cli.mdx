@@ -5,20 +5,36 @@ description: The recommended surface for agents and local automation.
 
 ## Design Goals
 
-The `artifacts` CLI is a deterministic wrapper over the REST API. It is built for agents first: named flags, schema discovery, stable JSON envelopes, clear exit codes, and no hidden prompts when `--no-input` is enabled.
+<Callout type="info" title="Agent-first command design">
+  The `artifacts` CLI is a deterministic wrapper over the REST API. It is built
+  for agents first: named flags, schema discovery, stable JSON envelopes, clear
+  exit codes, and no hidden prompts when `--no-input` is enabled.
+</Callout>
+
+## Core workflows
+
+<Cards>
+  <Card title="Install" description="Use the published setup command or build from the monorepo." href="#install" />
+  <Card title="Discover" description="Read the machine schema instead of parsing help output." href="#discover-commands" />
+  <Card title="Publish" description="Push local Markdown, HTML, JSX, or TSX files into durable URLs." href="#publish-files" />
+  <Card title="Automate" description="Use bearer tokens, no-input mode, JSON output, and stable exit codes." href="#output-contract" />
+</Cards>
 
 ## Install
 
-```bash
-npx @agent-artifacts/cli@latest setup
-```
-
-From the monorepo:
-
-```bash
-bun run cli:build
-bun run cli:install
-```
+<Tabs items={["Published", "Monorepo"]}>
+  <Tab>
+    ```bash
+    npx @agent-artifacts/cli@latest setup
+    ```
+  </Tab>
+  <Tab>
+    ```bash
+    bun run cli:build
+    bun run cli:install
+    ```
+  </Tab>
+</Tabs>
 
 ## Discover Commands
 
@@ -32,10 +48,18 @@ The schema includes command names, HTTP method/path mappings, request body JSON 
 
 ## Publish Files
 
-```bash
-artifacts push --owner alice --project-slug default --file ./report.md
-artifacts push --owner alice --project-slug default --file ./prototype.tsx --title "Prototype v1" --private
-```
+<Tabs items={["Markdown", "Prototype"]}>
+  <Tab>
+    ```bash
+    artifacts push --owner alice --project-slug default --file ./report.md
+    ```
+  </Tab>
+  <Tab>
+    ```bash
+    artifacts push --owner alice --project-slug default --file ./prototype.tsx --title "Prototype v1" --private
+    ```
+  </Tab>
+</Tabs>
 
 `push` is the easiest path for agents because it avoids hand-building JSON request bodies.
 

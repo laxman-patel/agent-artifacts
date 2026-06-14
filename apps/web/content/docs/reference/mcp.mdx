@@ -5,62 +5,65 @@ description: Tool map for agent-native artifact workflows.
 
 ## Connection
 
-```txt
-POST /mcp
-```
+<Callout type="info" title="Connect through the web origin locally">
+  `POST /mcp` is the MCP endpoint. Local clients should usually connect through
+  the web app origin so rewrites and OAuth metadata match the browser-visible URL.
+</Callout>
 
-Local clients should usually connect through the web app origin so rewrites and OAuth metadata match the browser-visible URL.
+## Tool Groups
 
-## Principal
+<Tabs items={["Principal", "Projects", "Artifacts", "Sharing", "Workspace"]}>
+  <Tab>
+    ```txt
+    get_current_principal
+    ```
 
-```txt
-get_current_principal
-```
+    Returns the authenticated principal for the request.
+  </Tab>
+  <Tab>
+    ```txt
+    check_project_slug_availability
+    create_project
+    list_projects
+    ```
 
-Returns the authenticated principal for the request.
+    Prepare a namespace before publishing artifacts.
+  </Tab>
+  <Tab>
+    ```txt
+    check_slug_availability
+    create_artifact
+    update_artifact
+    restore_artifact_version
+    resolve_path
+    ```
 
-## Projects
+    Create writes the first immutable version. Update appends the next one.
+  </Tab>
+  <Tab>
+    ```txt
+    create_share_link
+    list_share_links
+    revoke_share_link
+    ```
 
-```txt
-check_project_slug_availability
-create_project
-list_projects
-```
+    Share-link tools enforce artifact permissions and account entitlements.
+  </Tab>
+  <Tab>
+    ```txt
+    list_workspaces
+    list_workspace_artifacts
+    list_audit_events
+    ```
 
-Use these tools to prepare a namespace before publishing artifacts.
-
-## Artifacts
-
-```txt
-check_slug_availability
-create_artifact
-update_artifact
-restore_artifact_version
-resolve_path
-```
-
-These are the main tools for durable generated work. Create writes the first immutable version; update appends the next one.
-
-## Sharing
-
-```txt
-create_share_link
-list_share_links
-revoke_share_link
-```
-
-Share-link tools enforce artifact permissions and account entitlements.
-
-## Workspaces and Audit
-
-```txt
-list_workspaces
-list_workspace_artifacts
-list_audit_events
-```
-
-Use these tools when an agent needs to discover team context or inspect change history.
+    Discover team context and inspect change history.
+  </Tab>
+</Tabs>
 
 ## Error Handling
 
-Tools return authorization and entitlement failures as tool errors. Agents should not retry forbidden actions without changing credentials or requested scope.
+<Cards>
+  <Card title="Authorization" description="Forbidden actions require different credentials or scope." />
+  <Card title="Entitlements" description="Paid collaboration features can fail before objects are created." />
+  <Card title="Retry behavior" description="Agents should not blindly retry policy failures." />
+</Cards>

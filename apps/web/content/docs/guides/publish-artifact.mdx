@@ -5,48 +5,69 @@ description: Choose the right publishing path for reports, prototypes, and gener
 
 ## Choose a Surface
 
-Use the CLI when an agent or script has a local file. Use REST when a backend service already owns the integration. Use MCP when the calling agent supports authenticated tool calls and should discover the platform directly.
+<Cards>
+  <Card title="CLI" description="Best when an agent or script has a local file to publish." href="/docs/surfaces/cli" />
+  <Card title="REST API" description="Best when a backend service already owns the integration." href="/docs/surfaces/rest-api" />
+  <Card title="MCP" description="Best when a compatible agent should discover tools directly." href="/docs/surfaces/mcp" />
+</Cards>
 
-## Pick a Project
+## Publishing flow
 
-Publish into a stable project slug so related outputs are easy to find:
+<Steps>
+  <Step>
+    ### Pick a project
 
-```bash
-artifacts project create --json '{"ownerUsername":"alice","slug":"research","title":"Research"}'
-```
+    Publish into a stable project slug so related outputs are easy to find:
 
-## Push a File
+    ```bash
+    artifacts project create --json '{"ownerUsername":"alice","slug":"research","title":"Research"}'
+    ```
+  </Step>
 
-```bash
-artifacts push --owner alice --project-slug research --file ./summary.md
-```
+  <Step>
+    ### Push a file
 
-For interactive prototypes:
+    <Tabs items={["Markdown report", "Interactive prototype"]}>
+      <Tab>
+        ```bash
+        artifacts push --owner alice --project-slug research --file ./summary.md
+        ```
+      </Tab>
+      <Tab>
+        ```bash
+        artifacts push --owner alice --project-slug research --file ./prototype.tsx --title "Filter prototype"
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
 
-```bash
-artifacts push --owner alice --project-slug research --file ./prototype.tsx --title "Filter prototype"
-```
+  <Step>
+    ### Use explicit metadata when filenames are not enough
 
-## Use Explicit Metadata
+    ```bash
+    artifacts push \
+      --owner alice \
+      --project-slug research \
+      --file ./final.md \
+      --slug q2-market-map \
+      --title "Q2 Market Map"
+    ```
+  </Step>
 
-Override inferred metadata when a filename is not the right public name:
+  <Step>
+    ### Avoid accidental prompts in automation
 
-```bash
-artifacts push \
-  --owner alice \
-  --project-slug research \
-  --file ./final.md \
-  --slug q2-market-map \
-  --title "Q2 Market Map"
-```
+    ```bash
+    export AGENT_ARTIFACTS_NO_INPUT=1
+    export AGENT_ARTIFACTS_TOKEN="..."
+    ```
 
-## Avoid Accidental Prompts
+    Missing required inputs then fail fast instead of opening a browser login
+    flow.
+  </Step>
+</Steps>
 
-Agents and CI should set:
-
-```bash
-export AGENT_ARTIFACTS_NO_INPUT=1
-export AGENT_ARTIFACTS_TOKEN="..."
-```
-
-Missing required inputs then fail fast instead of opening a browser login flow.
+<Callout type="success" title="Result">
+  The artifact URL stays stable. Re-publishing with the same slug appends a new
+  immutable version instead of replacing history.
+</Callout>

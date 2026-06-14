@@ -5,66 +5,69 @@ description: High-level HTTP route map for custom Artifacts integrations.
 
 ## Health
 
-```txt
-GET /health
-```
+<Callout title="Health check">
+  `GET /health` returns service health for the API container.
+</Callout>
 
-Returns service health for the API container.
+## Route Groups
 
-## Authentication and OAuth
+<Tabs items={["Auth", "Profile", "Projects", "Artifacts", "Sharing"]}>
+  <Tab>
+    ```txt
+    GET|POST /api/auth/*
+    GET /.well-known/oauth-protected-resource
+    GET /.well-known/oauth-authorization-server
+    ```
 
-```txt
-GET|POST /api/auth/*
-GET /.well-known/oauth-protected-resource
-GET /.well-known/oauth-authorization-server
-```
+    OAuth metadata supports MCP clients and other OAuth-aware integrations.
+  </Tab>
+  <Tab>
+    ```txt
+    GET /api/profile/me
+    GET /api/profile/projects
+    GET /api/profile/artifacts
+    ```
 
-The OAuth metadata routes support MCP clients and other OAuth-aware integrations.
+    Discover the current principal and visible resources.
+  </Tab>
+  <Tab>
+    ```txt
+    POST /api/projects
+    GET /api/by-path/:ownerUsername/:projectSlug
+    GET /api/slug-preview/:username/:projectSlug/:slug
+    ```
 
-## Profile
+    Projects group artifacts and provide the middle segment of artifact URLs.
+  </Tab>
+  <Tab>
+    ```txt
+    POST /api/artifacts
+    GET /api/artifacts/:id
+    GET /api/artifacts/:id/content
+    POST /api/artifacts/:id/versions
+    POST /api/artifacts/:id/restore
+    GET /api/by-path/:ownerUsername/:projectSlug/:slug
+    ```
 
-```txt
-GET /api/profile/me
-GET /api/profile/projects
-GET /api/profile/artifacts
-```
+    Create the logical artifact, append immutable versions, read content, and
+    resolve human URLs.
+  </Tab>
+  <Tab>
+    ```txt
+    POST /api/artifacts/:id/share-links
+    GET /api/artifacts/:id/share-links
+    DELETE /api/share-links/:id
+    GET /api/audit-events
+    ```
 
-Use profile routes to discover the current principal and visible resources.
-
-## Projects
-
-```txt
-POST /api/projects
-GET /api/by-path/:ownerUsername/:projectSlug
-GET /api/slug-preview/:username/:projectSlug/:slug
-```
-
-Projects group artifacts and provide the middle segment of artifact URLs.
-
-## Artifacts
-
-```txt
-POST /api/artifacts
-GET /api/artifacts/:id
-GET /api/artifacts/:id/content
-POST /api/artifacts/:id/versions
-POST /api/artifacts/:id/restore
-GET /api/by-path/:ownerUsername/:projectSlug/:slug
-```
-
-Artifact routes create the logical artifact, append immutable versions, read content, and resolve human URLs.
-
-## Sharing, Access, and Audit
-
-```txt
-POST /api/artifacts/:id/share-links
-GET /api/artifacts/:id/share-links
-DELETE /api/share-links/:id
-GET /api/audit-events
-```
-
-Use these routes for collaboration controls and review trails. Direct clients should expect entitlement and permission checks.
+    Use these routes for collaboration controls and review trails.
+  </Tab>
+</Tabs>
 
 ## Workspaces and Billing
 
-Workspace routes manage team membership and invitations. Billing routes handle subscription actions and storage metering for paid features.
+<Cards>
+  <Card title="Workspaces" description="Manage team membership, invitations, and shared contexts." />
+  <Card title="Billing" description="Handle subscription actions and storage metering for paid features." />
+  <Card title="Permissions" description="Expect entitlement and policy checks on collaboration routes." />
+</Cards>

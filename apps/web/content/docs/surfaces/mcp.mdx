@@ -5,6 +5,11 @@ description: Let compatible agents create, update, and inspect artifacts through
 
 ## Endpoint
 
+<Callout type="info" title="Agent-native integration">
+  MCP is the direct tool surface for agents that can authenticate, discover
+  capabilities, and call typed tools without shelling out to the CLI.
+</Callout>
+
 The MCP server is exposed at:
 
 ```txt
@@ -32,15 +37,14 @@ Standard clients should dynamically register, complete browser consent, exchange
 
 ## Available Tool Areas
 
-The MCP server exposes tools for:
-
-- Reading the current principal.
-- Creating and listing projects.
-- Checking project and artifact slug availability.
-- Creating, updating, restoring, and resolving artifacts.
-- Creating, listing, and revoking share links.
-- Listing artifact or account audit events.
-- Listing workspaces and workspace artifacts.
+<Cards>
+  <Card title="Principal" description="Read the authenticated principal for the current request." />
+  <Card title="Projects" description="Create projects, list projects, and check project slug availability." />
+  <Card title="Artifacts" description="Create, update, restore, resolve, and check artifact slug availability." />
+  <Card title="Share links" description="Create, list, and revoke scoped artifact links." />
+  <Card title="Audit" description="List artifact or account audit events." />
+  <Card title="Workspaces" description="List workspaces and workspace-visible artifacts." />
+</Cards>
 
 ## Authorization
 

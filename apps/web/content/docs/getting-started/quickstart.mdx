@@ -5,66 +5,111 @@ description: Install the CLI, authenticate, and publish your first artifact.
 
 ## Prerequisites
 
-- Bun for local development.
-- A running Artifacts web/API deployment, or the local monorepo dev stack.
-- A signed-in user for browser login, or a bearer token for non-interactive automation.
+<Callout title="You need one target environment">
+  Use a deployed Artifacts instance, or run the local monorepo stack with the web
+  app on `localhost:3000` and the API on `127.0.0.1:3001`.
+</Callout>
 
-## Install the CLI
+<Cards>
+  <Card title="Runtime" description="Bun for local development and CLI builds." />
+  <Card title="Identity" description="Browser login for humans, bearer tokens for CI and agents." />
+  <Card title="Project" description="A project slug where new artifacts should be published." />
+</Cards>
 
-For the published CLI:
+## Publish in five steps
 
-```bash
-npx @agent-artifacts/cli@latest setup
-```
+<Steps>
+  <Step>
+    ### Install the CLI
 
-From this monorepo:
+    <Tabs items={["Published", "Monorepo"]}>
+      <Tab>
+        ```bash
+        npx @agent-artifacts/cli@latest setup
+        ```
+      </Tab>
+      <Tab>
+        ```bash
+        bun install
+        bun run cli:build
+        bun run cli:install
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
 
-```bash
-bun install
-bun run cli:build
-bun run cli:install
-```
+  <Step>
+    ### Point the CLI at an environment
 
-## Point the CLI at an environment
+    <Tabs items={["Local", "Production"]}>
+      <Tab>
+        ```bash
+        export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
+        export AGENT_ARTIFACTS_WEB_URL="http://localhost:3000"
+        ```
+      </Tab>
+      <Tab>
+        Production bundles can bake default API and web URLs into the binary,
+        but flags and environment variables still win at runtime.
+      </Tab>
+    </Tabs>
+  </Step>
 
-Local development normally uses the API directly and the web app for browser login:
+  <Step>
+    ### Authenticate
 
-```bash
-export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
-export AGENT_ARTIFACTS_WEB_URL="http://localhost:3000"
-```
+    <Tabs items={["Browser login", "Automation token"]}>
+      <Tab>
+        ```bash
+        artifacts login
+        artifacts whoami
+        ```
+      </Tab>
+      <Tab>
+        ```bash
+        export AGENT_ARTIFACTS_TOKEN="..."
+        export AGENT_ARTIFACTS_NO_INPUT=1
+        artifacts whoami --format json
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
 
-Production bundles can bake these URLs into the binary, but flags and environment variables still win at runtime.
+  <Step>
+    ### Publish a file
 
-## Authenticate
+    ```bash
+    artifacts push --owner alice --project-slug default --file ./report.md
+    ```
 
-Use browser login for interactive local work:
+    `push` infers artifact type, title, and slug from `.md`, `.markdown`,
+    `.html`, `.htm`, `.jsx`, and `.tsx` files.
+  </Step>
 
-```bash
-artifacts login
-artifacts whoami
-```
+  <Step>
+    ### Update the same artifact
 
-Use a bearer token for CI, scheduled jobs, or agents running with `--no-input`:
+    ```bash
+    artifacts push --owner alice --project-slug default --file ./report.md --slug report
+    ```
 
-```bash
-export AGENT_ARTIFACTS_TOKEN="..."
-export AGENT_ARTIFACTS_NO_INPUT=1
-artifacts whoami --format json
-```
+    Updates append immutable versions. The artifact URL stays stable while
+    history, diffs, and restore actions remain available.
+  </Step>
+</Steps>
 
-## Publish a file
+## Generated docs structure
 
-```bash
-artifacts push --owner alice --project-slug default --file ./report.md
-```
-
-`push` infers artifact type, title, and slug from `.md`, `.markdown`, `.html`, `.htm`, `.jsx`, and `.tsx` files. Override with `--type`, `--title`, or `--slug` when needed.
-
-## Update it later
-
-```bash
-artifacts push --owner alice --project-slug default --file ./report.md --slug report
-```
-
-Updates append immutable versions. The artifact URL stays stable while history, diffs, and restore actions remain available.
+<Files>
+  <Folder name="content/docs" defaultOpen>
+    <File name="index.mdx" />
+    <Folder name="getting-started" defaultOpen>
+      <File name="quickstart.mdx" />
+    </Folder>
+    <Folder name="surfaces">
+      <File name="cli.mdx" />
+      <File name="rest-api.mdx" />
+      <File name="mcp.mdx" />
+    </Folder>
+  </Folder>
+</Files>

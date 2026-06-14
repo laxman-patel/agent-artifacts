@@ -1,0 +1,253 @@
+---
+title: "REST API Reference"
+description: "Endpoint reference for auth, profiles, projects, artifacts, workspaces, sharing, billing, and MCP metadata."
+---
+
+All paths are relative to the API origin unless noted.
+
+## Health and Auth
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/health` | No | Service health |
+| `GET/POST` | `/api/auth/*` | Cookie/OAuth | Better Auth handlers |
+| `GET` | `/.well-known/oauth-protected-resource` | No | MCP protected resource metadata |
+| `GET` | `/.well-known/oauth-authorization-server` | No | OAuth authorization server metadata |
+| `POST` | `/mcp` | Bearer | MCP JSON-RPC endpoint |
+
+## Profile and Path Resolution
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/profile/me` | User | Current profile |
+| `GET` | `/api/profile/username-availability/:username` | No | Check username |
+| `POST` | `/api/profile/username` | User | Claim username |
+| `GET` | `/api/profile/projects` | Principal | List projects visible through memberships |
+| `GET` | `/api/profile/artifacts` | Principal | List owned artifacts |
+| `GET` | `/api/by-path/:username` | No | List public projects in workspace |
+| `GET` | `/api/by-path/:username/:projectSlug` | Optional | Resolve project and visible artifacts |
+| `GET` | `/api/by-path/:username/:projectSlug/:slug` | Optional | Resolve artifact by path |
+| `GET` | `/api/slug-preview/:username/:projectSlug/:slug` | No | Preview artifact URL |
+
+Claim username body:
+
+```json
+{
+  "username": "alice"
+}
+```
+
+## Projects
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/projects/slug-availability/:username/:slug` | Principal | Check project slug |
+| `POST` | `/api/projects` | Principal | Create project by workspace slug |
+
+Create project body:
+
+```json
+{
+  "ownerUsername": "alice",
+  "slug": "default",
+  "title": "Default",
+  "icon": "*",
+  "description": "Optional"
+}
+```
+
+## Artifacts
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/artifacts/slug-availability/:username/:projectSlug/:slug` | Principal | Check artifact slug |
+| `POST` | `/api/artifacts` | Principal | Create artifact and first version |
+| `GET` | `/api/artifacts/:artifactId` | Optional | Get artifact metadata |
+| `GET` | `/api/artifacts/:artifactId/permissions` | Principal | Current principal permissions |
+| `DELETE` | `/api/artifacts/:artifactId` | Principal | Soft-delete artifact |
+| `POST` | `/api/artifacts/:artifactId/versions` | Principal | Append version |
+| `POST` | `/api/artifacts/:artifactId/versions/:versionNumber/restore` | Principal | Restore old version |
+| `GET` | `/api/artifacts/:artifactId/versions` | Optional | List versions |
+| `GET` | `/api/artifacts/:artifactId/content` | Optional | Get source content |
+| `GET` | `/api/artifacts/:artifactId/thumbnail` | Optional | Get thumbnail |
+| `GET` | `/api/artifacts/:artifactId/access` | Principal | Read access settings |
+| `PATCH` | `/api/artifacts/:artifactId/access` | Principal | Update access settings |
+| `GET` | `/api/artifacts/:artifactId/diff` | Optional | Diff two versions |
+
+Create artifact body:
+
+```json
+{
+  "ownerUsername": "alice",
+  "projectSlug": "default",
+  "slug": "report",
+  "type": "md",
+  "title": "Report",
+  "description": "Optional",
+  "content": "# Report",
+  "changelog": "Initial publish",
+  "access": {
+    "publicView": true,
+    "publicEdit": false
+  }
+}
+```
+
+Update body:
+
+```json
+{
+  "content": "# Report v2",
+  "changelog": "Refresh",
+  "expectedLatestVersion": 1
+}
+```
+
+Access body:
+
+```json
+{
+  "publicView": false,
+  "publicEdit": false,
+  "viewerEmails": ["teammate@example.com"]
+}
+```
+
+Version list query:
+
+| Query | Type | Default | Max |
+| --- | --- | --- | --- |
+| `limit` | positive integer | `50` | `100` |
+
+Content query:
+
+| Query | Type | Purpose |
+| --- | --- | --- |
+| `version` | positive integer | Optional version number; latest when omitted |
+
+Diff query:
+
+| Query | Type | Required |
+| --- | --- | --- |
+| `from` | positive integer | Yes |
+| `to` | positive integer | Yes |
+
+## Workspaces
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/workspaces` | Principal | List workspaces |
+| `GET` | `/api/workspaces/slug-availability/:slug` | Principal | Check team slug |
+| `POST` | `/api/workspaces` | Principal | Create team workspace |
+| `GET` | `/api/workspaces/:workspaceId/projects` | Principal | List workspace projects |
+| `GET` | `/api/workspaces/:workspaceId/projects/slug-availability/:slug` | Principal | Check workspace project slug |
+| `POST` | `/api/workspaces/:workspaceId/projects` | Principal | Create workspace project |
+| `GET` | `/api/workspaces/:workspaceId/artifacts` | Principal | List workspace artifacts |
+| `POST` | `/api/workspaces/:workspaceId/artifacts` | Principal | Create workspace artifact |
+| `GET` | `/api/workspaces/:workspaceId/members` | Principal | List members |
+| `GET` | `/api/workspaces/:workspaceId/seat-usage` | Principal | Seat usage and plan info |
+| `PATCH` | `/api/workspaces/:workspaceId/members/:userId` | Principal | Change member role |
+| `DELETE` | `/api/workspaces/:workspaceId/members/:userId` | Principal | Remove member |
+| `GET` | `/api/workspaces/:workspaceId/audit-events` | User | Workspace audit events |
+
+Create team body:
+
+```json
+{
+  "slug": "acme",
+  "name": "Acme"
+}
+```
+
+Create workspace project body:
+
+```json
+{
+  "slug": "design",
+  "title": "Design",
+  "icon": "*",
+  "description": "Optional"
+}
+```
+
+## Workspace Invitations
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/api/workspaces/:workspaceId/invitations` | Principal | Invite member |
+| `GET` | `/api/workspaces/:workspaceId/invitations` | Principal | List pending invitations |
+| `POST` | `/api/workspace-invitations/:invitationId/revoke` | Principal | Revoke invitation |
+| `POST` | `/api/workspace-invitations/:invitationId/resend` | Principal | Resend invitation |
+| `POST` | `/api/workspace-invitations/accept` | User | Accept invitation token |
+
+Invitation body:
+
+```json
+{
+  "email": "teammate@example.com",
+  "role": "member"
+}
+```
+
+## Sharing and Audit
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/api/artifacts/:artifactId/share-links` | Principal | Create share link |
+| `GET` | `/api/artifacts/:artifactId/share-links` | Principal | List share links |
+| `POST` | `/api/share-links/:shareLinkId/revoke` | Principal | Revoke share link |
+| `GET` | `/api/share/:token` | No | Resolve active share link |
+| `GET` | `/api/audit-events` | User | Account or artifact audit events |
+
+Create share link body:
+
+```json
+{
+  "role": "viewer",
+  "expiresAt": "2026-06-30T12:00:00.000Z"
+}
+```
+
+Audit query:
+
+| Query | Type | Purpose |
+| --- | --- | --- |
+| `artifactId` | string | Optional artifact filter |
+| `limit` | positive integer, max 100 | Defaults to 50 |
+
+## API Keys
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/api-keys` | Principal | List API keys |
+| `POST` | `/api/api-keys` | Principal | Create API key |
+| `DELETE` | `/api/api-keys/:apiKeyId` | Principal | Revoke API key |
+
+Create key body:
+
+```json
+{
+  "name": "ci",
+  "scopes": ["artifacts:read", "artifacts:create", "artifacts:update"]
+}
+```
+
+## Billing
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/billing/plans` | No | Plans, Dodo products, meters |
+| `GET` | `/api/billing/me` | User | Current plan and usage |
+| `POST` | `/api/billing/checkout` | User | Create checkout session |
+| `POST` | `/api/billing/portal` | User | Create billing portal session |
+| `POST` | `/api/billing/storage-snapshot` | User | Record current user's storage snapshot |
+| `POST` | `/api/internal/billing/storage-snapshots` | Cron secret | Record snapshots for active accounts |
+| `POST` | `/api/webhooks/dodo` | Dodo signature | Billing webhook |
+
+Checkout body:
+
+```json
+{
+  "planId": "builder"
+}
+```

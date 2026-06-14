@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { docsUrl } from "@/lib/site-metadata";
 import { cn } from "@/lib/utils";
 import { MarketingAuthLink } from "./marketing-auth-link";
 
 export const marketingLogoPath = "/brand/artifacts-logo.svg";
 const githubUrl = "https://github.com/laxman-patel/agent-artifacts";
+const docsHref = docsUrl();
 
 type MarketingNavItem = {
   label: string;
@@ -14,7 +16,7 @@ type MarketingNavItem = {
 
 const navItems: MarketingNavItem[] = [
   { label: "pricing", href: "/pricing" },
-  { label: "docs", href: "/#how" },
+  { label: "docs", href: docsHref },
   { label: "support", href: "mailto:support@agent-artifacts.com" }
 ];
 
@@ -112,7 +114,7 @@ export function MarketingFooter() {
         <Link href="/pricing" className="transition-colors hover:text-foreground/70">
           Pricing
         </Link>
-        <Link href="/#how" className="transition-colors hover:text-foreground/70">
+        <Link href={docsHref} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground/70">
           Docs
         </Link>
         <Link href="mailto:support@agent-artifacts.com" className="transition-colors hover:text-foreground/70">

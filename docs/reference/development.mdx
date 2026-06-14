@@ -1,0 +1,167 @@
+---
+title: "Development"
+description: "Repository layout, local commands, tests, builds, migrations, and operational checks."
+---
+
+Artifacts is a Bun and Turborepo monorepo with web, API, CLI, and shared domain packages.
+
+## Repository Layout
+
+```text
+apps/
+  web/      Next.js app router web app
+  api/      Hono API service
+  cli/      Commander-based artifacts CLI
+packages/
+  access/   Artifact authorization helpers
+  artifact/ Artifact, project, audit, profile, and share-link services
+  auth/     Better Auth and API key service
+  billing/  Dodo Payments plans, entitlements, usage, and webhooks
+  config/   Environment loading
+  db/       Drizzle schema and migrations
+  mcp/      MCP tool registry and handlers
+  policy/   Role, scope, and action policy
+  shared/   Shared schemas, slugs, principals, and URL helpers
+  storage/  S3-compatible storage adapter
+  workspace/ Workspace, membership, and invitation services
+```
+
+## Common Commands
+
+| Command | Purpose |
+| --- | --- |
+| `bun install` | Install dependencies |
+| `bun run dev` | Start web and API dev servers |
+| `bun run build` | Build all packages/apps through Turbo |
+| `bun run typecheck` | Type-check all workspaces |
+| `bun run lint` | Run repository lint command, currently TypeScript checks |
+| `bun run test` | Run all tests |
+| `bun run db:migrate` | Apply Drizzle migrations |
+| `bun run db:generate` | Generate Drizzle migrations |
+| `bun run cli:build` | Build the CLI |
+| `bun run cli:install` | Install local CLI into `~/.local/bin` |
+| `bun run cli:build:prod` | Build production CLI binary with baked URLs |
+| `bun run artifacts -- <command>` | Run CLI from repo root |
+
+## Type Checking
+
+Run the whole repo:
+
+```bash
+bun run typecheck
+```
+
+Run one workspace:
+
+```bash
+bun run --filter @agent-artifacts/api typecheck
+bun run --filter @agent-artifacts/web typecheck
+bun run --filter @agent-artifacts/cli typecheck
+```
+
+## Tests
+
+Run all tests:
+
+```bash
+bun run test
+```
+
+Run package tests directly:
+
+```bash
+bun run --filter @agent-artifacts/cli test
+bun run --filter @agent-artifacts/web test
+```
+
+Optional browser smoke tests live in `apps/web/e2e`. Start dev servers first, install Playwright browsers once, then run:
+
+```bash
+bunx playwright install
+bun run --filter @agent-artifacts/web test:e2e
+```
+
+## Database Workflow
+
+Schema lives in `packages/db`. Migration files live in `packages/db/drizzle`.
+
+After changing schema:
+
+```bash
+bun run db:generate
+bun run db:migrate
+```
+
+## CLI Development
+
+Build:
+
+```bash
+bun run cli:build
+```
+
+Run without installing:
+
+```bash
+bun run artifacts -- schema
+```
+
+Run from TypeScript source:
+
+```bash
+bun run --filter @agent-artifacts/cli dev -- schema
+```
+
+The CLI command registry lives in `apps/cli/src/commands`.
+
+## API Development
+
+The API is a Hono service. Route registration starts in `apps/api/src/routes/index.ts`.
+
+Important route modules:
+
+- `artifacts.ts`
+- `projects.ts`
+- `profile.ts`
+- `workspaces.ts`
+- `workspace-invitations.ts`
+- `api-keys.ts`
+- `billing.ts`
+- `share-links.ts`
+
+Domain services are built in `apps/api/src/deps.ts` and mostly live under `packages/`.
+
+## MCP Development
+
+MCP tool definitions live in `packages/mcp/src/index.ts`.
+
+Each tool has:
+
+- `description`
+- Zod `schema`
+- `handler`
+
+The exported `listMcpTools()` function converts the registry to JSON Schema for discovery.
+
+## Operational Checks
+
+Health endpoint:
+
+```bash
+curl "$API_URL/health"
+```
+
+Recommended monitors:
+
+| Monitor | URL | Purpose |
+| --- | --- | --- |
+| API health | `<api-host>/health` | Container alive |
+| Web root | `<public-app-url>/` | Frontend reachable |
+| OAuth callback | `<public-app-url>/api/auth/callback/google` | Detect auth misconfiguration |
+| SSL certificate | Apex domain | Cert expiry |
+
+## Logging
+
+The API logs request ID, method, path, status, duration, user or principal attribution, user agent, and optional trusted proxy IP. Audit events are mirrored to logs without metadata.
+
+The web app reports Web Vitals and client/runtime failures when Better Stack browser tokens are configured.

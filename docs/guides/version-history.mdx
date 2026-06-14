@@ -1,0 +1,130 @@
+---
+title: "Version History"
+description: "List versions, read source content, compare diffs, and restore old snapshots."
+---
+
+Artifacts keeps every write as an immutable version. The artifact points at the latest version, while older versions remain addressable for history, diff, and restore workflows.
+
+## List Versions
+
+```bash
+artifacts artifact versions --artifact-id ARTIFACT_ID --limit 20
+```
+
+REST:
+
+```text
+GET /api/artifacts/:artifactId/versions?limit=20
+```
+
+MCP:
+
+```json
+{
+  "tool": "list_artifact_versions",
+  "input": {
+    "artifactId": "ARTIFACT_ID",
+    "limit": 20
+  }
+}
+```
+
+## Read Version Content
+
+Read the latest source:
+
+```bash
+artifacts artifact content --artifact-id ARTIFACT_ID
+```
+
+Read a specific version:
+
+```bash
+artifacts artifact content --artifact-id ARTIFACT_ID --version 1
+```
+
+REST returns raw source text with artifact headers:
+
+```text
+GET /api/artifacts/:artifactId/content?version=1
+```
+
+Important response headers:
+
+- `content-type`: source content type, such as `text/markdown; charset=utf-8`.
+- `x-artifact-id`: artifact ID.
+- `x-artifact-version`: returned version number.
+- `x-content-type-options: nosniff`: prevents browser content-type guessing.
+
+## Compare Versions
+
+Use diffs to review changes between two versions:
+
+```bash
+artifacts artifact diff --artifact-id ARTIFACT_ID --from 1 --to 2
+```
+
+REST:
+
+```text
+GET /api/artifacts/:artifactId/diff?from=1&to=2
+```
+
+MCP:
+
+```json
+{
+  "tool": "diff_artifact_versions",
+  "input": {
+    "artifactId": "ARTIFACT_ID",
+    "fromVersion": 1,
+    "toVersion": 2
+  }
+}
+```
+
+## Restore a Version
+
+Restore does not mutate old versions. It creates a new head version whose content comes from the selected historical version.
+
+```bash
+artifacts artifact restore --artifact-id ARTIFACT_ID --version 1
+```
+
+REST:
+
+```text
+POST /api/artifacts/:artifactId/versions/:versionNumber/restore
+```
+
+MCP:
+
+```json
+{
+  "tool": "restore_artifact_version",
+  "input": {
+    "artifactId": "ARTIFACT_ID",
+    "versionNumber": 1
+  }
+}
+```
+
+## Retention
+
+Version history retention is plan based:
+
+| Plan | Version history |
+| --- | --- |
+| Free | 30 days |
+| Pro | 365 days |
+| Team | 365 days |
+
+## Agent Workflow
+
+For agents updating the same artifact repeatedly:
+
+1. Resolve the artifact with `artifacts path artifact`.
+2. Read the latest metadata and version.
+3. Update with an `expectedLatestVersion` guard through REST or MCP when concurrent writes are possible.
+4. Include a concise `changelog` describing why the content changed.
+5. Use `artifact diff` before sharing a major update.

@@ -1,5 +1,4 @@
 import { withBetterStack } from "@logtail/next";
-import { createMDX } from "fumadocs-mdx/next";
 import { loadMonorepoEnv } from "../../packages/config/src/load-monorepo-env";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
@@ -63,10 +62,6 @@ const nextConfig: NextConfig = {
     return {
       beforeFiles: [
         {
-          source: "/docs/:path*.md",
-          destination: "/llms.mdx/docs/:path*"
-        },
-        {
           source: "/.well-known/oauth-protected-resource",
           destination: `${internalApiUrl.replace(/\/+$/, "")}/.well-known/oauth-protected-resource`
         },
@@ -90,6 +85,4 @@ const nextConfig: NextConfig = {
   }
 };
 
-const withMDX = createMDX();
-
-export default withMDX(withBetterStack(nextConfig));
+export default withBetterStack(nextConfig);

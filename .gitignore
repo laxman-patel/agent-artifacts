@@ -17,7 +17,6 @@ references/
 dist/
 build/
 .next/
-.source/
 .turbo/
 .vercel/
 coverage/

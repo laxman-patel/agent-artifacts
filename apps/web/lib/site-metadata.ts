@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 const DEFAULT_APP_URL = "http://localhost:3000";
+const DEFAULT_DOCS_URL = "https://docs.agent-artifacts.com";
 
 export const SITE_NAME = "Artifacts";
 export const SITE_TITLE = "Artifacts | Agent-native artifact hosting";
@@ -11,6 +12,10 @@ export const GENERIC_OG_DESCRIPTION =
 
 export function publicAppUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL ?? process.env.PUBLIC_APP_URL ?? DEFAULT_APP_URL).replace(/\/+$/, "");
+}
+
+export function docsUrl(): string {
+  return (process.env.NEXT_PUBLIC_DOCS_URL ?? DEFAULT_DOCS_URL).replace(/\/+$/, "");
 }
 
 export function absoluteUrl(path: string): string {

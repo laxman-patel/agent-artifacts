@@ -1,0 +1,126 @@
+---
+title: "CLI"
+description: "The agent-friendly command line surface for Artifacts."
+---
+
+The `artifacts` CLI is the recommended interface for local agents, CI jobs, and scripts. It is a deterministic wrapper over the REST API with machine-readable discovery and stable output behavior.
+
+## Install
+
+Published package:
+
+```bash
+npx @agent-artifacts/cli@latest setup
+```
+
+From the monorepo:
+
+```bash
+bun install
+bun run cli:build
+bun run cli:install
+```
+
+Without global install:
+
+```bash
+bun run artifacts -- <command>
+```
+
+## Configure URLs
+
+For local development:
+
+```bash
+export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
+export AGENT_ARTIFACTS_WEB_URL="http://localhost:3000"
+```
+
+For production, build a standalone binary with default URLs read from `.env`:
+
+```bash
+bun run cli:build:prod
+bun run cli:install:prod
+```
+
+Resolution order is:
+
+```text
+flags -> environment variables -> saved credentials -> build-time defaults
+```
+
+## Authenticate
+
+Browser login:
+
+```bash
+artifacts login
+artifacts whoami
+```
+
+Manual bearer token:
+
+```bash
+export AGENT_ARTIFACTS_TOKEN="aa_live_..."
+artifacts whoami --format json
+```
+
+Non-interactive jobs:
+
+```bash
+export AGENT_ARTIFACTS_NO_INPUT=1
+artifacts artifact list --format json
+```
+
+## Agent Discovery
+
+Agents should use schema discovery instead of parsing `--help`:
+
+```bash
+artifacts schema
+```
+
+The schema includes:
+
+- Command names and examples.
+- HTTP method and path.
+- JSON body schema.
+- Mutating versus read-only command metadata.
+- Global flags and output contract.
+
+## Output Contract
+
+The CLI is designed for automation:
+
+- JSON by default when stdout is not a TTY.
+- Text output in interactive terminals.
+- Successful data on stdout.
+- Errors on stderr.
+- Stable envelope: `{ "ok": true, "data": ... }` or `{ "ok": false, "error": ... }`.
+- `--ndjson` streams list results as one JSON object per line.
+- `next_actions` suggest useful follow-up commands.
+
+Exit codes:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `2` | Invalid request |
+| `3` | Not found |
+| `4` | Forbidden or authentication failure |
+| `5` | Conflict |
+| `69` | Retryable network failure |
+
+## Common Commands
+
+```bash
+artifacts push --owner alice --project-slug default --file ./report.md
+artifacts artifact list --limit 20
+artifacts artifact get --artifact-id ARTIFACT_ID
+artifacts artifact update --artifact-id ARTIFACT_ID --json '{"content":"# v2"}'
+artifacts artifact diff --artifact-id ARTIFACT_ID --from 1 --to 2
+artifacts share create --artifact-id ARTIFACT_ID --role viewer
+artifacts keys create --name ci --scopes artifacts:read,artifacts:create
+```
+
+See the [CLI reference](/reference/cli) for full command coverage.

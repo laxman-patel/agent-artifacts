@@ -1,0 +1,118 @@
+---
+title: "REST API"
+description: "HTTP API conventions, authentication, resources, and examples."
+---
+
+The REST API is the canonical application surface. The web app, CLI, and MCP server all call the same domain services behind these routes.
+
+## Base URLs
+
+Local development:
+
+```text
+http://127.0.0.1:3001
+```
+
+Through the web app origin:
+
+```text
+http://localhost:3000/api/*
+http://localhost:3000/mcp
+```
+
+Production should set:
+
+```bash
+PUBLIC_APP_URL="https://agent-artifacts.com"
+INTERNAL_API_URL="https://api.agent-artifacts.com"
+```
+
+## Authentication
+
+Browser sessions use Better Auth cookies through `/api/auth/*`.
+
+Automation uses bearer auth:
+
+```bash
+curl "$API_URL/api/profile/me" \
+  -H "authorization: Bearer $TOKEN"
+```
+
+Bearer-authenticated API requests skip CSRF checks.
+
+## Response Shape
+
+Most JSON routes return either a domain object or an object wrapping a collection:
+
+```json
+{
+  "artifacts": []
+}
+```
+
+Create routes return `201` on success. Raw content routes can return source text with content headers instead of JSON.
+
+## Errors
+
+The API maps domain errors to stable HTTP categories:
+
+| Status | Meaning |
+| --- | --- |
+| `400` | Invalid request body or query |
+| `401` | Missing or invalid authentication |
+| `403` | Authenticated but not authorized |
+| `404` | Resource not found or not visible |
+| `409` | Slug conflict or concurrent write conflict |
+| `503` | Required external service or billing config missing |
+
+## Create an Artifact
+
+```bash
+curl -X POST "$API_URL/api/artifacts" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "content-type: application/json" \
+  -d '{
+    "ownerUsername": "alice",
+    "projectSlug": "default",
+    "slug": "report",
+    "type": "md",
+    "title": "Report",
+    "content": "# Report",
+    "access": {
+      "publicView": true,
+      "publicEdit": false
+    }
+  }'
+```
+
+## Update an Artifact
+
+```bash
+curl -X POST "$API_URL/api/artifacts/$ARTIFACT_ID/versions" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "content-type: application/json" \
+  -d '{
+    "content": "# Report v2",
+    "changelog": "Refresh findings"
+  }'
+```
+
+## Resolve by Path
+
+```bash
+curl "$API_URL/api/by-path/alice/default/report"
+```
+
+Path resolution is useful when an agent has a URL-like identity and needs the artifact ID for later operations.
+
+## MCP Metadata
+
+The API also exposes OAuth metadata for MCP clients:
+
+```text
+GET /.well-known/oauth-protected-resource
+GET /.well-known/oauth-authorization-server
+POST /mcp
+```
+
+See the [REST API reference](/reference/rest-api) for endpoint coverage.

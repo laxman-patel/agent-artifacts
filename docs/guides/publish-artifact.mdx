@@ -1,0 +1,149 @@
+---
+title: "Publish an Artifact"
+description: "Create HTML, Markdown, and JSX artifacts from the CLI, REST API, or MCP."
+---
+
+Publishing creates an artifact and its first immutable version. Updating the artifact later appends more versions without changing previous snapshots.
+
+## Choose a Surface
+
+Use the surface that matches the actor:
+
+| Actor | Recommended surface |
+| --- | --- |
+| Human in browser | Web dashboard |
+| Local coding agent | CLI |
+| Backend service or CI | REST API with API key |
+| MCP-capable agent | MCP tools |
+
+## Publish with the CLI
+
+The `push` command is the shortest path from a local file to a durable URL:
+
+```bash
+artifacts push --owner alice --project-slug default --file ./report.md
+```
+
+It infers:
+
+- Type from file extension: `.md`, `.markdown`, `.html`, `.htm`, `.jsx`, `.tsx`.
+- Title from Markdown heading or file name.
+- Slug from title.
+- Access as public view and private edit by default.
+
+Override inference when needed:
+
+```bash
+artifacts push \
+  --owner alice \
+  --project-slug default \
+  --file ./prototype.tsx \
+  --type jsx \
+  --title "Prototype v1" \
+  --slug prototype-v1 \
+  --private
+```
+
+Use `--ensure` when an agent should reuse an existing artifact instead of failing on slug conflict:
+
+```bash
+artifacts push --owner alice --project-slug default --file ./report.md --ensure
+```
+
+## Publish with REST
+
+Create an artifact with `POST /api/artifacts`:
+
+```bash
+curl -X POST "$API_URL/api/artifacts" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "content-type: application/json" \
+  -d '{
+    "ownerUsername": "alice",
+    "projectSlug": "default",
+    "slug": "launch-review",
+    "type": "md",
+    "title": "Launch review",
+    "description": "Agent-generated launch notes",
+    "content": "# Launch review\n\nReady for review.",
+    "changelog": "Initial publish",
+    "access": {
+      "publicView": true,
+      "publicEdit": false
+    }
+  }'
+```
+
+Required fields:
+
+- `ownerUsername`
+- `projectSlug`
+- `slug`
+- `type`
+- `title`
+- `content`
+- `access`
+
+Optional fields:
+
+- `description`
+- `changelog`
+
+## Publish into a Workspace
+
+When you already have a workspace ID, use:
+
+```text
+POST /api/workspaces/:workspaceId/artifacts
+```
+
+The body is the same as `POST /api/artifacts`, except `ownerUsername` is omitted because the workspace is already selected.
+
+## Publish with MCP
+
+Call the `create_artifact` MCP tool:
+
+```json
+{
+  "ownerUsername": "alice",
+  "projectSlug": "default",
+  "slug": "launch-review",
+  "type": "md",
+  "title": "Launch review",
+  "content": "# Launch review\n\nReady for review.",
+  "access": {
+    "publicView": true,
+    "publicEdit": false
+  }
+}
+```
+
+## Update an Artifact
+
+Appending a version requires only the artifact ID and new content:
+
+```bash
+artifacts artifact update \
+  --artifact-id ARTIFACT_ID \
+  --json '{"content":"# Launch review\n\nUpdated after QA.","changelog":"QA edits"}'
+```
+
+For concurrent writers, include `expectedLatestVersion` in REST or MCP requests. If the head has changed, the API returns a conflict instead of silently overwriting another actor's work.
+
+## Check Slugs First
+
+```bash
+artifacts artifact slug-availability \
+  --owner alice \
+  --project-slug default \
+  --slug launch-review
+```
+
+You can also preview the eventual URL:
+
+```bash
+artifacts artifact url-preview \
+  --owner alice \
+  --project-slug default \
+  --slug launch-review
+```

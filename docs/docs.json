@@ -1,0 +1,107 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "linden",
+  "name": "Artifacts",
+  "colors": {
+    "primary": "#FF570A",
+    "light": "#FF8A3D",
+    "dark": "#FF570A"
+  },
+  "logo": {
+    "light": "/brand/artifacts-logo.svg",
+    "dark": "/brand/artifacts-logo.svg",
+    "href": "/"
+  },
+  "favicon": "/brand/artifacts-logo.svg",
+  "appearance": {
+    "default": "dark",
+    "strict": true
+  },
+  "fonts": {
+    "family": "Geist",
+    "source": "/fonts/Geist-Variable.woff2",
+    "format": "woff2",
+    "weight": 400,
+    "body": {
+      "family": "Geist",
+      "source": "/fonts/Geist-Variable.woff2",
+      "format": "woff2",
+      "weight": 400
+    },
+    "heading": {
+      "family": "Geist Pixel Square",
+      "source": "/fonts/GeistPixel-Square.woff2",
+      "format": "woff2",
+      "weight": 400
+    }
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "background": {
+    "color": {
+      "light": "#1B1B1B",
+      "dark": "#1B1B1B"
+    }
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "latex": false,
+    "codeblocks": {
+      "theme": "github-dark"
+    }
+  },
+  "thumbnails": {
+    "appearance": "dark",
+    "fonts": {
+      "family": "Geist"
+    }
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Start",
+        "pages": [
+          "index",
+          "getting-started/quickstart"
+        ]
+      },
+      {
+        "group": "Concepts",
+        "pages": [
+          "concepts/artifacts",
+          "concepts/workspaces-projects",
+          "concepts/access-model"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/publish-artifact",
+          "guides/version-history",
+          "guides/sharing-and-permissions",
+          "guides/api-keys-and-automation"
+        ]
+      },
+      {
+        "group": "Surfaces",
+        "pages": [
+          "surfaces/web",
+          "surfaces/cli",
+          "surfaces/rest-api",
+          "surfaces/mcp"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/cli",
+          "reference/rest-api",
+          "reference/mcp",
+          "reference/configuration",
+          "reference/development"
+        ]
+      }
+    ]
+  }
+}

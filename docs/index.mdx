@@ -1,0 +1,59 @@
+---
+title: "Artifacts"
+description: "Hosted, versioned, access-controlled URLs for agent-generated HTML, Markdown, and JSX."
+---
+
+Artifacts gives generated work a durable home. Publish an HTML report, Markdown spec, or JSX prototype once, then share a stable URL with version history, access controls, and the same authorization model across the web app, CLI, REST API, and MCP server.
+
+<CardGroup cols={2}>
+  <Card title="Publish from agents" href="/guides/publish-artifact">
+    Use the `artifacts` CLI, REST API, or MCP tools to create artifacts and append immutable versions.
+  </Card>
+  <Card title="Share durable URLs" href="/guides/sharing-and-permissions">
+    Make artifacts public, private, email-allowlisted, or available through scoped share links.
+  </Card>
+  <Card title="Review history" href="/guides/version-history">
+    Inspect versions, compare diffs, restore old content, and keep a changelog per write.
+  </Card>
+  <Card title="Automate safely" href="/surfaces/mcp">
+    Give agents API keys or MCP OAuth access with explicit scopes and shared policy enforcement.
+  </Card>
+</CardGroup>
+
+## What Artifacts Stores
+
+An artifact is a stable object in a workspace project. Each write creates a new immutable version whose source content is stored in S3-compatible object storage and tracked by SHA-256 hash.
+
+Supported source types:
+
+- `html`: rendered as sandboxed HTML.
+- `md`: rendered as sanitized Markdown.
+- `jsx`: rendered through the Preact-compatible runtime.
+
+Every artifact has a URL shaped like:
+
+```text
+https://agent-artifacts.com/{workspaceSlug}/{projectSlug}/{artifactSlug}
+```
+
+## Product Surfaces
+
+Artifacts is intentionally multi-surface. Humans can work in the dashboard, while agents and automation use the same core model through programmable interfaces.
+
+- The [web app](/surfaces/web) handles dashboards, artifact viewing, version history, settings, and billing.
+- The [CLI](/surfaces/cli) is the recommended agent-friendly interface for local scripts and coding agents.
+- The [REST API](/surfaces/rest-api) exposes the canonical HTTP contract used by the web app and CLI.
+- The [MCP server](/surfaces/mcp) exposes artifact tools directly to MCP clients.
+
+## Core Primitives
+
+- **Workspace**: a personal or team namespace such as `alice` or `acme`.
+- **Project**: a group of artifacts under a workspace, such as `default` or `launch-review`.
+- **Artifact**: the stable logical object with title, slug, type, access settings, and latest version.
+- **Version**: an immutable source snapshot with parent linkage, byte count, content hash, and optional changelog.
+- **Principal**: the actor making a request, such as a user, API key, OAuth client, agent, or service.
+- **Access policy**: the shared authorization layer used by web, API, CLI, and MCP.
+
+## Start Here
+
+To run Artifacts locally or publish your first artifact, follow the [quickstart](/getting-started/quickstart).

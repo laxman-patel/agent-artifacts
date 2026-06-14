@@ -1,0 +1,136 @@
+---
+title: "Sharing and Permissions"
+description: "Make artifacts public, private, email-allowlisted, or accessible through scoped share links."
+---
+
+Artifacts supports simple public access for fast sharing and stricter controls for private work. All changes go through the same authorization layer and are recorded in audit history.
+
+## Read Current Access
+
+```bash
+artifacts artifact access get --artifact-id ARTIFACT_ID
+```
+
+REST:
+
+```text
+GET /api/artifacts/:artifactId/access
+```
+
+MCP:
+
+```json
+{
+  "tool": "get_artifact_access",
+  "input": {
+    "artifactId": "ARTIFACT_ID"
+  }
+}
+```
+
+## Make an Artifact Public
+
+```bash
+artifacts artifact access set \
+  --artifact-id ARTIFACT_ID \
+  --json '{"publicView":true,"publicEdit":false,"viewerEmails":[]}'
+```
+
+Anyone with the artifact URL can view it.
+
+## Make an Artifact Private
+
+```bash
+artifacts artifact access set \
+  --artifact-id ARTIFACT_ID \
+  --json '{"publicView":false,"publicEdit":false,"viewerEmails":[]}'
+```
+
+Private artifacts require owner access, workspace membership, an API key or OAuth principal with permission, an email allowlist grant, or a share link.
+
+<Info>
+  Private artifacts require a plan with private artifact entitlements.
+</Info>
+
+## Add Email Viewers
+
+```bash
+artifacts artifact access set \
+  --artifact-id ARTIFACT_ID \
+  --json '{"publicView":false,"publicEdit":false,"viewerEmails":["teammate@example.com"]}'
+```
+
+Email viewers must sign in with a verified email that matches the allowlist.
+
+## Create a Share Link
+
+Share links grant one artifact role and can optionally expire:
+
+```bash
+artifacts share create \
+  --artifact-id ARTIFACT_ID \
+  --role viewer \
+  --expires-at 2026-06-30T12:00:00.000Z
+```
+
+Use `editor` only when the recipient should be able to update the artifact:
+
+```bash
+artifacts share create --artifact-id ARTIFACT_ID --role editor
+```
+
+## List Share Links
+
+```bash
+artifacts share list --artifact-id ARTIFACT_ID
+```
+
+REST:
+
+```text
+GET /api/artifacts/:artifactId/share-links
+```
+
+## Revoke a Share Link
+
+```bash
+artifacts share revoke --share-link-id SHARE_LINK_ID
+```
+
+REST:
+
+```text
+POST /api/share-links/:shareLinkId/revoke
+```
+
+Revocation stops future access through that link while preserving audit records.
+
+## View Audit Events
+
+Artifact audit:
+
+```bash
+artifacts audit list --artifact-id ARTIFACT_ID --limit 50
+```
+
+Workspace audit:
+
+```bash
+artifacts workspace audit --workspace-id WORKSPACE_ID --limit 50
+```
+
+Audit retention:
+
+| Plan | Retention |
+| --- | --- |
+| Free | 7 days |
+| Pro | 90 days |
+| Team | 365 days |
+
+## Recommended Patterns
+
+- Use public view for artifacts intended to be pasted into issue trackers, pull requests, or docs.
+- Use private plus email allowlist for specific teammates.
+- Use expiring viewer share links for ad hoc review.
+- Use editor share links sparingly, and revoke them after the collaboration window closes.
+- Use API keys with the narrowest scopes needed for automation.

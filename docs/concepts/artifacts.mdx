@@ -1,0 +1,99 @@
+---
+title: "Artifacts"
+description: "The artifact lifecycle, supported content types, versions, and storage model."
+---
+
+An artifact is the durable object Artifacts hosts. It has a stable URL, belongs to one project, has one source type, and points at the latest immutable version.
+
+## Lifecycle
+
+<Steps>
+  <Step title="Create">
+    A user, API key, agent, or MCP client submits source content with a workspace slug, project slug, artifact slug, title, and type.
+  </Step>
+  <Step title="Store">
+    The API writes source content to object storage, records byte count and SHA-256 hash, then creates artifact and version rows in Postgres.
+  </Step>
+  <Step title="Render">
+    The web app resolves the artifact path and renders the latest version according to its type.
+  </Step>
+  <Step title="Update">
+    Every update appends a new immutable version. Existing versions are never overwritten.
+  </Step>
+  <Step title="Restore or delete">
+    Restoring an old version creates a new head version from that content. Deleting an artifact is a soft delete that preserves audit history.
+  </Step>
+</Steps>
+
+## Content Types
+
+| Type | Input | Render behavior |
+| --- | --- | --- |
+| `html` | HTML document or fragment | Rendered as HTML with browser isolation controls |
+| `md` | Markdown | Rendered as sanitized Markdown with GitHub-flavored Markdown support |
+| `jsx` | JSX or TSX compatible with Preact | Rendered through the Preact-compatible runtime |
+
+The maximum source size is plan-dependent:
+
+| Plan | Max source size |
+| --- | --- |
+| Free | 1 MB |
+| Pro | 10 MB |
+| Team | 50 MB |
+
+## Artifact Fields
+
+Core artifact metadata includes:
+
+- `artifactId`: stable identifier for API, CLI, and MCP operations.
+- `ownerUsername`: workspace slug used in public paths.
+- `projectSlug`: project slug under the workspace.
+- `normalizedSlug`: artifact slug normalized to lowercase hyphen format.
+- `type`: one of `html`, `md`, or `jsx`.
+- `title` and `description`: human-readable metadata.
+- `publicView` and `publicEdit`: coarse public access switches.
+- `latestVersionId`: pointer to the current version.
+
+## Version Fields
+
+Every create, update, and restore writes a version record with:
+
+- `versionNumber`: monotonically increasing positive integer.
+- `parentVersionId`: previous head version when applicable.
+- `contentObjectKey`: object storage key for source content.
+- `thumbnailObjectKey`: optional preview thumbnail storage key.
+- `contentSha256`: integrity hash of the stored source.
+- `contentBytes`: stored source size.
+- `changelog`: optional write description.
+- `createdByPrincipalType` and `createdByPrincipalId`: actor attribution.
+
+## Storage Layout
+
+Source and thumbnail objects use owner and artifact scoped keys:
+
+```text
+users/{ownerUserId}/artifacts/{artifactId}/versions/{versionNumber}/source-{attemptId}
+users/{ownerUserId}/artifacts/{artifactId}/versions/{versionNumber}/thumbnail-{attemptId}
+```
+
+This keeps stored content grouped by billing owner while preserving version-level immutability.
+
+## Slugs and URLs
+
+Artifact slugs normalize to lowercase letters, numbers, and single hyphens:
+
+```text
+my-launch-review
+```
+
+Public artifact URLs are shaped like:
+
+```text
+https://agent-artifacts.com/{workspaceSlug}/{projectSlug}/{artifactSlug}
+```
+
+The API can resolve a path back to metadata with:
+
+```bash
+artifacts path artifact --owner alice --project-slug default --slug launch-review
+```

@@ -19,6 +19,12 @@
       "skillPath": "dodo-payments/best-practices/SKILL.md",
       "computedHash": "3eff4916cbee50e3508233c7ca5f631d85e1a11a59464e7a44af479c0eb4c35a"
     },
+    "improve": {
+      "source": "shadcn/improve",
+      "sourceType": "github",
+      "skillPath": "skills/improve/SKILL.md",
+      "computedHash": "7a0f09dd535fc84391dc63bea826d6aeab985b92423fa4dd93edacb5dfb82524"
+    },
     "subscription-integration": {
       "source": "dodopayments/skills",
       "sourceType": "github",

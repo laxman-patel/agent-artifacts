@@ -1,0 +1,106 @@
+---
+title: "Web App"
+description: "Human workflows in the Artifacts Next.js app."
+---
+
+The web app is the human-facing surface for Artifacts. It handles marketing pages, login, dashboards, artifact viewing, version history, access settings, team workflows, and billing.
+
+## Main Routes
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Marketing landing page |
+| `/login` | Google sign-in and sign-up |
+| `/dashboard` | Workspace dashboard entry |
+| `/dashboard/:workspaceSlug` | Workspace dashboard |
+| `/dashboard/:workspaceSlug/p/:projectSlug` | Project dashboard |
+| `/:workspaceSlug/:projectSlug` | Public project path |
+| `/:workspaceSlug/:projectSlug/:artifactSlug` | Artifact render route |
+| `/:workspaceSlug/:projectSlug/:artifactSlug/history` | Version history |
+| `/:workspaceSlug/:projectSlug/:artifactSlug/settings` | Artifact settings |
+| `/settings/billing` | Billing and plan management |
+| `/teams/new` | Create a team workspace |
+| `/workspaces/new` | Create a workspace flow |
+| `/share/:token` | Resolve a share link |
+
+The bare artifact render route is immersive and hides the shared app header so the artifact can take over the page.
+
+## Authentication
+
+The web app uses Better Auth with Google OAuth. Browser-visible auth URLs should match:
+
+```bash
+BETTER_AUTH_URL="https://your-app.example.com"
+PUBLIC_APP_URL="https://your-app.example.com"
+```
+
+The API can run on a different internal origin. The Next.js app rewrites API and MCP requests:
+
+```text
+/.well-known/oauth-protected-resource -> API
+/.well-known/oauth-authorization-server -> API
+/api/:path* -> API
+/mcp -> API
+```
+
+## Artifact Rendering
+
+The web app resolves artifacts through:
+
+```text
+GET /api/by-path/:username/:projectSlug/:slug
+GET /api/artifacts/:artifactId/content
+GET /api/artifacts/:artifactId/thumbnail
+```
+
+Render behavior is based on artifact type:
+
+- `html`: rendered as HTML.
+- `md`: rendered as Markdown with sanitization.
+- `jsx`: rendered through the Preact-compatible runtime.
+
+## Dashboard Workflows
+
+The dashboard covers:
+
+- Listing workspaces available to the signed-in user.
+- Listing projects inside a workspace.
+- Creating projects and artifacts.
+- Inspecting artifact metadata.
+- Viewing and restoring version history.
+- Managing access settings.
+- Creating and revoking share links.
+- Reviewing audit events.
+
+## Teams
+
+Team workspaces support membership and invitations:
+
+- Create team workspaces on the Team plan.
+- Invite users by email.
+- Grant roles such as `admin`, `member`, `viewer`, and `billing_admin`.
+- Review seat usage against plan entitlements.
+
+## Billing
+
+Billing is powered by Dodo Payments. The web app calls:
+
+```text
+GET /api/billing/plans
+GET /api/billing/me
+POST /api/billing/checkout
+POST /api/billing/portal
+```
+
+The settings UI should show plan entitlements, current usage, checkout, and portal actions.
+
+## Observability
+
+When Better Stack tokens are configured, the web app reports:
+
+- Web Vitals.
+- Client error boundary events.
+- OAuth login errors.
+- Failed internal API fetches from server components.
+
+The web app forwards `x-request-id` to the API for request correlation.

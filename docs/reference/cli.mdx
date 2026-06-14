@@ -1,0 +1,182 @@
+---
+title: "CLI Reference"
+description: "Commands, flags, environment variables, and output behavior for the artifacts CLI."
+---
+
+The CLI command name is `artifacts`.
+
+## Global Flags
+
+| Flag | Env | Purpose |
+| --- | --- | --- |
+| `--base-url <url>` | `AGENT_ARTIFACTS_BASE_URL` | API base URL |
+| `--web-url <url>` | `AGENT_ARTIFACTS_WEB_URL` | Web app URL for browser login |
+| `--token <token>` | `AGENT_ARTIFACTS_TOKEN` | Bearer token |
+| `--token-stdin` | | Read bearer token from stdin |
+| `--format <json\|text>` | `AGENT_ARTIFACTS_FORMAT` | Output format |
+| `--ndjson` | | Stream list results as NDJSON |
+| `--quiet` | | Suppress progress messages on stderr |
+| `--no-input` | `AGENT_ARTIFACTS_NO_INPUT=1` | Disable prompts and browser login |
+| `--debug` | `AGENT_ARTIFACTS_DEBUG=1` | Print stack traces |
+| `--dry-run` | | Preview mutating commands without calling the API |
+| `--version` | | Print CLI version |
+
+## Discovery
+
+| Command | Purpose |
+| --- | --- |
+| `artifacts schema` | Print machine-readable command catalog |
+| `artifacts health` | Call `GET /health` |
+| `artifacts whoami` | Call `GET /api/profile/me` |
+
+## Auth and Profile
+
+| Command | Purpose |
+| --- | --- |
+| `artifacts login` | Browser OAuth login |
+| `artifacts logout` | Clear local credentials |
+| `artifacts profile get` | Read current profile |
+| `artifacts profile set-username --username <username>` | Claim username and personal workspace slug |
+
+## API Keys
+
+| Command | API |
+| --- | --- |
+| `artifacts keys list` | `GET /api/api-keys` |
+| `artifacts keys create --name <name> --scopes <scopes>` | `POST /api/api-keys` |
+| `artifacts keys revoke --api-key-id <id>` | `DELETE /api/api-keys/:apiKeyId` |
+
+Valid scopes:
+
+```text
+artifacts:read
+artifacts:create
+artifacts:update
+artifacts:delete
+artifacts:share
+artifacts:access:read
+artifacts:access:write
+agents:manage
+```
+
+## Projects
+
+| Command | API |
+| --- | --- |
+| `artifacts project list --limit 50` | `GET /api/profile/projects` |
+| `artifacts project create --json '{...}'` | `POST /api/projects` |
+| `artifacts project slug-availability --owner <owner> --slug <slug>` | `GET /api/projects/slug-availability/:owner/:slug` |
+
+Create body:
+
+```json
+{
+  "ownerUsername": "alice",
+  "slug": "default",
+  "title": "Default",
+  "description": "Optional",
+  "icon": "*"
+}
+```
+
+## Workspaces
+
+| Command | API |
+| --- | --- |
+| `artifacts workspace list` | `GET /api/workspaces` |
+| `artifacts workspace members --workspace-id <id>` | `GET /api/workspaces/:workspaceId/members` |
+| `artifacts workspace invite --workspace-id <id> --json '{...}'` | `POST /api/workspaces/:workspaceId/invitations` |
+| `artifacts workspace revoke-invite --invitation-id <id>` | `POST /api/workspace-invitations/:invitationId/revoke` |
+| `artifacts workspace audit --workspace-id <id>` | `GET /api/workspaces/:workspaceId/audit-events` |
+
+Invitation body:
+
+```json
+{
+  "email": "teammate@example.com",
+  "role": "member"
+}
+```
+
+## Artifacts
+
+| Command | API |
+| --- | --- |
+| `artifacts push --owner <owner> --project-slug <slug> --file <path>` | `POST /api/artifacts` |
+| `artifacts artifact list --limit 50` | `GET /api/profile/artifacts` |
+| `artifacts artifact create --json '{...}'` | `POST /api/artifacts` |
+| `artifacts artifact get --artifact-id <id>` | `GET /api/artifacts/:artifactId` |
+| `artifacts artifact update --artifact-id <id> --json '{...}'` | `POST /api/artifacts/:artifactId/versions` |
+| `artifacts artifact restore --artifact-id <id> --version <n>` | `POST /api/artifacts/:artifactId/versions/:versionNumber/restore` |
+| `artifacts artifact delete --artifact-id <id> --yes` | `DELETE /api/artifacts/:artifactId` |
+| `artifacts artifact content --artifact-id <id> --version <n>` | `GET /api/artifacts/:artifactId/content` |
+| `artifacts artifact versions --artifact-id <id>` | `GET /api/artifacts/:artifactId/versions` |
+| `artifacts artifact diff --artifact-id <id> --from <n> --to <n>` | `GET /api/artifacts/:artifactId/diff` |
+| `artifacts artifact slug-availability --owner <owner> --project-slug <project> --slug <slug>` | `GET /api/artifacts/slug-availability/:owner/:projectSlug/:slug` |
+| `artifacts artifact url-preview --owner <owner> --project-slug <project> --slug <slug>` | `GET /api/slug-preview/:owner/:projectSlug/:slug` |
+| `artifacts artifact access get --artifact-id <id>` | `GET /api/artifacts/:artifactId/access` |
+| `artifacts artifact access set --artifact-id <id> --json '{...}'` | `PATCH /api/artifacts/:artifactId/access` |
+
+Create body:
+
+```json
+{
+  "ownerUsername": "alice",
+  "projectSlug": "default",
+  "slug": "readme",
+  "type": "md",
+  "title": "Readme",
+  "description": "Optional",
+  "content": "# Hi",
+  "changelog": "Initial publish",
+  "access": {
+    "publicView": true,
+    "publicEdit": false
+  }
+}
+```
+
+Update body:
+
+```json
+{
+  "content": "# Updated",
+  "changelog": "Optional",
+  "expectedLatestVersion": 2
+}
+```
+
+Access body:
+
+```json
+{
+  "publicView": false,
+  "publicEdit": false,
+  "viewerEmails": ["teammate@example.com"]
+}
+```
+
+## Paths
+
+| Command | API |
+| --- | --- |
+| `artifacts path project --owner <owner> --project-slug <slug>` | `GET /api/by-path/:owner/:projectSlug` |
+| `artifacts path artifact --owner <owner> --project-slug <project> --slug <slug>` | `GET /api/by-path/:owner/:projectSlug/:slug` |
+
+## Share Links and Audit
+
+| Command | API |
+| --- | --- |
+| `artifacts share create --artifact-id <id> --role viewer` | `POST /api/artifacts/:artifactId/share-links` |
+| `artifacts share list --artifact-id <id>` | `GET /api/artifacts/:artifactId/share-links` |
+| `artifacts share revoke --share-link-id <id>` | `POST /api/share-links/:shareLinkId/revoke` |
+| `artifacts audit list --artifact-id <id> --limit 50` | `GET /api/audit-events` |
+
+Share link body:
+
+```json
+{
+  "role": "viewer",
+  "expiresAt": "2026-06-30T12:00:00.000Z"
+}
+```

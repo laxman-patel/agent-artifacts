@@ -4,15 +4,17 @@ import type { ComponentType, ReactNode } from "react";
 import { LockKeyhole, PackageCheck, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { docsUrl } from "@/lib/site-metadata";
 import { fetchBillingPlans, type BillingPlan } from "../../lib/server-api";
 import { BillingCheckoutButton } from "../components/billing-actions";
 import { PricingDitherShader } from "../components/pricing-dither-shader";
 
 const logoPath = "/brand/artifacts-logo.svg";
+const docsHref = docsUrl();
 
 const navItems: { label: string; href: string; active?: boolean }[] = [
   { label: "pricing", href: "/pricing", active: true },
-  { label: "docs", href: "/#how" },
+  { label: "docs", href: docsHref },
   { label: "support", href: "mailto:support@agent-artifacts.com" }
 ];
 
@@ -290,7 +292,7 @@ function PricingFooter() {
       <div className="flex flex-wrap items-center gap-4">
         <img src={logoPath} alt="Artifacts" className="size-[18px] opacity-75" />
         <Link href="/pricing" className="transition-colors hover:text-foreground/70">Pricing</Link>
-        <Link href="/#how" className="transition-colors hover:text-foreground/70">Docs</Link>
+        <Link href={docsHref} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground/70">Docs</Link>
         <Link href="mailto:support@agent-artifacts.com" className="transition-colors hover:text-foreground/70">Support</Link>
         <Link href={githubUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground/70">GitHub</Link>
       </div>

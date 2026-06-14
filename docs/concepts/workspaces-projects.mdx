@@ -1,0 +1,98 @@
+---
+title: "Workspaces and Projects"
+description: "How Artifacts organizes namespaces, teams, projects, and artifact paths."
+---
+
+Artifacts uses a two-level namespace before each artifact slug:
+
+```text
+/{workspaceSlug}/{projectSlug}/{artifactSlug}
+```
+
+The workspace owns billing, membership, and namespace policy. The project groups related artifacts under that workspace.
+
+## Workspaces
+
+A workspace is either personal or team-based.
+
+| Kind | Purpose | Creation |
+| --- | --- | --- |
+| `personal` | The user's default namespace | Created when the user claims a username |
+| `team` | Shared namespace for collaboration | Created by signed-in users on a plan that allows team workspaces |
+
+Workspace slugs use the same validation rules as usernames:
+
+- 3 to 32 characters.
+- Lowercase letters, numbers, underscores, and hyphens.
+- Must start and end with a letter or number.
+- Must not conflict with reserved app routes such as `api`, `docs`, `login`, `dashboard`, or `mcp`.
+
+## Workspace Roles
+
+Workspace membership grants access to projects and artifacts in that namespace.
+
+| Role | Typical use |
+| --- | --- |
+| `owner` | Full namespace control and billing ownership |
+| `admin` | Manage members and content |
+| `member` | Create and edit content |
+| `viewer` | Read visible workspace content |
+| `billing_admin` | Manage billing without full content administration |
+
+Team invitations can grant `admin`, `member`, `viewer`, or `billing_admin`.
+
+## Projects
+
+A project groups artifacts under a workspace. Examples:
+
+```text
+/alice/default/launch-review
+/acme/design-explorations/pricing-grid
+```
+
+Project fields include:
+
+- `projectId`
+- `ownerUsername` or `workspaceSlug`
+- `slug`
+- `title`
+- `description`
+- `icon`
+
+Project slugs normalize to lowercase letters, numbers, and single hyphens.
+
+## Creating Projects
+
+With the CLI:
+
+```bash
+artifacts project create --json '{"ownerUsername":"alice","slug":"research","title":"Research"}'
+```
+
+Against a workspace-specific API route:
+
+```bash
+curl -X POST "$API_URL/api/workspaces/$WORKSPACE_ID/projects" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"slug":"research","title":"Research"}'
+```
+
+## Path Resolution
+
+Artifacts supports path-first lookup for humans and agents:
+
+```bash
+artifacts path project --owner alice --project-slug research
+artifacts path artifact --owner alice --project-slug research --slug synthesis
+```
+
+Equivalent REST routes:
+
+```text
+GET /api/by-path/:username
+GET /api/by-path/:username/:projectSlug
+GET /api/by-path/:username/:projectSlug/:slug
+```
+
+Project path resolution returns the project and the artifacts visible to the caller. Artifact path resolution applies normal artifact access policy and share-link grants.

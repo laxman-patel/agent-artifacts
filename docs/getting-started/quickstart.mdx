@@ -1,0 +1,137 @@
+---
+title: "Quickstart"
+description: "Run Artifacts locally and publish your first artifact."
+---
+
+This guide starts the web and API services, runs database migrations, installs the CLI, and publishes a Markdown artifact.
+
+## Requirements
+
+- Bun, matching the repository package manager.
+- Node.js 24 or newer.
+- PostgreSQL-compatible database, such as Neon or the local database configured for development.
+- S3-compatible object storage, such as Cloudflare R2.
+- Google OAuth credentials for interactive login.
+
+## Install Dependencies
+
+From the repository root:
+
+```bash
+bun install
+```
+
+Copy the example environment file and fill in local values:
+
+```bash
+cp .env.example .env
+```
+
+At minimum, align the browser-visible app origin and the internal API origin:
+
+```bash
+BETTER_AUTH_URL="http://localhost:3000"
+PUBLIC_APP_URL="http://localhost:3000"
+INTERNAL_API_URL="http://127.0.0.1:3001"
+```
+
+<Tip>
+  The Next.js app rewrites `/api/*`, `/mcp`, and OAuth metadata routes to the Hono API, so browser cookies stay scoped to the public web origin.
+</Tip>
+
+## Prepare the Database
+
+Run migrations before the first local boot:
+
+```bash
+bun run db:migrate
+```
+
+When changing schema definitions later, generate migrations with:
+
+```bash
+bun run db:generate
+```
+
+## Start the App
+
+Run the web and API apps through Turbo:
+
+```bash
+bun run dev
+```
+
+Local defaults:
+
+- Web app: `http://localhost:3000`
+- API app: `http://127.0.0.1:3001`
+- MCP endpoint through web origin: `http://localhost:3000/mcp`
+- API health check: `http://127.0.0.1:3001/health`
+
+## Install the CLI
+
+Build the TypeScript CLI and install the `artifacts` command on your PATH:
+
+```bash
+bun run cli:build
+bun run cli:install
+```
+
+Without global install, run commands from the repository root:
+
+```bash
+bun run artifacts -- <command>
+```
+
+## Log In
+
+Set local URLs, then start browser login:
+
+```bash
+export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
+export AGENT_ARTIFACTS_WEB_URL="http://localhost:3000"
+
+artifacts login
+artifacts whoami
+```
+
+The CLI stores credentials in `~/.config/agent-artifacts/credentials.json` with mode `0600`.
+
+## Claim a Username
+
+The personal workspace slug comes from your username. If you have not claimed one yet:
+
+```bash
+artifacts profile set-username --username alice
+```
+
+## Create a Project
+
+Create a project in your personal workspace:
+
+```bash
+artifacts project create --json '{"ownerUsername":"alice","slug":"default","title":"Default"}'
+```
+
+## Publish an Artifact
+
+Create a local Markdown file:
+
+```bash
+printf '# Launch review\n\nA durable artifact from the CLI.\n' > launch-review.md
+```
+
+Publish it:
+
+```bash
+artifacts push --owner alice --project-slug default --file ./launch-review.md
+```
+
+`push` infers the artifact type, title, and slug from the file. Override them with `--type`, `--title`, and `--slug`.
+
+## Next Steps
+
+- Learn the [artifact model](/concepts/artifacts).
+- Manage [access and sharing](/guides/sharing-and-permissions).
+- Use the [CLI reference](/reference/cli) for command coverage.
+- Connect MCP clients using the [MCP guide](/surfaces/mcp).

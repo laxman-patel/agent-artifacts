@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { BetterStackWebVitals } from "@logtail/next/webVitals";
-import { RootProvider } from "fumadocs-ui/provider/next";
 import {
   genericOpenGraphMetadata,
   publicAppUrl,
@@ -30,15 +29,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className="site-body">
         {shouldReportWebVitals ? <BetterStackWebVitals /> : null}
-        <RootProvider>
-          <div className="site-shell">
-            <SiteHeader />
-            {children}
-          </div>
-        </RootProvider>
+        <div className="site-shell">
+          <SiteHeader />
+          {children}
+        </div>
       </body>
     </html>
   );

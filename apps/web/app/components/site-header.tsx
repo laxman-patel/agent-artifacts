@@ -16,7 +16,6 @@ const RESERVED_TOP_LEVEL = new Set([
   "workspaces",
   "share",
   "cli",
-  "docs",
   "team-invite",
   "workspace-invite",
   "api"
@@ -41,7 +40,6 @@ export function SiteHeader() {
     pathname === "/pricing" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/docs") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/teams") ||
     isImmersiveArtifactPath(pathname)

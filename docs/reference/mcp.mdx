@@ -1,0 +1,288 @@
+---
+title: "MCP Reference"
+description: "MCP endpoint metadata, tool list, and input schemas."
+---
+
+The MCP server is mounted at:
+
+```text
+POST /mcp
+```
+
+Use the web origin for MCP clients so OAuth redirects and cookies stay aligned:
+
+```text
+https://agent-artifacts.com/mcp
+```
+
+## Metadata
+
+Protected resource metadata:
+
+```text
+GET /.well-known/oauth-protected-resource
+```
+
+Authorization server metadata:
+
+```text
+GET /.well-known/oauth-authorization-server
+```
+
+## Tool List
+
+| Tool | Purpose |
+| --- | --- |
+| `get_current_principal` | Return the authenticated principal |
+| `list_workspaces` | List workspaces for the authenticated user |
+| `list_projects` | List projects owned through memberships |
+| `create_project` | Create a project in a workspace namespace |
+| `check_project_slug_availability` | Check project slug availability |
+| `list_artifacts` | List artifacts owned by the authenticated human user |
+| `list_workspace_artifacts` | List artifacts visible in a workspace |
+| `create_artifact` | Create an artifact and first version |
+| `update_artifact` | Append a new immutable version |
+| `restore_artifact_version` | Restore an old version as a new head version |
+| `delete_artifact` | Soft-delete an artifact |
+| `get_artifact` | Read artifact metadata |
+| `get_artifact_content` | Read source content for an artifact version |
+| `list_artifact_versions` | List immutable versions |
+| `diff_artifact_versions` | Return a unified diff between two versions |
+| `get_artifact_access` | Read access settings |
+| `set_artifact_access` | Update access settings |
+| `create_share_link` | Create viewer or editor share link |
+| `list_share_links` | List share links for an artifact |
+| `revoke_share_link` | Revoke a share link |
+| `list_audit_events` | List account or artifact audit events |
+| `resolve_path` | Resolve a project or artifact by path |
+
+## Project Tools
+
+### `check_project_slug_availability`
+
+```json
+{
+  "ownerUsername": "alice",
+  "slug": "default"
+}
+```
+
+### `create_project`
+
+```json
+{
+  "ownerUsername": "alice",
+  "slug": "default",
+  "title": "Default",
+  "icon": "*",
+  "description": "Optional"
+}
+```
+
+### `list_projects`
+
+```json
+{}
+```
+
+## Artifact Tools
+
+### `create_artifact`
+
+```json
+{
+  "ownerUsername": "alice",
+  "projectSlug": "default",
+  "slug": "report",
+  "type": "md",
+  "title": "Report",
+  "description": "Optional",
+  "content": "# Report",
+  "changelog": "Initial publish",
+  "access": {
+    "publicView": true,
+    "publicEdit": false
+  }
+}
+```
+
+### `update_artifact`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID",
+  "content": "# Report v2",
+  "changelog": "Refresh",
+  "expectedLatestVersion": 1
+}
+```
+
+### `restore_artifact_version`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID",
+  "versionNumber": 1
+}
+```
+
+### `delete_artifact`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID"
+}
+```
+
+### `get_artifact`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID"
+}
+```
+
+### `get_artifact_content`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID",
+  "versionNumber": 1
+}
+```
+
+Omit `versionNumber` for the latest source.
+
+### `list_artifacts`
+
+```json
+{}
+```
+
+### `list_workspace_artifacts`
+
+```json
+{
+  "workspaceId": "WORKSPACE_ID"
+}
+```
+
+### `list_artifact_versions`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID",
+  "limit": 50
+}
+```
+
+`limit` is optional and must be at most 100.
+
+### `diff_artifact_versions`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID",
+  "fromVersion": 1,
+  "toVersion": 2
+}
+```
+
+## Access and Sharing Tools
+
+### `get_artifact_access`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID"
+}
+```
+
+### `set_artifact_access`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID",
+  "access": {
+    "publicView": false,
+    "publicEdit": false,
+    "viewerEmails": ["teammate@example.com"]
+  }
+}
+```
+
+### `create_share_link`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID",
+  "role": "viewer",
+  "expiresAt": "2026-06-30T12:00:00.000Z"
+}
+```
+
+`role` defaults to `viewer`. Valid values are `viewer` and `editor`.
+
+### `list_share_links`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID"
+}
+```
+
+### `revoke_share_link`
+
+```json
+{
+  "shareLinkId": "SHARE_LINK_ID"
+}
+```
+
+## Audit and Path Tools
+
+### `list_audit_events`
+
+```json
+{
+  "artifactId": "ARTIFACT_ID",
+  "limit": 50
+}
+```
+
+Omit `artifactId` to list account-level audit events for the authenticated user.
+
+### `resolve_path`
+
+Resolve a project:
+
+```json
+{
+  "ownerUsername": "alice",
+  "projectSlug": "default"
+}
+```
+
+Resolve an artifact:
+
+```json
+{
+  "ownerUsername": "alice",
+  "projectSlug": "default",
+  "slug": "report"
+}
+```
+
+## Workspace and Principal Tools
+
+### `get_current_principal`
+
+```json
+{}
+```
+
+### `list_workspaces`
+
+```json
+{}
+```

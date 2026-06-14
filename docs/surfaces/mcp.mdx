@@ -1,0 +1,126 @@
+---
+title: "MCP Server"
+description: "Connect MCP clients to Artifacts and call artifact tools directly."
+---
+
+Artifacts exposes an MCP server at `/mcp`. MCP clients can authenticate, discover tools, and call the same domain services used by the REST API and CLI.
+
+## Local Endpoint
+
+When running locally:
+
+```text
+http://localhost:3000/mcp
+```
+
+The Next.js app rewrites `/mcp` to the Hono API, so MCP clients can use the same public origin as browser OAuth.
+
+## Discovery Metadata
+
+Protected resource metadata:
+
+```text
+http://localhost:3000/.well-known/oauth-protected-resource
+```
+
+Authorization server metadata:
+
+```text
+http://localhost:3000/.well-known/oauth-authorization-server
+```
+
+The protected resource document advertises:
+
+- Resource: `PUBLIC_APP_URL`
+- Authorization server: `BETTER_AUTH_URL`
+- Supported scopes: `openid`, `profile`, `email`
+- Bearer method: `header`
+
+## Authentication Flow
+
+MCP auth is powered by Better Auth's MCP plugin:
+
+1. The MCP client discovers protected resource metadata.
+2. The client dynamically registers if supported.
+3. The user completes browser consent and Google sign-in.
+4. The client exchanges the authorization code for a bearer token.
+5. The client calls `/mcp` with `authorization: Bearer ...`.
+
+## Tool Model
+
+MCP tools receive structured JSON input and return domain objects. Each tool validates input with the same Zod schemas used by REST and CLI paths.
+
+Common tools:
+
+```text
+get_current_principal
+list_workspaces
+list_projects
+create_project
+create_artifact
+update_artifact
+restore_artifact_version
+get_artifact
+get_artifact_content
+list_artifact_versions
+diff_artifact_versions
+get_artifact_access
+set_artifact_access
+create_share_link
+list_share_links
+revoke_share_link
+list_audit_events
+resolve_path
+```
+
+## Create Artifact Example
+
+```json
+{
+  "tool": "create_artifact",
+  "input": {
+    "ownerUsername": "alice",
+    "projectSlug": "default",
+    "slug": "research-brief",
+    "type": "md",
+    "title": "Research brief",
+    "content": "# Research brief\n\nFindings...",
+    "access": {
+      "publicView": true,
+      "publicEdit": false
+    }
+  }
+}
+```
+
+## Update Artifact Example
+
+```json
+{
+  "tool": "update_artifact",
+  "input": {
+    "artifactId": "ARTIFACT_ID",
+    "content": "# Research brief\n\nUpdated findings...",
+    "changelog": "Refresh findings"
+  }
+}
+```
+
+## Resolve a Path
+
+```json
+{
+  "tool": "resolve_path",
+  "input": {
+    "ownerUsername": "alice",
+    "projectSlug": "default",
+    "slug": "research-brief"
+  }
+}
+```
+
+## When to Use MCP
+
+Use MCP when an agent client can keep a long-lived authenticated connection and benefit from structured tool discovery. Use the CLI when the agent is shell-first or running in a CI job. Use REST when you are integrating from your own backend.
+
+See the [MCP reference](/reference/mcp) for all tools and input shapes.

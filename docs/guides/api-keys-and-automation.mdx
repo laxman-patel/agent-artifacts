@@ -1,0 +1,118 @@
+---
+title: "API Keys and Automation"
+description: "Create scoped bearer credentials for CI, scripts, services, and non-interactive agents."
+---
+
+Use API keys when automation cannot complete browser login. API keys authenticate with bearer auth, skip CSRF checks, and carry explicit scopes.
+
+## Create a Key
+
+```bash
+artifacts keys create --name ci --scopes artifacts:read,artifacts:create,artifacts:update
+```
+
+If `--scopes` is omitted, the CLI defaults to:
+
+```text
+artifacts:read,artifacts:create,artifacts:update
+```
+
+Store the returned key in your secret manager. The raw secret should not be committed.
+
+## Use a Key Locally
+
+```bash
+export AGENT_ARTIFACTS_BASE_URL="https://api.example.com"
+export AGENT_ARTIFACTS_TOKEN="aa_live_..."
+
+artifacts whoami --format json
+artifacts push --owner alice --project-slug default --file ./report.md --no-input
+```
+
+You can also provide a token through stdin:
+
+```bash
+printf '%s\n' "$AGENT_ARTIFACTS_TOKEN" | artifacts --token-stdin whoami
+```
+
+## Use a Key with REST
+
+```bash
+curl "$API_URL/api/profile/me" \
+  -H "authorization: Bearer $AGENT_ARTIFACTS_TOKEN"
+```
+
+## Non-Interactive CLI Mode
+
+Set `AGENT_ARTIFACTS_NO_INPUT=1` or pass `--no-input` so jobs fail fast instead of attempting browser login:
+
+```bash
+export AGENT_ARTIFACTS_NO_INPUT=1
+export AGENT_ARTIFACTS_TOKEN="aa_live_..."
+
+artifacts artifact list --format json
+```
+
+## List Keys
+
+```bash
+artifacts keys list
+```
+
+REST:
+
+```text
+GET /api/api-keys
+```
+
+## Revoke a Key
+
+```bash
+artifacts keys revoke --api-key-id KEY_ID
+```
+
+REST:
+
+```text
+DELETE /api/api-keys/:apiKeyId
+```
+
+## Available Scopes
+
+| Scope | Allows |
+| --- | --- |
+| `artifacts:read` | Read artifacts, versions, content, diffs, and project lists |
+| `artifacts:create` | Create artifacts and projects |
+| `artifacts:update` | Append versions and restore versions |
+| `artifacts:delete` | Soft-delete artifacts |
+| `artifacts:share` | Create, list, and revoke share links |
+| `artifacts:access:read` | Read artifact access settings |
+| `artifacts:access:write` | Update artifact access settings |
+| `agents:manage` | Manage API keys and agent credentials |
+
+## CI Example
+
+```bash
+set -euo pipefail
+
+export AGENT_ARTIFACTS_BASE_URL="https://api.example.com"
+export AGENT_ARTIFACTS_NO_INPUT=1
+
+bun run build:report
+artifacts push \
+  --token "$AGENT_ARTIFACTS_TOKEN" \
+  --owner "$ARTIFACTS_OWNER" \
+  --project-slug ci \
+  --file ./out/report.html \
+  --title "CI report for $GITHUB_SHA" \
+  --private \
+  --format json
+```
+
+## Safety Checklist
+
+- Give each automation its own key.
+- Use the smallest scope set that can complete the job.
+- Prefer environment variables or stdin over flags on shared hosts.
+- Revoke keys immediately when a job or agent is retired.
+- Use `--dry-run` to preview mutating CLI calls during pipeline development.

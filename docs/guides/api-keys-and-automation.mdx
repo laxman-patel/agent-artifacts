@@ -1,27 +1,32 @@
 ---
-title: "API Keys and Automation"
+title: "API keys and automation"
 description: "Create scoped bearer credentials for CI, scripts, services, and non-interactive agents."
 ---
 
-Use API keys when automation cannot complete browser login. API keys authenticate with bearer auth, skip CSRF checks, and carry explicit scopes.
+Use API keys when automation can't complete a browser login. They authenticate with bearer auth, skip CSRF checks, and carry explicit scopes — so each job gets exactly the access it needs and nothing more.
 
-## Create a Key
+## Create a key
 
 ```bash
 artifacts keys create --name ci --scopes artifacts:read,artifacts:create,artifacts:update
 ```
 
-If `--scopes` is omitted, the CLI defaults to:
+If you omit `--scopes`, the CLI defaults to:
 
 ```text
 artifacts:read,artifacts:create,artifacts:update
 ```
 
-Store the returned key in your secret manager. The raw secret should not be committed.
+<Warning>
+  The raw secret is shown once, at creation. Store it in your secret manager immediately — never commit it.
+</Warning>
 
-## Use a Key Locally
+## Use a key
 
-```bash
+Provide the token through an environment variable, or pipe it in over stdin to keep it off the process list.
+
+<CodeGroup>
+```bash Environment variable
 export AGENT_ARTIFACTS_BASE_URL="https://api.example.com"
 export AGENT_ARTIFACTS_TOKEN="aa_live_..."
 
@@ -29,22 +34,19 @@ artifacts whoami --format json
 artifacts push --owner alice --project-slug default --file ./report.md --no-input
 ```
 
-You can also provide a token through stdin:
-
-```bash
+```bash stdin
 printf '%s\n' "$AGENT_ARTIFACTS_TOKEN" | artifacts --token-stdin whoami
 ```
 
-## Use a Key with REST
-
-```bash
+```bash REST
 curl "$API_URL/api/profile/me" \
   -H "authorization: Bearer $AGENT_ARTIFACTS_TOKEN"
 ```
+</CodeGroup>
 
-## Non-Interactive CLI Mode
+## Run non-interactively
 
-Set `AGENT_ARTIFACTS_NO_INPUT=1` or pass `--no-input` so jobs fail fast instead of attempting browser login:
+Set `AGENT_ARTIFACTS_NO_INPUT=1` (or pass `--no-input`) so jobs fail fast instead of trying to open a browser:
 
 ```bash
 export AGENT_ARTIFACTS_NO_INPUT=1
@@ -53,31 +55,26 @@ export AGENT_ARTIFACTS_TOKEN="aa_live_..."
 artifacts artifact list --format json
 ```
 
-## List Keys
+## Manage keys
 
-```bash
+<CodeGroup>
+```bash List
 artifacts keys list
 ```
 
-REST:
-
-```text
-GET /api/api-keys
-```
-
-## Revoke a Key
-
-```bash
+```bash Revoke
 artifacts keys revoke --api-key-id KEY_ID
 ```
+</CodeGroup>
 
-REST:
+REST equivalents:
 
 ```text
+GET    /api/api-keys
 DELETE /api/api-keys/:apiKeyId
 ```
 
-## Available Scopes
+## Available scopes
 
 | Scope | Allows |
 | --- | --- |
@@ -90,7 +87,7 @@ DELETE /api/api-keys/:apiKeyId
 | `artifacts:access:write` | Update artifact access settings |
 | `agents:manage` | Manage API keys and agent credentials |
 
-## CI Example
+## Example: publish a report from CI
 
 ```bash
 set -euo pipefail
@@ -109,10 +106,10 @@ artifacts push \
   --format json
 ```
 
-## Safety Checklist
+## Stay safe
 
 - Give each automation its own key.
-- Use the smallest scope set that can complete the job.
+- Use the smallest scope set that completes the job.
 - Prefer environment variables or stdin over flags on shared hosts.
-- Revoke keys immediately when a job or agent is retired.
-- Use `--dry-run` to preview mutating CLI calls during pipeline development.
+- Revoke keys the moment a job or agent is retired.
+- Use `--dry-run` to preview mutating CLI calls while building a pipeline.

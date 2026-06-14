@@ -1,59 +1,80 @@
 ---
 title: "Artifacts"
-description: "Hosted, versioned, access-controlled URLs for agent-generated HTML, Markdown, and JSX."
+description: "Give every HTML report, Markdown spec, and JSX prototype your agents produce a permanent, versioned, access-controlled URL."
 ---
 
-Artifacts gives generated work a durable home. Publish an HTML report, Markdown spec, or JSX prototype once, then share a stable URL with version history, access controls, and the same authorization model across the web app, CLI, REST API, and MCP server.
+Agents produce real work now — HTML reports, Markdown specs, JSX prototypes, review surfaces, one-off tools. Artifacts gives that work a home: publish it once and get a permanent URL with version history, access controls, and the same authorization model across the web app, CLI, REST API, and MCP server.
 
 <CardGroup cols={2}>
-  <Card title="Publish from agents" href="/guides/publish-artifact">
-    Use the `artifacts` CLI, REST API, or MCP tools to create artifacts and append immutable versions.
+  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
+    Run Artifacts locally and publish your first artifact in a few commands.
   </Card>
-  <Card title="Share durable URLs" href="/guides/sharing-and-permissions">
-    Make artifacts public, private, email-allowlisted, or available through scoped share links.
-  </Card>
-  <Card title="Review history" href="/guides/version-history">
-    Inspect versions, compare diffs, restore old content, and keep a changelog per write.
-  </Card>
-  <Card title="Automate safely" href="/surfaces/mcp">
-    Give agents API keys or MCP OAuth access with explicit scopes and shared policy enforcement.
+  <Card title="Core concepts" icon="compass" href="/concepts/artifacts">
+    Understand artifacts, versions, workspaces, and the access model.
   </Card>
 </CardGroup>
 
-## What Artifacts Stores
+## How it works
 
-An artifact is a stable object in a workspace project. Each write creates a new immutable version whose source content is stored in S3-compatible object storage and tracked by SHA-256 hash.
+<Steps>
+  <Step title="Publish content">
+    Send an HTML, Markdown, or JSX file from the CLI, REST API, or an MCP tool. The first publish creates an artifact and its version 1.
+  </Step>
+  <Step title="Get a durable URL">
+    Each artifact lives at a stable path and renders safely in the browser — sandboxed HTML, sanitized Markdown, or the Preact runtime for JSX.
+  </Step>
+  <Step title="Update without losing history">
+    Every update appends a new immutable version. Old versions stay addressable, so you can diff or restore them anytime.
+  </Step>
+  <Step title="Share with the right people">
+    Keep it public, private, email-allowlisted, or behind a scoped share link — without ever changing the URL.
+  </Step>
+</Steps>
 
-Supported source types:
+## What you can publish
 
-- `html`: rendered as sandboxed HTML.
-- `md`: rendered as sanitized Markdown.
-- `jsx`: rendered through the Preact-compatible runtime.
+| Type | Use it for | How it renders |
+| --- | --- | --- |
+| `html` | Reports, dashboards, mockups | Sandboxed HTML with browser isolation |
+| `md` | Specs, notes, research writeups | Sanitized, GitHub-flavored Markdown |
+| `jsx` | Prototypes, interactive explainers | Preact-compatible runtime |
 
-Every artifact has a URL shaped like:
+Every artifact gets a path shaped like this:
 
 ```text
-https://agent-artifacts.com/{workspaceSlug}/{projectSlug}/{artifactSlug}
+https://agent-artifacts.com/{workspace}/{project}/{artifact}
 ```
 
-## Product Surfaces
+## Ways to connect
 
-Artifacts is intentionally multi-surface. Humans can work in the dashboard, while agents and automation use the same core model through programmable interfaces.
+Artifacts is multi-surface by design. People work in the dashboard; agents and automation use the same core model through programmable interfaces.
 
-- The [web app](/surfaces/web) handles dashboards, artifact viewing, version history, settings, and billing.
-- The [CLI](/surfaces/cli) is the recommended agent-friendly interface for local scripts and coding agents.
-- The [REST API](/surfaces/rest-api) exposes the canonical HTTP contract used by the web app and CLI.
-- The [MCP server](/surfaces/mcp) exposes artifact tools directly to MCP clients.
+<CardGroup cols={2}>
+  <Card title="Web app" icon="globe" href="/surfaces/web">
+    Dashboards, artifact viewing, version history, access settings, and billing.
+  </Card>
+  <Card title="CLI" icon="terminal" href="/surfaces/cli">
+    The agent-friendly command line for local scripts and coding agents.
+  </Card>
+  <Card title="REST API" icon="webhook" href="/surfaces/rest-api">
+    The canonical HTTP contract behind the web app and CLI.
+  </Card>
+  <Card title="MCP server" icon="plug" href="/surfaces/mcp">
+    Structured artifact tools for MCP-capable agents.
+  </Card>
+</CardGroup>
 
-## Core Primitives
+## Key ideas
 
-- **Workspace**: a personal or team namespace such as `alice` or `acme`.
-- **Project**: a group of artifacts under a workspace, such as `default` or `launch-review`.
-- **Artifact**: the stable logical object with title, slug, type, access settings, and latest version.
-- **Version**: an immutable source snapshot with parent linkage, byte count, content hash, and optional changelog.
-- **Principal**: the actor making a request, such as a user, API key, OAuth client, agent, or service.
-- **Access policy**: the shared authorization layer used by web, API, CLI, and MCP.
+A few terms show up everywhere in these docs:
 
-## Start Here
+- **Workspace** — a personal or team namespace, such as `alice` or `acme`.
+- **Project** — a group of artifacts inside a workspace, such as `default` or `launch-review`.
+- **Artifact** — the stable object: a title, slug, type, access settings, and a pointer to its latest version.
+- **Version** — an immutable snapshot of source content, tracked by SHA-256 hash with an optional changelog.
+- **Principal** — whoever is making the request: a user, API key, OAuth client, agent, or service.
+- **Access policy** — the one authorization layer enforced identically across web, API, CLI, and MCP.
 
-To run Artifacts locally or publish your first artifact, follow the [quickstart](/getting-started/quickstart).
+<Card title="Start building" icon="arrow-right" href="/getting-started/quickstart" horizontal>
+  Follow the quickstart to publish your first artifact from the CLI.
+</Card>

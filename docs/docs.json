@@ -58,50 +58,92 @@
     }
   },
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Start",
-        "pages": [
-          "index",
-          "getting-started/quickstart"
+        "tab": "Guides",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Get started",
+            "icon": "rocket",
+            "pages": [
+              "index",
+              "getting-started/quickstart"
+            ]
+          },
+          {
+            "group": "Core concepts",
+            "icon": "compass",
+            "pages": [
+              "concepts/artifacts",
+              "concepts/workspaces-projects",
+              "concepts/access-model"
+            ]
+          },
+          {
+            "group": "Task guides",
+            "icon": "list-checks",
+            "pages": [
+              "guides/publish-artifact",
+              "guides/version-history",
+              "guides/sharing-and-permissions",
+              "guides/api-keys-and-automation"
+            ]
+          },
+          {
+            "group": "Ways to connect",
+            "icon": "blocks",
+            "pages": [
+              "surfaces/web",
+              "surfaces/cli",
+              "surfaces/rest-api",
+              "surfaces/mcp"
+            ]
+          }
         ]
       },
       {
-        "group": "Concepts",
-        "pages": [
-          "concepts/artifacts",
-          "concepts/workspaces-projects",
-          "concepts/access-model"
-        ]
-      },
-      {
-        "group": "Guides",
-        "pages": [
-          "guides/publish-artifact",
-          "guides/version-history",
-          "guides/sharing-and-permissions",
-          "guides/api-keys-and-automation"
-        ]
-      },
-      {
-        "group": "Surfaces",
-        "pages": [
-          "surfaces/web",
-          "surfaces/cli",
-          "surfaces/rest-api",
-          "surfaces/mcp"
-        ]
-      },
-      {
-        "group": "Reference",
-        "pages": [
-          "reference/cli",
-          "reference/rest-api",
-          "reference/mcp",
-          "reference/configuration",
-          "reference/development"
+        "tab": "Reference",
+        "icon": "square-terminal",
+        "groups": [
+          {
+            "group": "Interfaces",
+            "icon": "terminal",
+            "pages": [
+              "reference/cli",
+              "reference/rest-api",
+              "reference/mcp"
+            ]
+          },
+          {
+            "group": "Operations",
+            "icon": "settings-2",
+            "pages": [
+              "reference/configuration",
+              "reference/development"
+            ]
+          }
         ]
       }
     ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/laxman-patel/agent-artifacts",
+        "icon": "github"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open app",
+      "href": "https://agent-artifacts.com"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/laxman-patel/agent-artifacts"
+    }
   }
 }

@@ -1,60 +1,31 @@
 ---
-title: "Publish an Artifact"
+title: "Publish an artifact"
 description: "Create HTML, Markdown, and JSX artifacts from the CLI, REST API, or MCP."
 ---
 
-Publishing creates an artifact and its first immutable version. Updating the artifact later appends more versions without changing previous snapshots.
+Publishing creates an artifact and its first immutable version. Updating it later appends more versions without changing the earlier snapshots.
 
-## Choose a Surface
+## Pick a surface
 
-Use the surface that matches the actor:
+Use whichever surface matches who (or what) is publishing:
 
-| Actor | Recommended surface |
+| You are... | Use |
 | --- | --- |
-| Human in browser | Web dashboard |
-| Local coding agent | CLI |
-| Backend service or CI | REST API with API key |
-| MCP-capable agent | MCP tools |
+| A human in the browser | [Web dashboard](/surfaces/web) |
+| A local coding agent | [CLI](/surfaces/cli) |
+| A backend service or CI job | [REST API](/surfaces/rest-api) with an API key |
+| An MCP-capable agent | [MCP tools](/surfaces/mcp) |
 
-## Publish with the CLI
+## Create an artifact
 
-The `push` command is the shortest path from a local file to a durable URL:
+The fastest path from a local file to a durable URL is the CLI's `push`. The REST and MCP equivalents take the same fields explicitly.
 
-```bash
+<CodeGroup>
+```bash CLI
 artifacts push --owner alice --project-slug default --file ./report.md
 ```
 
-It infers:
-
-- Type from file extension: `.md`, `.markdown`, `.html`, `.htm`, `.jsx`, `.tsx`.
-- Title from Markdown heading or file name.
-- Slug from title.
-- Access as public view and private edit by default.
-
-Override inference when needed:
-
-```bash
-artifacts push \
-  --owner alice \
-  --project-slug default \
-  --file ./prototype.tsx \
-  --type jsx \
-  --title "Prototype v1" \
-  --slug prototype-v1 \
-  --private
-```
-
-Use `--ensure` when an agent should reuse an existing artifact instead of failing on slug conflict:
-
-```bash
-artifacts push --owner alice --project-slug default --file ./report.md --ensure
-```
-
-## Publish with REST
-
-Create an artifact with `POST /api/artifacts`:
-
-```bash
+```bash REST
 curl -X POST "$API_URL/api/artifacts" \
   -H "authorization: Bearer $TOKEN" \
   -H "content-type: application/json" \
@@ -67,81 +38,112 @@ curl -X POST "$API_URL/api/artifacts" \
     "description": "Agent-generated launch notes",
     "content": "# Launch review\n\nReady for review.",
     "changelog": "Initial publish",
-    "access": {
-      "publicView": true,
-      "publicEdit": false
-    }
+    "access": { "publicView": true, "publicEdit": false }
   }'
 ```
 
-Required fields:
+```json MCP
+{
+  "tool": "create_artifact",
+  "input": {
+    "ownerUsername": "alice",
+    "projectSlug": "default",
+    "slug": "launch-review",
+    "type": "md",
+    "title": "Launch review",
+    "content": "# Launch review\n\nReady for review.",
+    "access": { "publicView": true, "publicEdit": false }
+  }
+}
+```
+</CodeGroup>
 
-- `ownerUsername`
-- `projectSlug`
-- `slug`
-- `type`
-- `title`
-- `content`
-- `access`
+### What `push` infers
 
-Optional fields:
+`push` is built for speed — it fills in everything it can from the file:
 
-- `description`
-- `changelog`
+- **Type** from the file extension: `.md`, `.markdown`, `.html`, `.htm`, `.jsx`, `.tsx`.
+- **Title** from the Markdown heading, or the file name.
+- **Slug** from the title.
+- **Access** as public view, private edit.
 
-## Publish into a Workspace
+Override any of it when you need to:
 
-When you already have a workspace ID, use:
+```bash
+artifacts push \
+  --owner alice \
+  --project-slug default \
+  --file ./prototype.tsx \
+  --type jsx \
+  --title "Prototype v1" \
+  --slug prototype-v1 \
+  --private
+```
+
+<Tip>
+  Use `--ensure` when an agent should reuse an existing artifact instead of failing on a slug conflict:
+
+  ```bash
+  artifacts push --owner alice --project-slug default --file ./report.md --ensure
+  ```
+</Tip>
+
+### REST fields
+
+For `POST /api/artifacts`, these fields are **required**: `ownerUsername`, `projectSlug`, `slug`, `type`, `title`, `content`, and `access`. The `description` and `changelog` fields are optional.
+
+### Publish into a workspace
+
+When you already have a workspace ID, post to the workspace route instead. The body is the same, minus `ownerUsername` (the workspace is already selected):
 
 ```text
 POST /api/workspaces/:workspaceId/artifacts
 ```
 
-The body is the same as `POST /api/artifacts`, except `ownerUsername` is omitted because the workspace is already selected.
+## Update an artifact
 
-## Publish with MCP
+Appending a version needs only the artifact ID and new content.
 
-Call the `create_artifact` MCP tool:
-
-```json
-{
-  "ownerUsername": "alice",
-  "projectSlug": "default",
-  "slug": "launch-review",
-  "type": "md",
-  "title": "Launch review",
-  "content": "# Launch review\n\nReady for review.",
-  "access": {
-    "publicView": true,
-    "publicEdit": false
-  }
-}
-```
-
-## Update an Artifact
-
-Appending a version requires only the artifact ID and new content:
-
-```bash
+<CodeGroup>
+```bash CLI
 artifacts artifact update \
   --artifact-id ARTIFACT_ID \
   --json '{"content":"# Launch review\n\nUpdated after QA.","changelog":"QA edits"}'
 ```
 
-For concurrent writers, include `expectedLatestVersion` in REST or MCP requests. If the head has changed, the API returns a conflict instead of silently overwriting another actor's work.
+```bash REST
+curl -X POST "$API_URL/api/artifacts/$ARTIFACT_ID/versions" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"content":"# Launch review\n\nUpdated after QA.","changelog":"QA edits"}'
+```
 
-## Check Slugs First
+```json MCP
+{
+  "tool": "update_artifact",
+  "input": {
+    "artifactId": "ARTIFACT_ID",
+    "content": "# Launch review\n\nUpdated after QA.",
+    "changelog": "QA edits"
+  }
+}
+```
+</CodeGroup>
+
+<Warning>
+  For concurrent writers, include `expectedLatestVersion` in REST or MCP requests. If the head has moved on, the API returns a conflict instead of silently overwriting another actor's work.
+</Warning>
+
+## Check a slug before you publish
+
+Avoid surprises by checking availability and previewing the final URL first:
 
 ```bash
 artifacts artifact slug-availability \
   --owner alice \
   --project-slug default \
   --slug launch-review
-```
 
-You can also preview the eventual URL:
-
-```bash
 artifacts artifact url-preview \
   --owner alice \
   --project-slug default \

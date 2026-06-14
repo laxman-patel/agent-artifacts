@@ -1,13 +1,13 @@
 ---
-title: "Access Model"
-description: "Principals, roles, scopes, public access, share links, and policy enforcement."
+title: "Access and permissions"
+description: "Principals, roles, scopes, public access, share links, and how policy is enforced."
 ---
 
-Every request is evaluated as a principal against the same policy layer, whether it comes from the web app, REST API, CLI, or MCP server.
+Artifacts has one authorization layer. Whether a request comes from the web app, REST API, CLI, or MCP server, it's evaluated as a **principal** against the same policy — so access behaves identically everywhere.
 
 ## Principals
 
-Artifacts recognizes these principal types:
+A principal is whoever is making a request.
 
 | Principal | Used by |
 | --- | --- |
@@ -17,17 +17,17 @@ Artifacts recognizes these principal types:
 | `oauth_client` | OAuth clients such as MCP clients |
 | `service` | Internal service actors, including share-link resolution |
 
-Principals may also carry scopes and artifact role grants.
+Principals can also carry scopes and artifact role grants.
 
-## Artifact Roles
+## Artifact roles
 
-Artifact role order:
+Roles are ranked from most to least privileged:
 
 ```text
 owner > admin > editor > viewer
 ```
 
-Roles control artifact actions:
+Each role unlocks a set of actions:
 
 | Action | Meaning |
 | --- | --- |
@@ -42,7 +42,7 @@ Roles control artifact actions:
 | `artifact.revoke_share_link` | Revoke share links |
 | `project.view` | View projects in a namespace |
 
-## Public Access
+## Public access
 
 Each artifact has two public switches:
 
@@ -54,13 +54,13 @@ Each artifact has two public switches:
 ```
 
 - `publicView` grants viewer access to unauthenticated callers.
-- `publicEdit` grants editor access to public callers when the plan allows public edit links.
+- `publicEdit` grants editor access to public callers, when the plan allows public edit links.
 
-Private artifacts require an owning user, workspace member, email allowlist match, API key, OAuth principal, or share link grant.
+Private artifacts require an owning user, a workspace member, an email allowlist match, an API key or OAuth principal with permission, or a share link.
 
-## Email Allowlists
+## Email allowlists
 
-Access settings can include viewer email grants:
+Grant view access to specific people by email:
 
 ```json
 {
@@ -70,11 +70,11 @@ Access settings can include viewer email grants:
 }
 ```
 
-Email allowlists require a plan that includes private artifacts and email allowlists.
+Email viewers must sign in with a verified email that matches the allowlist. This requires a plan that includes private artifacts and email allowlists.
 
-## Share Links
+## Share links
 
-Share links grant `viewer` or `editor` access to a single artifact. Links can optionally expire.
+Share links grant `viewer` or `editor` access to a single artifact, and can optionally expire:
 
 ```bash
 artifacts share create \
@@ -85,9 +85,9 @@ artifacts share create \
 
 Share links require Pro or Team entitlements.
 
-## API Key Scopes
+## API key scopes
 
-API keys are bearer credentials with explicit scopes:
+API keys are bearer credentials with explicit scopes — grant only what each job needs.
 
 | Scope | Purpose |
 | --- | --- |
@@ -100,17 +100,15 @@ API keys are bearer credentials with explicit scopes:
 | `artifacts:access:write` | Update access settings |
 | `agents:manage` | Manage API keys and agent credentials |
 
-Create a scoped key with:
-
 ```bash
 artifacts keys create --name ci --scopes artifacts:read,artifacts:create,artifacts:update
 ```
 
 <Warning>
-  Treat API keys as secrets. The raw key is only useful at creation time; store it in a secret manager and pass it through environment variables or stdin.
+  Treat API keys as secrets. The raw key is only shown at creation time — store it in a secret manager and pass it through environment variables or stdin.
 </Warning>
 
-## Entitlements
+## What each plan unlocks
 
 Some access features are plan-gated:
 

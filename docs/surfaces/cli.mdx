@@ -1,33 +1,33 @@
 ---
 title: "CLI"
-description: "The agent-friendly command line surface for Artifacts."
+description: "The agent-friendly command line for local scripts, CI jobs, and coding agents."
 ---
 
-The `artifacts` CLI is the recommended interface for local agents, CI jobs, and scripts. It is a deterministic wrapper over the REST API with machine-readable discovery and stable output behavior.
+The `artifacts` CLI is the recommended interface for local agents, CI jobs, and scripts. It's a deterministic wrapper over the REST API with machine-readable discovery and predictable output.
+
+<Info>
+  This page covers setup and behavior. For the full command list, see the [CLI reference](/reference/cli).
+</Info>
 
 ## Install
 
-Published package:
-
-```bash
+<CodeGroup>
+```bash Published package
 npx @agent-artifacts/cli@latest setup
 ```
 
-From the monorepo:
-
-```bash
+```bash From the monorepo
 bun install
 bun run cli:build
 bun run cli:install
 ```
 
-Without global install:
-
-```bash
+```bash Without installing
 bun run artifacts -- <command>
 ```
+</CodeGroup>
 
-## Configure URLs
+## Point it at your services
 
 For local development:
 
@@ -36,71 +36,59 @@ export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
 export AGENT_ARTIFACTS_WEB_URL="http://localhost:3000"
 ```
 
-For production, build a standalone binary with default URLs read from `.env`:
+For production, build a standalone binary with default URLs baked in from `.env`:
 
 ```bash
 bun run cli:build:prod
 bun run cli:install:prod
 ```
 
-Resolution order is:
+URLs resolve in this order:
 
 ```text
-flags -> environment variables -> saved credentials -> build-time defaults
+flags  ->  environment variables  ->  saved credentials  ->  build-time defaults
 ```
 
 ## Authenticate
 
-Browser login:
-
-```bash
+<CodeGroup>
+```bash Browser login
 artifacts login
 artifacts whoami
 ```
 
-Manual bearer token:
-
-```bash
+```bash Bearer token
 export AGENT_ARTIFACTS_TOKEN="aa_live_..."
 artifacts whoami --format json
 ```
 
-Non-interactive jobs:
-
-```bash
+```bash Non-interactive
 export AGENT_ARTIFACTS_NO_INPUT=1
 artifacts artifact list --format json
 ```
+</CodeGroup>
 
-## Agent Discovery
+## Discovery for agents
 
-Agents should use schema discovery instead of parsing `--help`:
+Agents should rely on schema discovery rather than parsing `--help`:
 
 ```bash
 artifacts schema
 ```
 
-The schema includes:
+The schema includes command names and examples, the HTTP method and path, the JSON body schema, whether a command mutates state, and the global flags and output contract.
 
-- Command names and examples.
-- HTTP method and path.
-- JSON body schema.
-- Mutating versus read-only command metadata.
-- Global flags and output contract.
+## Output contract
 
-## Output Contract
+The CLI is built for automation:
 
-The CLI is designed for automation:
-
-- JSON by default when stdout is not a TTY.
-- Text output in interactive terminals.
-- Successful data on stdout.
-- Errors on stderr.
-- Stable envelope: `{ "ok": true, "data": ... }` or `{ "ok": false, "error": ... }`.
+- JSON by default when stdout isn't a TTY; text in interactive terminals.
+- Data on stdout, errors on stderr.
+- A stable envelope: `{ "ok": true, "data": ... }` or `{ "ok": false, "error": ... }`.
 - `--ndjson` streams list results as one JSON object per line.
 - `next_actions` suggest useful follow-up commands.
 
-Exit codes:
+Exit codes are stable, so scripts can branch on them:
 
 | Code | Meaning |
 | --- | --- |
@@ -111,7 +99,7 @@ Exit codes:
 | `5` | Conflict |
 | `69` | Retryable network failure |
 
-## Common Commands
+## Commands you'll reach for
 
 ```bash
 artifacts push --owner alice --project-slug default --file ./report.md
@@ -123,4 +111,6 @@ artifacts share create --artifact-id ARTIFACT_ID --role viewer
 artifacts keys create --name ci --scopes artifacts:read,artifacts:create
 ```
 
-See the [CLI reference](/reference/cli) for full command coverage.
+<Card title="CLI reference" icon="terminal" href="/reference/cli" horizontal>
+  Every command, flag, and environment variable.
+</Card>

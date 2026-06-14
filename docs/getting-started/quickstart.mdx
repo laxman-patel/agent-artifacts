@@ -1,91 +1,93 @@
 ---
 title: "Quickstart"
-description: "Run Artifacts locally and publish your first artifact."
+description: "Run Artifacts locally, then publish your first artifact from the CLI."
 ---
 
-This guide starts the web and API services, runs database migrations, installs the CLI, and publishes a Markdown artifact.
+By the end of this guide you'll have the web and API services running locally, the database migrated, the CLI installed, and a Markdown artifact published to a real URL.
 
-## Requirements
+## Prerequisites
 
-- Bun, matching the repository package manager.
-- Node.js 24 or newer.
-- PostgreSQL-compatible database, such as Neon or the local database configured for development.
-- S3-compatible object storage, such as Cloudflare R2.
-- Google OAuth credentials for interactive login.
+<Info>
+  Artifacts is a Bun + Turborepo monorepo. You'll need a few services available before the first boot.
+</Info>
 
-## Install Dependencies
+- **Bun** — matches the repository package manager.
+- **Node.js 24+** — required to run the apps.
+- **PostgreSQL** — any Postgres-compatible database, such as Neon.
+- **S3-compatible storage** — for artifact content, such as Cloudflare R2.
+- **Google OAuth credentials** — for interactive browser login.
 
-From the repository root:
+## 1. Install and configure
 
-```bash
-bun install
-```
+<Steps>
+  <Step title="Install dependencies">
+    From the repository root:
 
-Copy the example environment file and fill in local values:
+    ```bash
+    bun install
+    ```
+  </Step>
+  <Step title="Create your environment file">
+    ```bash
+    cp .env.example .env
+    ```
 
-```bash
-cp .env.example .env
-```
+    At minimum, align the browser-visible app origin and the internal API origin:
 
-At minimum, align the browser-visible app origin and the internal API origin:
+    ```bash
+    BETTER_AUTH_URL="http://localhost:3000"
+    PUBLIC_APP_URL="http://localhost:3000"
+    INTERNAL_API_URL="http://127.0.0.1:3001"
+    ```
 
-```bash
-BETTER_AUTH_URL="http://localhost:3000"
-PUBLIC_APP_URL="http://localhost:3000"
-INTERNAL_API_URL="http://127.0.0.1:3001"
-```
+    <Tip>
+      The Next.js app rewrites `/api/*`, `/mcp`, and OAuth metadata routes to the Hono API, so browser cookies stay scoped to the public web origin. See [Configuration](/reference/configuration) for every variable.
+    </Tip>
+  </Step>
+  <Step title="Run database migrations">
+    Apply migrations before the first boot:
 
-<Tip>
-  The Next.js app rewrites `/api/*`, `/mcp`, and OAuth metadata routes to the Hono API, so browser cookies stay scoped to the public web origin.
-</Tip>
+    ```bash
+    bun run db:migrate
+    ```
 
-## Prepare the Database
+    When you change schema definitions later, regenerate migrations with `bun run db:generate`.
+  </Step>
+</Steps>
 
-Run migrations before the first local boot:
+## 2. Start the app
 
-```bash
-bun run db:migrate
-```
-
-When changing schema definitions later, generate migrations with:
-
-```bash
-bun run db:generate
-```
-
-## Start the App
-
-Run the web and API apps through Turbo:
+Run the web and API apps together through Turbo:
 
 ```bash
 bun run dev
 ```
 
-Local defaults:
+| Service | URL |
+| --- | --- |
+| Web app | `http://localhost:3000` |
+| API | `http://127.0.0.1:3001` |
+| MCP endpoint (via web origin) | `http://localhost:3000/mcp` |
+| API health check | `http://127.0.0.1:3001/health` |
 
-- Web app: `http://localhost:3000`
-- API app: `http://127.0.0.1:3001`
-- MCP endpoint through web origin: `http://localhost:3000/mcp`
-- API health check: `http://127.0.0.1:3001/health`
+## 3. Install the CLI
 
-## Install the CLI
-
-Build the TypeScript CLI and install the `artifacts` command on your PATH:
+Build the TypeScript CLI and put the `artifacts` command on your PATH:
 
 ```bash
 bun run cli:build
 bun run cli:install
 ```
 
-Without global install, run commands from the repository root:
+Prefer not to install globally? Run it straight from the repo root instead:
 
 ```bash
 bun run artifacts -- <command>
 ```
 
-## Log In
+## 4. Log in
 
-Set local URLs, then start browser login:
+Point the CLI at your local services, then start browser login:
 
 ```bash
 export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
@@ -95,43 +97,53 @@ artifacts login
 artifacts whoami
 ```
 
-The CLI stores credentials in `~/.config/agent-artifacts/credentials.json` with mode `0600`.
+Credentials are saved to `~/.config/agent-artifacts/credentials.json` with mode `0600`.
 
-## Claim a Username
+## 5. Claim a username
 
-The personal workspace slug comes from your username. If you have not claimed one yet:
+Your personal workspace slug comes from your username. If you haven't claimed one yet:
 
 ```bash
 artifacts profile set-username --username alice
 ```
 
-## Create a Project
+## 6. Publish your first artifact
 
-Create a project in your personal workspace:
+<Steps>
+  <Step title="Create a project">
+    ```bash
+    artifacts project create --json '{"ownerUsername":"alice","slug":"default","title":"Default"}'
+    ```
+  </Step>
+  <Step title="Write a Markdown file">
+    ```bash
+    printf '# Launch review\n\nA durable artifact from the CLI.\n' > launch-review.md
+    ```
+  </Step>
+  <Step title="Publish it">
+    ```bash
+    artifacts push --owner alice --project-slug default --file ./launch-review.md
+    ```
 
-```bash
-artifacts project create --json '{"ownerUsername":"alice","slug":"default","title":"Default"}'
-```
+    `push` infers the type, title, and slug from the file. Override them with `--type`, `--title`, and `--slug`.
+  </Step>
+</Steps>
 
-## Publish an Artifact
+The command returns the artifact's URL. Open it in the browser to see your published Markdown.
 
-Create a local Markdown file:
+## Next steps
 
-```bash
-printf '# Launch review\n\nA durable artifact from the CLI.\n' > launch-review.md
-```
-
-Publish it:
-
-```bash
-artifacts push --owner alice --project-slug default --file ./launch-review.md
-```
-
-`push` infers the artifact type, title, and slug from the file. Override them with `--type`, `--title`, and `--slug`.
-
-## Next Steps
-
-- Learn the [artifact model](/concepts/artifacts).
-- Manage [access and sharing](/guides/sharing-and-permissions).
-- Use the [CLI reference](/reference/cli) for command coverage.
-- Connect MCP clients using the [MCP guide](/surfaces/mcp).
+<CardGroup cols={2}>
+  <Card title="Learn the artifact model" icon="box" href="/concepts/artifacts">
+    Versions, content types, and how storage works.
+  </Card>
+  <Card title="Share and control access" icon="lock" href="/guides/sharing-and-permissions">
+    Public, private, email allowlists, and share links.
+  </Card>
+  <Card title="CLI reference" icon="terminal" href="/reference/cli">
+    Every command, flag, and environment variable.
+  </Card>
+  <Card title="Connect an MCP client" icon="plug" href="/surfaces/mcp">
+    Give agents structured artifact tools over MCP.
+  </Card>
+</CardGroup>

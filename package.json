@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "docs:dev": "cd docs && bunx mintlify dev --port 3002 --no-open",
     "db:generate": "bun --env-file=.env run --filter @agent-artifacts/db db:generate",
     "db:migrate": "bun --env-file=.env run --filter @agent-artifacts/db db:migrate",
     "cli:build": "bun run --filter @agent-artifacts/cli build",

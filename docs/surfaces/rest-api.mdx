@@ -1,46 +1,46 @@
 ---
 title: "REST API"
-description: "HTTP API conventions, authentication, resources, and examples."
+description: "The canonical HTTP surface behind the web app, CLI, and MCP server."
 ---
 
-The REST API is the canonical application surface. The web app, CLI, and MCP server all call the same domain services behind these routes.
+The REST API is the canonical application surface. The web app, CLI, and MCP server all call the same domain services behind these routes — so behavior is consistent no matter how you connect.
+
+<Info>
+  This page covers conventions and common calls. For the full endpoint list, see the [REST API reference](/reference/rest-api).
+</Info>
 
 ## Base URLs
 
-Local development:
-
-```text
+<CodeGroup>
+```text Local (direct)
 http://127.0.0.1:3001
 ```
 
-Through the web app origin:
-
-```text
+```text Local (via web origin)
 http://localhost:3000/api/*
 http://localhost:3000/mcp
 ```
 
-Production should set:
-
-```bash
+```bash Production
 PUBLIC_APP_URL="https://agent-artifacts.com"
 INTERNAL_API_URL="https://api.agent-artifacts.com"
 ```
+</CodeGroup>
 
 ## Authentication
 
-Browser sessions use Better Auth cookies through `/api/auth/*`.
-
-Automation uses bearer auth:
+Browser sessions use Better Auth cookies through `/api/auth/*`. Automation uses bearer auth:
 
 ```bash
 curl "$API_URL/api/profile/me" \
   -H "authorization: Bearer $TOKEN"
 ```
 
-Bearer-authenticated API requests skip CSRF checks.
+<Note>
+  Bearer-authenticated requests skip CSRF checks, which makes them convenient for scripts and services.
+</Note>
 
-## Response Shape
+## Response shape
 
 Most JSON routes return either a domain object or an object wrapping a collection:
 
@@ -54,7 +54,7 @@ Create routes return `201` on success. Raw content routes can return source text
 
 ## Errors
 
-The API maps domain errors to stable HTTP categories:
+Domain errors map to stable HTTP categories:
 
 | Status | Meaning |
 | --- | --- |
@@ -65,9 +65,10 @@ The API maps domain errors to stable HTTP categories:
 | `409` | Slug conflict or concurrent write conflict |
 | `503` | Required external service or billing config missing |
 
-## Create an Artifact
+## Common calls
 
-```bash
+<CodeGroup>
+```bash Create artifact
 curl -X POST "$API_URL/api/artifacts" \
   -H "authorization: Bearer $TOKEN" \
   -H "content-type: application/json" \
@@ -78,41 +79,34 @@ curl -X POST "$API_URL/api/artifacts" \
     "type": "md",
     "title": "Report",
     "content": "# Report",
-    "access": {
-      "publicView": true,
-      "publicEdit": false
-    }
+    "access": { "publicView": true, "publicEdit": false }
   }'
 ```
 
-## Update an Artifact
-
-```bash
+```bash Update artifact
 curl -X POST "$API_URL/api/artifacts/$ARTIFACT_ID/versions" \
   -H "authorization: Bearer $TOKEN" \
   -H "content-type: application/json" \
-  -d '{
-    "content": "# Report v2",
-    "changelog": "Refresh findings"
-  }'
+  -d '{ "content": "# Report v2", "changelog": "Refresh findings" }'
 ```
 
-## Resolve by Path
-
-```bash
+```bash Resolve by path
 curl "$API_URL/api/by-path/alice/default/report"
 ```
+</CodeGroup>
 
-Path resolution is useful when an agent has a URL-like identity and needs the artifact ID for later operations.
+Path resolution is handy when an agent has a URL-like identity and needs the artifact ID for later operations.
 
-## MCP Metadata
+## MCP metadata
 
-The API also exposes OAuth metadata for MCP clients:
+The API also serves the OAuth metadata MCP clients need:
 
 ```text
-GET /.well-known/oauth-protected-resource
-GET /.well-known/oauth-authorization-server
+GET  /.well-known/oauth-protected-resource
+GET  /.well-known/oauth-authorization-server
 POST /mcp
 ```
 
-See the [REST API reference](/reference/rest-api) for endpoint coverage.
+<Card title="REST API reference" icon="webhook" href="/reference/rest-api" horizontal>
+  Every endpoint, grouped by resource, with request bodies.
+</Card>

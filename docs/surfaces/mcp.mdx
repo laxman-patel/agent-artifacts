@@ -1,11 +1,15 @@
 ---
-title: "MCP Server"
+title: "MCP server"
 description: "Connect MCP clients to Artifacts and call artifact tools directly."
 ---
 
 Artifacts exposes an MCP server at `/mcp`. MCP clients can authenticate, discover tools, and call the same domain services used by the REST API and CLI.
 
-## Local Endpoint
+<Info>
+  This page covers connecting and using MCP. For every tool and its input schema, see the [MCP reference](/reference/mcp).
+</Info>
+
+## Endpoint
 
 When running locally:
 
@@ -13,69 +17,61 @@ When running locally:
 http://localhost:3000/mcp
 ```
 
-The Next.js app rewrites `/mcp` to the Hono API, so MCP clients can use the same public origin as browser OAuth.
+The Next.js app rewrites `/mcp` to the Hono API, so MCP clients use the same public origin as browser OAuth.
 
-## Discovery Metadata
-
-Protected resource metadata:
+## Discovery metadata
 
 ```text
 http://localhost:3000/.well-known/oauth-protected-resource
-```
-
-Authorization server metadata:
-
-```text
 http://localhost:3000/.well-known/oauth-authorization-server
 ```
 
 The protected resource document advertises:
 
-- Resource: `PUBLIC_APP_URL`
-- Authorization server: `BETTER_AUTH_URL`
-- Supported scopes: `openid`, `profile`, `email`
-- Bearer method: `header`
+- **Resource:** `PUBLIC_APP_URL`
+- **Authorization server:** `BETTER_AUTH_URL`
+- **Supported scopes:** `openid`, `profile`, `email`
+- **Bearer method:** `header`
 
-## Authentication Flow
+## How a client connects
 
 MCP auth is powered by Better Auth's MCP plugin:
 
-1. The MCP client discovers protected resource metadata.
-2. The client dynamically registers if supported.
-3. The user completes browser consent and Google sign-in.
-4. The client exchanges the authorization code for a bearer token.
-5. The client calls `/mcp` with `authorization: Bearer ...`.
+<Steps>
+  <Step title="Discover metadata">
+    The client fetches the protected resource metadata.
+  </Step>
+  <Step title="Register">
+    The client dynamically registers, if it supports dynamic registration.
+  </Step>
+  <Step title="Consent">
+    The user completes browser consent and Google sign-in.
+  </Step>
+  <Step title="Exchange a token">
+    The client exchanges the authorization code for a bearer token.
+  </Step>
+  <Step title="Call tools">
+    The client calls `/mcp` with `authorization: Bearer ...`.
+  </Step>
+</Steps>
 
-## Tool Model
+## Tools
 
-MCP tools receive structured JSON input and return domain objects. Each tool validates input with the same Zod schemas used by REST and CLI paths.
-
-Common tools:
+Every tool takes structured JSON and returns domain objects, validated with the same Zod schemas as the REST and CLI paths.
 
 ```text
-get_current_principal
-list_workspaces
-list_projects
-create_project
-create_artifact
-update_artifact
-restore_artifact_version
-get_artifact
-get_artifact_content
-list_artifact_versions
-diff_artifact_versions
-get_artifact_access
-set_artifact_access
-create_share_link
-list_share_links
-revoke_share_link
-list_audit_events
-resolve_path
+get_current_principal    list_workspaces          list_projects
+create_project           create_artifact          update_artifact
+restore_artifact_version get_artifact             get_artifact_content
+list_artifact_versions   diff_artifact_versions   get_artifact_access
+set_artifact_access      create_share_link        list_share_links
+revoke_share_link        list_audit_events        resolve_path
 ```
 
-## Create Artifact Example
+## Examples
 
-```json
+<CodeGroup>
+```json Create
 {
   "tool": "create_artifact",
   "input": {
@@ -85,17 +81,12 @@ resolve_path
     "type": "md",
     "title": "Research brief",
     "content": "# Research brief\n\nFindings...",
-    "access": {
-      "publicView": true,
-      "publicEdit": false
-    }
+    "access": { "publicView": true, "publicEdit": false }
   }
 }
 ```
 
-## Update Artifact Example
-
-```json
+```json Update
 {
   "tool": "update_artifact",
   "input": {
@@ -106,9 +97,7 @@ resolve_path
 }
 ```
 
-## Resolve a Path
-
-```json
+```json Resolve path
 {
   "tool": "resolve_path",
   "input": {
@@ -118,9 +107,16 @@ resolve_path
   }
 }
 ```
+</CodeGroup>
 
-## When to Use MCP
+## Which surface should an agent use?
 
-Use MCP when an agent client can keep a long-lived authenticated connection and benefit from structured tool discovery. Use the CLI when the agent is shell-first or running in a CI job. Use REST when you are integrating from your own backend.
+| Use | When |
+| --- | --- |
+| **MCP** | The client keeps a long-lived authenticated connection and benefits from structured tool discovery |
+| **CLI** | The agent is shell-first or running in a CI job |
+| **REST** | You're integrating from your own backend |
 
-See the [MCP reference](/reference/mcp) for all tools and input shapes.
+<Card title="MCP reference" icon="plug" href="/reference/mcp" horizontal>
+  Endpoint metadata, the full tool list, and input schemas.
+</Card>

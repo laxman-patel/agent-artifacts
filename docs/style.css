@@ -1,3 +1,13 @@
+/*
+ * Artifacts documentation theme.
+ *
+ * Aligned with DESIGN.md ("The Durable Signal Lab"): a dark neutral canvas,
+ * thin rules as the primary structure, flat surfaces with tonal layering,
+ * Geist + Geist Pixel + Geist Mono type, and orange used only as quiet
+ * notation. No color gradients are used anywhere; the one faded rail below
+ * is a solid color revealed through an alpha mask, never a color blend.
+ */
+
 @font-face {
   font-family: "Geist";
   src: url("/fonts/Geist-Variable.woff2") format("woff2");
@@ -23,17 +33,39 @@
 }
 
 :root {
+  /* Canvas + surfaces (DESIGN.md neutrals). */
   --aa-bg: #1b1b1b;
   --aa-bg-deep: #111111;
-  --aa-card: #202020;
+  --aa-card: #1f1f1f;
   --aa-card-soft: #242424;
-  --aa-border: rgba(250, 250, 250, 0.12);
-  --aa-border-strong: rgba(250, 250, 250, 0.22);
+
+  /* Thin rules carry the structure. */
+  --aa-border: rgba(250, 250, 250, 0.1);
+  --aa-border-strong: rgba(250, 250, 250, 0.2);
+
+  /* Text. */
   --aa-text: #fafafa;
   --aa-muted: rgba(250, 250, 250, 0.62);
   --aa-faint: rgba(250, 250, 250, 0.38);
+
+  /* Orange is the single accent / notation color. */
   --aa-orange: #ff570a;
-  --aa-orange-soft: rgba(255, 87, 10, 0.18);
+  --aa-orange-soft: rgba(255, 87, 10, 0.16);
+  --aa-orange-line: rgba(255, 87, 10, 0.45);
+
+  /* Restrained artifact accents, used only as tiny state marks. */
+  --aa-cyan: oklch(0.72 0.08 215);
+  --aa-amber: oklch(0.72 0.08 75);
+  --aa-rose: oklch(0.68 0.09 15);
+  --aa-emerald: oklch(0.7 0.08 155);
+
+  /* Radius tokens (DESIGN.md). */
+  --aa-r-sm: 0.125rem;
+  --aa-r-md: 0.375rem;
+  --aa-r-lg: 0.625rem;
+
+  --aa-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+  --aa-pixel: "Geist Pixel Square", "Geist Mono", ui-monospace, monospace;
 }
 
 html,
@@ -48,8 +80,11 @@ body,
 body {
   font-size: 14px;
   line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
+/* Functional monochrome grid — a technical texture, not a color gradient. */
 body::before {
   content: "";
   position: fixed;
@@ -59,10 +94,11 @@ body::before {
     linear-gradient(rgba(250, 250, 250, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(250, 250, 250, 0.025) 1px, transparent 1px);
   background-size: 100% 44px, 44px 100%;
-  opacity: 0.22;
+  opacity: 0.2;
   z-index: 0;
 }
 
+/* ── Top navigation rail ─────────────────────────────────────────────── */
 #navbar {
   background: rgba(27, 27, 27, 0.98) !important;
   border-bottom: 1px solid var(--aa-border) !important;
@@ -70,18 +106,62 @@ body::before {
   backdrop-filter: none !important;
 }
 
-nav-logo img {
-  filter: none !important;
+nav-logo,
+nav-logo a {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
 }
 
+img.nav-logo,
+nav-logo img {
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  filter: none !important;
+  opacity: 0.95 !important;
+}
+
+a.select-none:has(img.nav-logo) {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+a.select-none:has(img.nav-logo)::after,
+nav-logo a::after {
+  content: "ARTIFACTS";
+  font-family: var(--aa-mono) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.045em !important;
+  color: rgba(250, 250, 250, 0.92) !important;
+}
+
+#topbar-cta-button,
+#topbar-cta-button a {
+  border-radius: var(--aa-r-sm) !important;
+}
+
+/* ── Search ──────────────────────────────────────────────────────────── */
 #search-bar-entry,
 #search-bar-entry-mobile {
   border: 1px solid var(--aa-border) !important;
   background: var(--aa-bg-deep) !important;
-  border-radius: 0 !important;
+  border-radius: var(--aa-r-md) !important;
   color: var(--aa-muted) !important;
+  font-family: var(--aa-mono) !important;
+  font-size: 0.78rem !important;
 }
 
+#search-bar-entry:hover,
+#search-bar-entry-mobile:hover {
+  border-color: var(--aa-border-strong) !important;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
 #sidebar {
   background: rgba(27, 27, 27, 0.98) !important;
   border-right: 1px solid var(--aa-border) !important;
@@ -95,11 +175,11 @@ sidebar-group-header,
 sidebar-title,
 eyebrow,
 breadcrumb-list {
-  color: var(--aa-muted) !important;
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace !important;
-  font-size: 0.68rem !important;
+  color: var(--aa-faint) !important;
+  font-family: var(--aa-mono) !important;
+  font-size: 0.66rem !important;
   font-weight: 500 !important;
-  letter-spacing: 0.12em !important;
+  letter-spacing: 0.14em !important;
   text-transform: uppercase !important;
 }
 
@@ -109,10 +189,14 @@ breadcrumb-item {
   color: var(--aa-muted) !important;
 }
 
+#sidebar-content a:hover {
+  color: var(--aa-text) !important;
+}
+
 #sidebar-content li[data-active] {
   background: var(--aa-orange-soft) !important;
   border-left: 0 !important;
-  border-radius: 0.28rem !important;
+  border-radius: var(--aa-r-md) !important;
   margin: 0.08rem 0.45rem !important;
   width: calc(100% - 0.9rem) !important;
   min-height: 1.8rem !important;
@@ -142,13 +226,19 @@ mdx-content a {
   color: var(--aa-orange) !important;
 }
 
+mdx-content a {
+  text-decoration-color: var(--aa-orange-line) !important;
+  text-underline-offset: 0.18em !important;
+}
+
+/* ── Content area ────────────────────────────────────────────────────── */
 #table-of-contents-layout {
-  border-left: 1px solid var(--aa-border) !important;
+  border-left: 0 !important;
 }
 
 #content-area {
-  border-left: 1px solid rgba(250, 250, 250, 0.045);
-  border-right: 1px solid rgba(250, 250, 250, 0.045);
+  border-left: 0 !important;
+  border-right: 0 !important;
   position: relative;
 }
 
@@ -158,21 +248,15 @@ mdx-content a {
 
 #content-area::before {
   content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(var(--aa-orange), rgba(255, 87, 10, 0.18) 220px, transparent 520px);
-  opacity: 0.46;
-  pointer-events: none;
+  display: none !important;
 }
 
+/* ── Headings ────────────────────────────────────────────────────────── */
 #page-title,
 mdx-content h1,
 mdx-content h2 {
   color: var(--aa-text) !important;
-  font-family: "Geist Pixel Square", "Geist Mono", ui-monospace, monospace !important;
+  font-family: var(--aa-pixel) !important;
   font-weight: 400 !important;
   letter-spacing: -0.045em !important;
 }
@@ -182,31 +266,44 @@ mdx-content h2 {
   line-height: 1.05 !important;
 }
 
+/* Eyebrow / description spacing under the page title. */
+#page-title + p,
+mdx-content > p:first-of-type {
+  color: var(--aa-muted) !important;
+}
+
 mdx-content h2 {
   margin-top: 3rem !important;
   padding-top: 1.1rem !important;
   border-top: 1px solid var(--aa-border) !important;
-  font-size: clamp(1.35rem, 2.5vw, 1.75rem) !important;
+  font-size: clamp(1.3rem, 2.5vw, 1.7rem) !important;
 }
 
+/* Small square mark echoes the brand's pixel/notation language. */
 mdx-content h2::before {
   content: "";
   display: inline-block;
-  width: 0.55rem;
-  height: 0.55rem;
-  margin-right: 0.65rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.6rem;
   border: 1px solid var(--aa-orange);
   background: var(--aa-orange-soft);
-  transform: translateY(-0.08rem);
+  transform: translateY(-0.1rem);
 }
 
 mdx-content h3,
 mdx-content h4 {
   color: var(--aa-text) !important;
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace !important;
-  letter-spacing: -0.02em !important;
+  font-family: var(--aa-mono) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
 }
 
+mdx-content h3 {
+  margin-top: 2rem !important;
+}
+
+/* ── Prose ───────────────────────────────────────────────────────────── */
 mdx-content p,
 mdx-content li,
 mdx-content td {
@@ -218,29 +315,48 @@ mdx-content th {
   color: var(--aa-text) !important;
 }
 
+mdx-content hr {
+  border-color: var(--aa-border) !important;
+}
+
+mdx-content blockquote {
+  border-left: 2px solid var(--aa-orange-line) !important;
+  background: rgba(255, 87, 10, 0.04) !important;
+  color: var(--aa-muted) !important;
+  border-radius: 0 var(--aa-r-sm) var(--aa-r-sm) 0 !important;
+}
+
+/* ── Cards, callouts, steps, frames ──────────────────────────────────── */
 card,
 tile,
 callout,
-step,
+note,
+warning,
+info,
+tip,
+check,
+danger,
 accordion,
 frame,
 field {
   background: var(--aa-card) !important;
   border: 1px solid var(--aa-border) !important;
-  border-radius: 0 !important;
-  box-shadow: inset 0 0 0 1px rgba(250, 250, 250, 0.025) !important;
+  border-radius: var(--aa-r-md) !important;
+  box-shadow: inset 0 0 0 1px rgba(250, 250, 250, 0.02) !important;
 }
 
 card {
   position: relative;
+  border-radius: var(--aa-r-lg) !important;
   transition: border-color 140ms ease, background-color 140ms ease;
 }
 
+/* Technical corner tick — a quiet identity mark, used once per card. */
 card::before {
   content: "";
   position: absolute;
   inset: -1px auto auto -1px;
-  width: 34px;
+  width: 30px;
   height: 1px;
   background: var(--aa-orange);
   opacity: 0.75;
@@ -248,34 +364,93 @@ card::before {
 
 card:hover {
   background: var(--aa-card-soft) !important;
-  border-color: rgba(255, 87, 10, 0.5) !important;
+  border-color: var(--aa-orange-line) !important;
 }
 
+card .card-title,
+card h2,
+card h3 {
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
+  letter-spacing: -0.01em !important;
+}
+
+/*
+ * Callouts use the artifact accents as notation: orange for note/info,
+ * amber for warnings, rose for danger, emerald for tips/checks.
+ */
+note,
+info {
+  border-left: 2px solid var(--aa-orange-line) !important;
+}
+
+tip,
+check {
+  border-left: 2px solid color-mix(in oklch, var(--aa-emerald) 60%, transparent) !important;
+}
+
+warning {
+  border-left: 2px solid color-mix(in oklch, var(--aa-amber) 65%, transparent) !important;
+}
+
+danger {
+  border-left: 2px solid color-mix(in oklch, var(--aa-rose) 65%, transparent) !important;
+}
+
+/* Steps rail. */
+step {
+  border-radius: var(--aa-r-md) !important;
+}
+
+/* ── Code ────────────────────────────────────────────────────────────── */
 code,
 pre,
 code-block {
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace !important;
+  font-family: var(--aa-mono) !important;
 }
 
 code-block,
 pre {
   background: var(--aa-bg-deep) !important;
   border: 0 !important;
-  border-radius: 0.18rem !important;
-  box-shadow: inset 0 0 0 1px rgba(250, 250, 250, 0.035) !important;
+  outline: 0 !important;
+  border-radius: var(--aa-r-md) !important;
+  box-shadow: none !important;
+}
+
+.code-block,
+.code-block-background {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* Code block title bar reads like a small file/command label. */
+code-block .code-block-title,
+codeblock-filename,
+code-group-tab {
+  font-family: var(--aa-mono) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.04em !important;
+  color: var(--aa-faint) !important;
 }
 
 mdx-content :not(pre) > code {
   color: var(--aa-text) !important;
   background: var(--aa-bg-deep) !important;
-  border: 0 !important;
-  border-radius: 0.18rem !important;
-  padding: 0.12rem 0.32rem !important;
+  border: 1px solid var(--aa-border) !important;
+  border-radius: var(--aa-r-sm) !important;
+  padding: 0.1rem 0.32rem !important;
+  font-size: 0.85em !important;
 }
 
+/* ── Tables ──────────────────────────────────────────────────────────── */
 mdx-content table {
   border: 1px solid var(--aa-border) !important;
   border-collapse: collapse !important;
+  border-radius: var(--aa-r-md) !important;
+  overflow: hidden !important;
 }
 
 mdx-content th,
@@ -285,12 +460,18 @@ mdx-content td {
 
 mdx-content th {
   background: var(--aa-bg-deep) !important;
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace !important;
-  font-size: 0.72rem !important;
+  font-family: var(--aa-mono) !important;
+  font-size: 0.7rem !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
+  color: var(--aa-faint) !important;
 }
 
+mdx-content tbody tr:hover td {
+  background: rgba(250, 250, 250, 0.015) !important;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────── */
 #pagination {
   border-top: 1px solid var(--aa-border) !important;
 }
@@ -298,15 +479,16 @@ mdx-content th {
 pagination-prev,
 pagination-next {
   border: 1px solid var(--aa-border) !important;
-  border-radius: 0 !important;
+  border-radius: var(--aa-r-md) !important;
   background: var(--aa-card) !important;
 }
 
 pagination-prev:hover,
 pagination-next:hover {
-  border-color: rgba(255, 87, 10, 0.5) !important;
+  border-color: var(--aa-orange-line) !important;
 }
 
+/* ── Selection ───────────────────────────────────────────────────────── */
 ::selection {
   color: var(--aa-bg-deep);
   background: var(--aa-orange);

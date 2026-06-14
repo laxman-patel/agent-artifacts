@@ -1,35 +1,35 @@
 ---
-title: "Workspaces and Projects"
+title: "Workspaces and projects"
 description: "How Artifacts organizes namespaces, teams, projects, and artifact paths."
 ---
 
-Artifacts uses a two-level namespace before each artifact slug:
+Every artifact lives under a two-level namespace: a **workspace** and a **project**.
 
 ```text
 /{workspaceSlug}/{projectSlug}/{artifactSlug}
 ```
 
-The workspace owns billing, membership, and namespace policy. The project groups related artifacts under that workspace.
+The workspace owns billing, membership, and namespace policy. The project groups related artifacts inside that workspace.
 
 ## Workspaces
 
 A workspace is either personal or team-based.
 
-| Kind | Purpose | Creation |
+| Kind | Purpose | Created |
 | --- | --- | --- |
-| `personal` | The user's default namespace | Created when the user claims a username |
-| `team` | Shared namespace for collaboration | Created by signed-in users on a plan that allows team workspaces |
+| `personal` | Your default namespace | When you claim a username |
+| `team` | A shared namespace for collaboration | By signed-in users on a plan that allows team workspaces |
 
-Workspace slugs use the same validation rules as usernames:
+Workspace slugs follow the same rules as usernames:
 
 - 3 to 32 characters.
 - Lowercase letters, numbers, underscores, and hyphens.
 - Must start and end with a letter or number.
-- Must not conflict with reserved app routes such as `api`, `docs`, `login`, `dashboard`, or `mcp`.
+- Must not collide with reserved app routes such as `api`, `docs`, `login`, `dashboard`, or `mcp`.
 
-## Workspace Roles
+### Roles
 
-Workspace membership grants access to projects and artifacts in that namespace.
+Workspace membership grants access to the projects and artifacts in that namespace.
 
 | Role | Typical use |
 | --- | --- |
@@ -43,56 +43,45 @@ Team invitations can grant `admin`, `member`, `viewer`, or `billing_admin`.
 
 ## Projects
 
-A project groups artifacts under a workspace. Examples:
+A project groups artifacts under a workspace:
 
 ```text
 /alice/default/launch-review
 /acme/design-explorations/pricing-grid
 ```
 
-Project fields include:
+Each project has a `projectId`, an owner (`ownerUsername` or `workspaceSlug`), a `slug`, a `title`, an optional `description`, and an `icon`. Project slugs normalize to lowercase letters, numbers, and single hyphens.
 
-- `projectId`
-- `ownerUsername` or `workspaceSlug`
-- `slug`
-- `title`
-- `description`
-- `icon`
+### Create a project
 
-Project slugs normalize to lowercase letters, numbers, and single hyphens.
-
-## Creating Projects
-
-With the CLI:
-
-```bash
+<CodeGroup>
+```bash CLI
 artifacts project create --json '{"ownerUsername":"alice","slug":"research","title":"Research"}'
 ```
 
-Against a workspace-specific API route:
-
-```bash
+```bash REST
 curl -X POST "$API_URL/api/workspaces/$WORKSPACE_ID/projects" \
   -H "authorization: Bearer $TOKEN" \
   -H "content-type: application/json" \
   -d '{"slug":"research","title":"Research"}'
 ```
+</CodeGroup>
 
-## Path Resolution
+## Resolving paths
 
-Artifacts supports path-first lookup for humans and agents:
+Artifacts supports path-first lookup for both humans and agents — useful when you have a URL but need an artifact ID for follow-up calls.
 
-```bash
+<CodeGroup>
+```bash CLI
 artifacts path project --owner alice --project-slug research
 artifacts path artifact --owner alice --project-slug research --slug synthesis
 ```
 
-Equivalent REST routes:
-
-```text
+```text REST
 GET /api/by-path/:username
 GET /api/by-path/:username/:projectSlug
 GET /api/by-path/:username/:projectSlug/:slug
 ```
+</CodeGroup>
 
-Project path resolution returns the project and the artifacts visible to the caller. Artifact path resolution applies normal artifact access policy and share-link grants.
+Project path resolution returns the project plus the artifacts visible to the caller. Artifact path resolution applies normal access policy and any share-link grants.

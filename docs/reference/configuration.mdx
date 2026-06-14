@@ -3,7 +3,11 @@ title: "Configuration"
 description: "Environment variables for web, API, auth, storage, billing, CLI, and observability."
 ---
 
-Artifacts reads environment from the monorepo `.env` file during local development. Production deployments should provide the same variables through the platform secret store.
+Every environment variable Artifacts reads, grouped by area. During local development these come from the monorepo `.env` file; in production, provide the same variables through your platform's secret store.
+
+<Tip>
+  Copy `.env.example` to `.env` to start from working local defaults — see the [quickstart](/getting-started/quickstart).
+</Tip>
 
 ## Core URLs
 

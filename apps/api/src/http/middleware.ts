@@ -4,12 +4,27 @@ import { MAX_ARTIFACT_CONTENT_BYTES } from "@agent-artifacts/artifact";
 import { AGENT_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { csrfOriginGuard } from "../csrf.js";
-import { getAgentAuthService, getApiKeyService } from "../deps.js";
-import { rateLimit } from "../rate-limit.js";
+import { getAgentAuthService, getApiKeyService, getDb } from "../deps.js";
+import { DatabaseRateLimitStore, createMemoryRateLimitStore, type RateLimitStore, rateLimit } from "../rate-limit.js";
 import type { AppVariables } from "../deps.js";
 
-export const writeLimiter = rateLimit({ windowMs: 60_000, max: 60 });
-export const readLimiter = rateLimit({ windowMs: 60_000, max: 300 });
+let sharedRateLimitStore: RateLimitStore | undefined;
+
+function rateLimitStore(): RateLimitStore {
+  if (sharedRateLimitStore) {
+    return sharedRateLimitStore;
+  }
+
+  const store = process.env.RATE_LIMIT_STORE ?? (process.env.NODE_ENV === "production" ? "database" : "memory");
+  if (store !== "database" && store !== "memory") {
+    throw new Error(`Unsupported RATE_LIMIT_STORE value: ${store}`);
+  }
+  sharedRateLimitStore = store === "database" ? new DatabaseRateLimitStore(getDb()) : createMemoryRateLimitStore();
+  return sharedRateLimitStore;
+}
+
+export const writeLimiter = rateLimit({ windowMs: 60_000, max: 60, store: rateLimitStore });
+export const readLimiter = rateLimit({ windowMs: 60_000, max: 300, store: rateLimitStore });
 
 const HTTP_BODY_LIMIT_BYTES = MAX_ARTIFACT_CONTENT_BYTES + 64 * 1024;
 

@@ -27,6 +27,7 @@ export const serverEnvSchema = z.object({
   BETTER_STACK_INGESTING_URL: urlSchema.optional(),
   BETTER_STACK_WEB_SOURCE_TOKEN: z.string().min(1).optional(),
   LOG_IP_SALT: z.string().min(1).optional(),
+  RATE_LIMIT_STORE: z.enum(["memory", "database"]).optional(),
   AUTH_MD_ENABLED: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
   AUTH_MD_SIGNING_SECRET: z.string().min(32).optional(),
   AUTH_MD_CLAIM_TTL_SECONDS: z.coerce.number().int().positive().default(600),

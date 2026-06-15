@@ -113,6 +113,13 @@
       "when": 1780000005000,
       "tag": "0015_agent_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1780000006000,
+      "tag": "0016_api_rate_limits",
+      "breakpoints": true
     }
   ]
 }

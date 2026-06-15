@@ -35,10 +35,12 @@ A complete reference for the `artifacts` command. New to the CLI? Start with the
 
 ## Auth and Profile
 
+`artifacts login` stores bearer tokens in the OS credential store: `secret-tool`/libsecret on Linux, Keychain on macOS, and Credential Manager on Windows. The local credentials JSON file stores only non-secret metadata.
+
 | Command | Purpose |
 | --- | --- |
-| `artifacts login` | Browser OAuth login |
-| `artifacts logout` | Clear local credentials |
+| `artifacts login` | Browser OAuth login and secure credential storage |
+| `artifacts logout` | Clear local credentials from the OS store |
 | `artifacts profile get` | Read current profile |
 | `artifacts profile set-username --username <username>` | Claim username and personal workspace slug |
 

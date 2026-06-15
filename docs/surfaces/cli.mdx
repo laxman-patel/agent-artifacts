@@ -68,6 +68,10 @@ artifacts artifact list --format json
 ```
 </CodeGroup>
 
+Browser login stores bearer tokens in the OS credential store: `secret-tool`/libsecret on Linux, Keychain on macOS, and Credential Manager on Windows. The local `~/.config/agent-artifacts/credentials.json` file contains only non-secret metadata such as service URLs.
+
+On Linux, install `secret-tool` and unlock your keyring before running `artifacts login`.
+
 ## Discovery for agents
 
 Agents should rely on schema discovery rather than parsing `--help`:

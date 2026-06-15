@@ -57,14 +57,16 @@ Dev builds (`cli:build`) keep localhost defaults.
 
 ### Browser login (recommended)
 
-Like Firebase CLI, `artifacts login` opens your browser, completes Google sign-in on the web app, and stores credentials locally:
+Like Firebase CLI, `artifacts login` opens your browser, completes Google sign-in on the web app, and stores credentials securely:
 
 ```bash
 artifacts login
 artifacts whoami
 ```
 
-Credentials are saved to `~/.config/agent-artifacts/credentials.json` (mode `0600`).
+Bearer tokens are stored in the OS credential store: `secret-tool`/libsecret on Linux, Keychain on macOS, and Credential Manager on Windows. The file at `~/.config/agent-artifacts/credentials.json` contains only non-secret metadata such as URLs and profile hints.
+
+On Linux, install `secret-tool` and make sure your keyring is unlocked before running `artifacts login`.
 
 Override defaults if needed:
 

@@ -103,11 +103,44 @@ export interface ArtifactMeta {
 }
 
 export function internalApiOrigin(): string {
-  return (process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001").replace(/\/+$/, "");
+  const origin = (process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001").replace(/\/+$/, "");
+  const url = new URL(origin);
+  if (!isInternalApiHost(url.hostname)) {
+    throw new Error("INTERNAL_API_URL must point to a loopback, private-network, or internal service host.");
+  }
+  return origin;
 }
 
 export function cookieHeader(cookieStore: { getAll(): { name: string; value: string }[] }): string {
   return cookieStore.getAll().map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+}
+
+function isInternalApiHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  if (normalized === "localhost" || normalized === "::1" || normalized.endsWith(".internal")) {
+    return true;
+  }
+
+  if (!normalized.includes(".")) {
+    return true;
+  }
+
+  if (normalized.startsWith("127.")) {
+    return true;
+  }
+
+  const octets = normalized.split(".").map((part) => Number.parseInt(part, 10));
+  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part))) {
+    return false;
+  }
+
+  const first = octets[0];
+  const second = octets[1];
+  if (first === undefined || second === undefined) {
+    return false;
+  }
+
+  return first === 10 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168);
 }
 
 function isBetterStackServerConfigured(): boolean {

@@ -43,37 +43,57 @@ export const csrfGuard: MiddlewareHandler = async (c, next) => {
   })(c, next);
 };
 
-export const CSRF_PROTECTED_ROUTES = [
-  { path: "/api/artifacts", middleware: [writeLimiter, artifactBodyLimit, csrfGuard] as const },
-  { path: "/api/artifacts/:artifactId", middleware: [csrfGuard] as const },
-  { path: "/api/artifacts/:artifactId/versions", middleware: [writeLimiter, artifactBodyLimit, csrfGuard] as const },
-  { path: "/api/artifacts/:artifactId/versions/:versionNumber/restore", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/artifacts/:artifactId/access", middleware: [csrfGuard] as const },
-  { path: "/api/artifacts/:artifactId/share-links", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/share-links/:shareLinkId/revoke", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/projects", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/workspaces", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/workspaces/:workspaceId/projects", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/workspaces/:workspaceId/artifacts", middleware: [writeLimiter, artifactBodyLimit, csrfGuard] as const },
-  { path: "/api/workspaces/:workspaceId/invitations", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/workspaces/:workspaceId/members/:userId", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/workspace-invitations/accept", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/workspace-invitations/:invitationId/revoke", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/workspace-invitations/:invitationId/resend", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/billing/checkout", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/billing/portal", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/billing/storage-snapshot", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/api-keys", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/api-keys/:apiKeyId", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/agent/identity/claim/complete", middleware: [writeLimiter, csrfGuard] as const },
-  { path: "/api/profile/username", middleware: [csrfGuard] as const },
-  { path: "/api/cli/authorize", middleware: [csrfGuard] as const }
+const CSRF_EXEMPT_PATHS = new Set([
+  "/agent/identity",
+  "/agent/identity/claim",
+  "/api/cli/exchange",
+  "/api/internal/billing/storage-snapshots",
+  "/api/webhooks/dodo",
+  "/mcp",
+  "/oauth2/revoke",
+  "/oauth2/token"
+]);
+
+const CSRF_EXEMPT_PREFIXES = ["/api/auth/"] as const;
+
+export const ROUTE_MIDDLEWARE = [
+  { path: "/api/artifacts", middleware: [writeLimiter, artifactBodyLimit] as const },
+  { path: "/api/artifacts/:artifactId/versions", middleware: [writeLimiter, artifactBodyLimit] as const },
+  { path: "/api/artifacts/:artifactId/versions/:versionNumber/restore", middleware: [writeLimiter] as const },
+  { path: "/api/artifacts/:artifactId/share-links", middleware: [writeLimiter] as const },
+  { path: "/api/share-links/:shareLinkId/revoke", middleware: [writeLimiter] as const },
+  { path: "/api/projects", middleware: [writeLimiter] as const },
+  { path: "/api/workspaces", middleware: [writeLimiter] as const },
+  { path: "/api/workspaces/:workspaceId/projects", middleware: [writeLimiter] as const },
+  { path: "/api/workspaces/:workspaceId/artifacts", middleware: [writeLimiter, artifactBodyLimit] as const },
+  { path: "/api/workspaces/:workspaceId/invitations", middleware: [writeLimiter] as const },
+  { path: "/api/workspaces/:workspaceId/members/:userId", middleware: [writeLimiter] as const },
+  { path: "/api/workspace-invitations/accept", middleware: [writeLimiter] as const },
+  { path: "/api/workspace-invitations/:invitationId/revoke", middleware: [writeLimiter] as const },
+  { path: "/api/workspace-invitations/:invitationId/resend", middleware: [writeLimiter] as const },
+  { path: "/api/billing/checkout", middleware: [writeLimiter] as const },
+  { path: "/api/billing/portal", middleware: [writeLimiter] as const },
+  { path: "/api/billing/storage-snapshot", middleware: [writeLimiter] as const },
+  { path: "/api/api-keys", middleware: [writeLimiter] as const },
+  { path: "/api/api-keys/:apiKeyId", middleware: [writeLimiter] as const },
+  { path: "/api/agent/identity/claim/complete", middleware: [writeLimiter] as const }
 ] as const;
 
+export function isCsrfExemptPath(path: string): boolean {
+  return CSRF_EXEMPT_PATHS.has(path) || CSRF_EXEMPT_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
 export function registerMiddleware(app: Hono<{ Variables: AppVariables }>) {
-  for (const route of CSRF_PROTECTED_ROUTES) {
+  for (const route of ROUTE_MIDDLEWARE) {
     app.use(route.path, ...route.middleware);
   }
+
+  app.use("*", async (c, next) => {
+    if (isCsrfExemptPath(c.req.path)) {
+      return next();
+    }
+    return csrfGuard(c, next);
+  });
 
   app.use("/api/artifacts/*", readLimiter);
   app.use("/agent/identity", writeLimiter);

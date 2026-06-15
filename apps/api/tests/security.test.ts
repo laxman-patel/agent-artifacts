@@ -2,7 +2,23 @@ import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { app } from "../src/app.js";
 import { csrfOriginGuard } from "../src/csrf.js";
-import { CSRF_PROTECTED_ROUTES } from "../src/http/middleware.js";
+import { registerMiddleware } from "../src/http/middleware.js";
+
+const originalEnv = { ...process.env };
+
+function setRequiredEnv() {
+  process.env.DATABASE_URL = "postgresql://user:password@localhost:5432/agent_artifacts";
+  process.env.BETTER_AUTH_SECRET = "x".repeat(32);
+  process.env.BETTER_AUTH_URL = "http://localhost:3000";
+  process.env.GOOGLE_CLIENT_ID = "google-client";
+  process.env.GOOGLE_CLIENT_SECRET = "google-secret";
+  process.env.PUBLIC_APP_URL = "http://localhost:3000";
+  process.env.S3_ENDPOINT = "https://example.com";
+  process.env.S3_BUCKET = "agent-artifacts";
+  process.env.S3_REGION = "auto";
+  process.env.S3_ACCESS_KEY_ID = "access-key";
+  process.env.S3_SECRET_ACCESS_KEY = "secret-key";
+}
 
 describe("security headers", () => {
   it("includes security headers on API responses", async () => {
@@ -62,24 +78,24 @@ describe("CSRF protection", () => {
     expect(response.status).toBe(403);
   });
 
-  it("covers cookie-authenticated workspace mutations", () => {
-    const protectedPaths = CSRF_PROTECTED_ROUTES.map((route) => route.path);
+  it("protects unlisted mutation routes by default", async () => {
+    setRequiredEnv();
+    const testApp = new Hono();
+    registerMiddleware(testApp);
+    testApp.post("/api/new-cookie-mutation", (c) => c.text("ok"));
 
-    expect(protectedPaths).toEqual(
-      expect.arrayContaining([
-        "/api/workspaces",
-        "/api/workspaces/:workspaceId/projects",
-        "/api/workspaces/:workspaceId/artifacts",
-        "/api/workspaces/:workspaceId/invitations",
-        "/api/workspaces/:workspaceId/members/:userId",
-        "/api/workspace-invitations/accept",
-        "/api/workspace-invitations/:invitationId/revoke",
-        "/api/workspace-invitations/:invitationId/resend",
-        "/api/api-keys",
-        "/api/api-keys/:apiKeyId",
-        "/api/agent/identity/claim/complete"
-      ])
-    );
+    try {
+      const response = await testApp.request("/api/new-cookie-mutation", {
+        method: "POST",
+        headers: {
+          cookie: "better-auth.session_token=victim-session"
+        }
+      });
+
+      expect(response.status).toBe(403);
+    } finally {
+      process.env = { ...originalEnv };
+    }
   });
 });
 

@@ -102,71 +102,54 @@ async function resolveShareGrantPrincipal(c: Context, principal: Principal): Pro
   return applyShareGrantForArtifact(c.req.header("cookie"), c.req.param("artifactId"), principal);
 }
 
-export async function resolvePrincipal(c: Context | Request): Promise<Principal> {
+async function withContextShareGrant(c: Context | Request, principal: Principal): Promise<Principal> {
+  return isContext(c) ? resolveShareGrantPrincipal(c, principal) : principal;
+}
+
+async function tryResolveAuthenticatedPrincipal(c: Context | Request): Promise<Principal | undefined> {
   const request = isContext(c) ? c.req.raw : c;
   const agentPrincipal = await getAgentPrincipalFromRequest(request);
   if (agentPrincipal) {
-    return isContext(c) ? resolveShareGrantPrincipal(c, agentPrincipal) : agentPrincipal;
+    return withContextShareGrant(c, agentPrincipal);
   }
 
   const apiKeyPrincipal = await getApiKeyPrincipalFromRequest(request);
   if (apiKeyPrincipal) {
-    return isContext(c) ? resolveShareGrantPrincipal(c, apiKeyPrincipal) : apiKeyPrincipal;
+    return withContextShareGrant(c, apiKeyPrincipal);
   }
 
   const session = await getSessionFromRequest(request);
-
-  let principal: Principal;
   if (session?.user) {
-    principal = createUserPrincipal({
+    return withContextShareGrant(c, createUserPrincipal({
       userId: session.user.id,
       email: session.user.email,
       emailVerified: session.user.emailVerified
-    });
-  } else {
-    principal = {
-      type: "service",
-      id: "anonymous-public-viewer",
-      scopes: ["artifacts:read"]
-    };
+    }));
   }
 
-  if (isContext(c)) {
-    return resolveShareGrantPrincipal(c, principal);
+  return undefined;
+}
+
+export async function resolvePrincipal(c: Context | Request): Promise<Principal> {
+  const authenticated = await tryResolveAuthenticatedPrincipal(c);
+  if (authenticated) {
+    return authenticated;
   }
 
-  return principal;
+  return withContextShareGrant(c, {
+    type: "service",
+    id: "anonymous-public-viewer",
+    scopes: ["artifacts:read"]
+  });
 }
 
 export async function requirePrincipal(c: Context | Request): Promise<Principal> {
-  const request = isContext(c) ? c.req.raw : c;
-  const agentPrincipal = await getAgentPrincipalFromRequest(request);
-  if (agentPrincipal) {
-    return isContext(c) ? resolveShareGrantPrincipal(c, agentPrincipal) : agentPrincipal;
-  }
-
-  const apiKeyPrincipal = await getApiKeyPrincipalFromRequest(request);
-  if (apiKeyPrincipal) {
-    return isContext(c) ? resolveShareGrantPrincipal(c, apiKeyPrincipal) : apiKeyPrincipal;
-  }
-
-  const session = await getSessionFromRequest(request);
-
-  if (!session?.user) {
+  const authenticated = await tryResolveAuthenticatedPrincipal(c);
+  if (!authenticated) {
     throw new ArtifactForbiddenError("Authentication is required.");
   }
 
-  const principal = createUserPrincipal({
-    userId: session.user.id,
-    email: session.user.email,
-    emailVerified: session.user.emailVerified
-  });
-
-  if (isContext(c)) {
-    return resolveShareGrantPrincipal(c, principal);
-  }
-
-  return principal;
+  return authenticated;
 }
 
 type HumanPrincipal = Principal & { type: "user"; id: string };

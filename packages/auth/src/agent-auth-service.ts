@@ -332,7 +332,14 @@ export class AgentAuthService {
         claimExpiresAt,
         updatedAt: now
       })
-      .where(eq(agentRegistrations.id, registration.id))
+      .where(
+        and(
+          eq(agentRegistrations.id, registration.id),
+          eq(agentRegistrations.status, "pending"),
+          isNull(agentRegistrations.revokedAt),
+          gt(agentRegistrations.expiresAt, now)
+        )
+      )
       .returning();
 
     if (!updated) {
@@ -360,6 +367,7 @@ export class AgentAuthService {
     }
 
     const parsed = agentClaimCompleteInputSchema.parse(input);
+    checkEmailRateLimit(principal.email);
     const now = new Date();
     const [registration] = await this.db
       .select()
@@ -394,11 +402,19 @@ export class AgentAuthService {
         grantedScopes: parseScopes(registration.requestedScopes),
         updatedAt: now
       })
-      .where(eq(agentRegistrations.id, registration.id))
+      .where(
+        and(
+          eq(agentRegistrations.id, registration.id),
+          eq(agentRegistrations.status, "pending"),
+          eq(agentRegistrations.userCodeHash, hashAgentAuthSecret(parsed.user_code)),
+          isNull(agentRegistrations.revokedAt),
+          gt(agentRegistrations.claimExpiresAt, now)
+        )
+      )
       .returning();
 
     if (!claimed) {
-      throw new AgentAuthError("claim_failed", "Agent claim could not be completed.", 500);
+      throw new AgentAuthError("claim_already_completed", "Agent claim is no longer pending.", 409);
     }
 
     const revokedPreClaimTokens = await this.revokePreClaimTokens(claimed.id, now);

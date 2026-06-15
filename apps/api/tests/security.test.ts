@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { Hono } from "hono";
 import { app } from "../src/app.js";
+import { csrfOriginGuard } from "../src/csrf.js";
 import { CSRF_PROTECTED_ROUTES } from "../src/http/middleware.js";
 
 describe("security headers", () => {
@@ -41,6 +43,25 @@ describe("rate limiting", () => {
 });
 
 describe("CSRF protection", () => {
+  it("does not let cookies bypass origin checks through failed bearer auth", async () => {
+    const testApp = new Hono();
+    testApp.use(
+      "*",
+      csrfOriginGuard(["https://app.example.com"], async () => false)
+    );
+    testApp.post("/mutate", (c) => c.text("ok"));
+
+    const response = await testApp.request("/mutate", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer session-backed-token",
+        cookie: "better-auth.session_token=victim-session"
+      }
+    });
+
+    expect(response.status).toBe(403);
+  });
+
   it("covers cookie-authenticated workspace mutations", () => {
     const protectedPaths = CSRF_PROTECTED_ROUTES.map((route) => route.path);
 

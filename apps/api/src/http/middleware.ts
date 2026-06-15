@@ -4,7 +4,7 @@ import { MAX_ARTIFACT_CONTENT_BYTES } from "@agent-artifacts/artifact";
 import { AGENT_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { csrfOriginGuard } from "../csrf.js";
-import { getAgentAuthService, getApiKeyService, getAuth } from "../deps.js";
+import { getAgentAuthService, getApiKeyService } from "../deps.js";
 import { rateLimit } from "../rate-limit.js";
 import type { AppVariables } from "../deps.js";
 
@@ -23,30 +23,24 @@ export const webhookBodyLimit = bodyLimit({
   onError: (c) => c.json({ error: "payload_too_large", message: "Webhook body exceeds 262144 byte limit." }, 413)
 });
 
-let csrfGuardImpl: MiddlewareHandler | undefined;
-
 export const csrfGuard: MiddlewareHandler = async (c, next) => {
-  csrfGuardImpl ??= csrfOriginGuard(
-    [loadServerEnv().PUBLIC_APP_URL, loadServerEnv().BETTER_AUTH_URL],
-    async (requestContext) => {
-      const authorization = requestContext.req.header("authorization");
-      if (!authorization || !/^bearer\s+\S+/i.test(authorization)) {
-        return false;
-      }
-
-      const token = authorization.match(/^bearer\s+(\S+)$/i)?.[1];
-      if (token?.startsWith(API_KEY_PREFIX)) {
-        return Boolean(await getApiKeyService().authenticateToken(token));
-      }
-      if (token?.startsWith(AGENT_ACCESS_TOKEN_PREFIX)) {
-        return Boolean(await getAgentAuthService().authenticateAccessToken(token));
-      }
-
-      const session = await getAuth().api.getSession({ headers: requestContext.req.raw.headers });
-      return Boolean(session?.user);
+  const env = loadServerEnv();
+  return csrfOriginGuard([env.PUBLIC_APP_URL, env.BETTER_AUTH_URL], async (requestContext) => {
+    const authorization = requestContext.req.header("authorization");
+    if (!authorization || !/^bearer\s+\S+/i.test(authorization)) {
+      return false;
     }
-  );
-  return csrfGuardImpl(c, next);
+
+    const token = authorization.match(/^bearer\s+(\S+)$/i)?.[1];
+    if (token?.startsWith(API_KEY_PREFIX)) {
+      return Boolean(await getApiKeyService().authenticateToken(token));
+    }
+    if (token?.startsWith(AGENT_ACCESS_TOKEN_PREFIX)) {
+      return Boolean(await getAgentAuthService().authenticateAccessToken(token));
+    }
+
+    return false;
+  })(c, next);
 };
 
 export const CSRF_PROTECTED_ROUTES = [

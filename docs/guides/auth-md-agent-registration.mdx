@@ -1,0 +1,51 @@
+---
+title: "auth.md agent registration"
+description: "Register agents with user-claimed service_auth or anonymous pre-claim credentials."
+---
+
+Artifacts supports auth.md as an additive agent-registration layer. Better Auth still owns human sign-in; auth.md only issues scoped agent bearer tokens after a user claim flow or a short-lived anonymous pre-claim exchange.
+
+## Enable rollout
+
+auth.md is disabled by default. Enable it only after the agent auth migration has run:
+
+```bash
+AUTH_MD_ENABLED="true"
+AUTH_MD_SIGNING_SECRET="replace-with-a-random-32-byte-secret"
+AUTH_MD_ALLOWED_SCOPES="artifacts:read,artifacts:create,artifacts:update"
+AUTH_MD_ANONYMOUS_PRE_CLAIM_SCOPES="artifacts:read"
+```
+
+The public protocol document is available at `/auth.md`. OAuth discovery also advertises `agent_auth` metadata at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`.
+
+## service_auth flow
+
+1. The agent calls `POST /agent/identity` with `type: "service_auth"`, a `login_hint`, and optional scopes.
+2. The API creates a pending registration and returns a `claim_token`, `user_code`, and verification URL.
+3. The signed-in user opens `/agent/claim?user_code=...`. The email on their Better Auth session must match the `login_hint`.
+4. After claim completion, the agent exchanges the claim token at `/oauth2/token` with grant type `urn:agent-artifacts:params:oauth:grant-type:claim_token`.
+
+No service_auth access token is issued before the user confirms the claim.
+
+## Anonymous flow
+
+Anonymous registration is intentionally low privilege:
+
+1. The agent calls `POST /agent/identity` with `type: "anonymous"`.
+2. The API returns an unclaimed identity assertion and a claim token.
+3. The agent may exchange the assertion with grant type `urn:ietf:params:oauth:grant-type:jwt-bearer` for a short-lived pre-claim token.
+4. To bind the agent to a user, the agent calls `POST /agent/identity/claim` with the claim token and `login_hint`.
+5. The user confirms the code at `/agent/claim`.
+6. Claim completion revokes all pre-claim tokens. The agent must exchange the completed claim token for a fresh post-claim token.
+
+## Revocation
+
+Call `POST /oauth2/revoke` with a `token` parameter to revoke an auth.md access token. Revocation is idempotent.
+
+## Security properties
+
+- Claim tokens, user codes, assertion IDs, and access tokens are stored only as SHA-256 hashes.
+- Anonymous pre-claim tokens are marked unclaimed, short-lived, and limited to configured pre-claim scopes.
+- Agent bearer tokens bypass CSRF checks only after token validation succeeds.
+- MCP `tools/call` accepts valid agent/API-key bearer principals before falling back to Better Auth MCP OAuth.
+- Human login is not migrated; all claim completion still requires a Better Auth user session.

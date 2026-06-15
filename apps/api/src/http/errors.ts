@@ -12,6 +12,7 @@ import {
   UsernameAlreadySetError,
   UsernameTakenError
 } from "@agent-artifacts/artifact";
+import { AgentAuthError } from "@agent-artifacts/auth";
 import { EntitlementLimitError } from "@agent-artifacts/billing";
 import { ArtifactForbiddenError } from "@agent-artifacts/shared";
 import { z } from "zod";
@@ -21,6 +22,13 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 export function artifactErrorResponse(c: Context, error: unknown) {
+  if (error instanceof AgentAuthError) {
+    return Response.json(
+      { error: error.code, message: error.message, error_description: error.message },
+      { status: error.status }
+    );
+  }
+
   if (error instanceof ArtifactNotFoundError || error instanceof ProfileNotFoundError || error instanceof ShareLinkNotFoundError) {
     return c.json({ error: "not_found", message: error.message }, 404);
   }

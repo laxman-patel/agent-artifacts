@@ -74,6 +74,18 @@ const nextConfig: NextConfig = {
           destination: `${internalApiUrl.replace(/\/+$/, "")}/api/:path*`
         },
         {
+          source: "/agent/identity",
+          destination: `${internalApiUrl.replace(/\/+$/, "")}/agent/identity`
+        },
+        {
+          source: "/agent/identity/:path*",
+          destination: `${internalApiUrl.replace(/\/+$/, "")}/agent/identity/:path*`
+        },
+        {
+          source: "/oauth2/:path*",
+          destination: `${internalApiUrl.replace(/\/+$/, "")}/oauth2/:path*`
+        },
+        {
           source: "/mcp",
           destination: `${internalApiUrl.replace(/\/+$/, "")}/mcp`
         }

@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { createUserPrincipal } from "@agent-artifacts/auth";
 import { ArtifactForbiddenError, type Principal } from "@agent-artifacts/shared";
-import { getApiKeyService, getAuth, getShareLinkService } from "../deps.js";
+import { getAgentAuthService, getApiKeyService, getAuth, getShareLinkService } from "../deps.js";
 
 function isTransientDbError(error: unknown): boolean {
   const codes = new Set(["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ENOTFOUND"]);
@@ -62,6 +62,15 @@ async function getApiKeyPrincipalFromRequest(request: Request): Promise<Principa
   return getApiKeyService().authenticateToken(token);
 }
 
+async function getAgentPrincipalFromRequest(request: Request): Promise<Principal | undefined> {
+  const token = bearerToken(request);
+  if (!token) {
+    return undefined;
+  }
+
+  return getAgentAuthService().authenticateAccessToken(token);
+}
+
 function isContext(value: Context | Request): value is Context {
   return typeof (value as Context).req?.param === "function";
 }
@@ -95,6 +104,11 @@ async function resolveShareGrantPrincipal(c: Context, principal: Principal): Pro
 
 export async function resolvePrincipal(c: Context | Request): Promise<Principal> {
   const request = isContext(c) ? c.req.raw : c;
+  const agentPrincipal = await getAgentPrincipalFromRequest(request);
+  if (agentPrincipal) {
+    return isContext(c) ? resolveShareGrantPrincipal(c, agentPrincipal) : agentPrincipal;
+  }
+
   const apiKeyPrincipal = await getApiKeyPrincipalFromRequest(request);
   if (apiKeyPrincipal) {
     return isContext(c) ? resolveShareGrantPrincipal(c, apiKeyPrincipal) : apiKeyPrincipal;
@@ -126,6 +140,11 @@ export async function resolvePrincipal(c: Context | Request): Promise<Principal>
 
 export async function requirePrincipal(c: Context | Request): Promise<Principal> {
   const request = isContext(c) ? c.req.raw : c;
+  const agentPrincipal = await getAgentPrincipalFromRequest(request);
+  if (agentPrincipal) {
+    return isContext(c) ? resolveShareGrantPrincipal(c, agentPrincipal) : agentPrincipal;
+  }
+
   const apiKeyPrincipal = await getApiKeyPrincipalFromRequest(request);
   if (apiKeyPrincipal) {
     return isContext(c) ? resolveShareGrantPrincipal(c, apiKeyPrincipal) : apiKeyPrincipal;

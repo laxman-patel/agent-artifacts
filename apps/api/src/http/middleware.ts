@@ -1,10 +1,10 @@
 import { bodyLimit } from "hono/body-limit";
 import type { Hono, MiddlewareHandler } from "hono";
 import { MAX_ARTIFACT_CONTENT_BYTES } from "@agent-artifacts/artifact";
-import { API_KEY_PREFIX } from "@agent-artifacts/auth";
+import { AGENT_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX } from "@agent-artifacts/auth";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { csrfOriginGuard } from "../csrf.js";
-import { getApiKeyService, getAuth } from "../deps.js";
+import { getAgentAuthService, getApiKeyService, getAuth } from "../deps.js";
 import { rateLimit } from "../rate-limit.js";
 import type { AppVariables } from "../deps.js";
 
@@ -38,6 +38,9 @@ export const csrfGuard: MiddlewareHandler = async (c, next) => {
       if (token?.startsWith(API_KEY_PREFIX)) {
         return Boolean(await getApiKeyService().authenticateToken(token));
       }
+      if (token?.startsWith(AGENT_ACCESS_TOKEN_PREFIX)) {
+        return Boolean(await getAgentAuthService().authenticateAccessToken(token));
+      }
 
       const session = await getAuth().api.getSession({ headers: requestContext.req.raw.headers });
       return Boolean(session?.user);
@@ -68,6 +71,7 @@ export const CSRF_PROTECTED_ROUTES = [
   { path: "/api/billing/storage-snapshot", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/api-keys", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/api-keys/:apiKeyId", middleware: [writeLimiter, csrfGuard] as const },
+  { path: "/api/agent/identity/claim/complete", middleware: [writeLimiter, csrfGuard] as const },
   { path: "/api/profile/username", middleware: [csrfGuard] as const },
   { path: "/api/cli/authorize", middleware: [csrfGuard] as const }
 ] as const;
@@ -78,6 +82,10 @@ export function registerMiddleware(app: Hono<{ Variables: AppVariables }>) {
   }
 
   app.use("/api/artifacts/*", readLimiter);
+  app.use("/agent/identity", writeLimiter);
+  app.use("/agent/identity/claim", writeLimiter);
+  app.use("/oauth2/token", writeLimiter);
+  app.use("/oauth2/revoke", writeLimiter);
   app.use("/mcp", writeLimiter, artifactBodyLimit);
   app.use("/api/webhooks/dodo", writeLimiter, webhookBodyLimit);
   app.use("/api/internal/billing/storage-snapshots", writeLimiter);

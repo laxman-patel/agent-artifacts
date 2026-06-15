@@ -14,6 +14,28 @@ import type { Principal } from "@agent-artifacts/shared";
 
 export { withMcpAuth };
 export {
+  AGENT_ACCESS_TOKEN_PREFIX,
+  AGENT_AUTH_CLAIM_GRANT,
+  AGENT_CLAIM_TOKEN_PREFIX,
+  AgentAuthError,
+  AgentAuthService,
+  JWT_BEARER_GRANT,
+  agentClaimCompleteInputSchema,
+  agentIdentityClaimInputSchema,
+  agentIdentityInputSchema,
+  hashAgentAuthSecret,
+  normalizeAgentScopes,
+  type AgentAuthConfig,
+  type AgentAuthRequestMetadata,
+  type AgentClaimCompleteInput,
+  type AgentIdentityClaimInput,
+  type AgentIdentityInput,
+  type ClaimedAgentIdentity,
+  type CompletedAgentClaim,
+  type CreatedAgentIdentity,
+  type IssuedAgentAccessToken
+} from "./agent-auth-service.js";
+export {
   API_KEY_PREFIX,
   ApiKeyNotFoundError,
   ApiKeyService,

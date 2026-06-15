@@ -20,6 +20,7 @@ import {
   getShareLinkService,
   getWorkspaceService
 } from "../deps.js";
+import { requirePrincipal } from "./principal.js";
 
 const mcpJsonRpcRequestSchema = z.object({
   jsonrpc: z.literal("2.0"),
@@ -185,6 +186,17 @@ export async function handleMcpRequest(c: Context) {
     headers: c.req.raw.headers,
     body: raw
   });
+  if (/^bearer\s+\S+$/i.test(c.req.header("authorization") ?? "")) {
+    try {
+      const principal = await requirePrincipal(authRequest);
+      if (principal.type === "agent" || principal.type === "api_key") {
+        const result = await handleMcpJsonRpc(message, principal);
+        return c.json({ jsonrpc: "2.0", id: message.id, result });
+      }
+    } catch {
+      // Fall back to Better Auth's MCP OAuth handler for its own bearer errors.
+    }
+  }
 
   const handler = withMcpAuth(getAuth() as never, async (_req: Request, session: { userId: string }) => {
     const [userRow] = await getDb()

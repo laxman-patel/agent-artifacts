@@ -9,7 +9,7 @@ import {
   ProjectService,
   ShareLinkService
 } from "@agent-artifacts/artifact";
-import { ApiKeyService, createAuth, type BetterAuthHandle } from "@agent-artifacts/auth";
+import { AgentAuthService, ApiKeyService, createAuth, type BetterAuthHandle } from "@agent-artifacts/auth";
 import { BillingService, DrizzleBillingRepository } from "@agent-artifacts/billing";
 import { loadServerEnv } from "@agent-artifacts/config";
 import { createDb, type Database } from "@agent-artifacts/db";
@@ -26,7 +26,7 @@ import {
   type WorkspaceAccess,
   type WorkspaceService
 } from "@agent-artifacts/workspace";
-import type { Principal } from "@agent-artifacts/shared";
+import { agentScopeSchema, type AgentScope, type Principal } from "@agent-artifacts/shared";
 import DodoPayments from "dodopayments";
 import { DodoBillingGateway, UnavailableBillingGateway } from "./billing/dodo-gateway.js";
 import { logger } from "./logger.js";
@@ -50,7 +50,16 @@ let membershipServiceInstance: MembershipService | undefined;
 let invitationServiceInstance: InvitationService | undefined;
 let billingServiceInstance: BillingService | undefined;
 let apiKeyServiceInstance: ApiKeyService | undefined;
+let agentAuthServiceInstance: AgentAuthService | undefined;
 let dbInstance: Database | undefined;
+
+function parseAgentScopes(value: string): AgentScope[] {
+  const scopes = value
+    .split(",")
+    .map((scope) => scope.trim())
+    .filter((scope) => scope.length > 0);
+  return agentScopeSchema.array().parse(scopes);
+}
 
 export function getDb() {
   dbInstance ??= createDb({
@@ -181,4 +190,24 @@ export function getBillingService() {
 export function getApiKeyService() {
   apiKeyServiceInstance ??= new ApiKeyService(getDb());
   return apiKeyServiceInstance;
+}
+
+export function getAgentAuthService() {
+  agentAuthServiceInstance ??= (() => {
+    const env = loadServerEnv();
+    return new AgentAuthService(getDb(), {
+      enabled: env.AUTH_MD_ENABLED,
+      issuer: env.PUBLIC_APP_URL,
+      audience: env.PUBLIC_APP_URL,
+      appUrl: env.PUBLIC_APP_URL,
+      signingSecret: env.AUTH_MD_SIGNING_SECRET ?? env.BETTER_AUTH_SECRET,
+      allowedScopes: parseAgentScopes(env.AUTH_MD_ALLOWED_SCOPES),
+      anonymousPreClaimScopes: parseAgentScopes(env.AUTH_MD_ANONYMOUS_PRE_CLAIM_SCOPES),
+      claimTtlSeconds: env.AUTH_MD_CLAIM_TTL_SECONDS,
+      accessTokenTtlSeconds: env.AUTH_MD_ACCESS_TOKEN_TTL_SECONDS,
+      preClaimAccessTokenTtlSeconds: env.AUTH_MD_PRE_CLAIM_ACCESS_TOKEN_TTL_SECONDS,
+      identityAssertionTtlSeconds: env.AUTH_MD_IDENTITY_ASSERTION_TTL_SECONDS
+    });
+  })();
+  return agentAuthServiceInstance;
 }

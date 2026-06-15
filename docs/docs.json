@@ -87,6 +87,7 @@
               "guides/publish-artifact",
               "guides/version-history",
               "guides/sharing-and-permissions",
+              "guides/auth-md-agent-registration",
               "guides/api-keys-and-automation"
             ]
           },

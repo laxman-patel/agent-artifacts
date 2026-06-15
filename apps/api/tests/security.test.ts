@@ -55,7 +55,8 @@ describe("CSRF protection", () => {
         "/api/workspace-invitations/:invitationId/revoke",
         "/api/workspace-invitations/:invitationId/resend",
         "/api/api-keys",
-        "/api/api-keys/:apiKeyId"
+        "/api/api-keys/:apiKeyId",
+        "/api/agent/identity/claim/complete"
       ])
     );
   });

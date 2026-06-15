@@ -26,7 +26,15 @@ export const serverEnvSchema = z.object({
   BETTER_STACK_SOURCE_TOKEN: z.string().min(1).optional(),
   BETTER_STACK_INGESTING_URL: urlSchema.optional(),
   BETTER_STACK_WEB_SOURCE_TOKEN: z.string().min(1).optional(),
-  LOG_IP_SALT: z.string().min(1).optional()
+  LOG_IP_SALT: z.string().min(1).optional(),
+  AUTH_MD_ENABLED: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+  AUTH_MD_SIGNING_SECRET: z.string().min(32).optional(),
+  AUTH_MD_CLAIM_TTL_SECONDS: z.coerce.number().int().positive().default(600),
+  AUTH_MD_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  AUTH_MD_PRE_CLAIM_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  AUTH_MD_IDENTITY_ASSERTION_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  AUTH_MD_ALLOWED_SCOPES: z.string().min(1).default("artifacts:read"),
+  AUTH_MD_ANONYMOUS_PRE_CLAIM_SCOPES: z.string().min(1).default("artifacts:read")
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

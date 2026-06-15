@@ -178,6 +178,94 @@ export const apiKeys = pgTable(
   })
 );
 
+export const agentRegistrationType = pgEnum("agent_registration_type", ["service_auth", "anonymous"]);
+export const agentRegistrationStatus = pgEnum("agent_registration_status", ["pending", "claimed", "revoked", "expired"]);
+export const agentAccessTokenKind = pgEnum("agent_access_token_kind", ["pre_claim", "post_claim"]);
+
+export const agentRegistrations = pgTable(
+  "agent_registrations",
+  {
+    id: text("id").primaryKey(),
+    type: agentRegistrationType("type").notNull(),
+    status: agentRegistrationStatus("status").default("pending").notNull(),
+    ownerUserId: text("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
+    loginHint: text("login_hint"),
+    providerIssuer: text("provider_issuer"),
+    providerSubject: text("provider_subject"),
+    requestedScopes: jsonb("requested_scopes").$type<string[]>().default([]).notNull(),
+    grantedScopes: jsonb("granted_scopes").$type<string[]>().default([]).notNull(),
+    claimTokenHash: varchar("claim_token_hash", { length: 64 }).notNull(),
+    claimAttemptTokenHash: varchar("claim_attempt_token_hash", { length: 64 }),
+    userCodeHash: varchar("user_code_hash", { length: 64 }),
+    assertionJtiHash: varchar("assertion_jti_hash", { length: 64 }),
+    claimRequestedAt: timestamp("claim_requested_at", { withTimezone: true }),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    claimExpiresAt: timestamp("claim_expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    lastIssuedAt: timestamp("last_issued_at", { withTimezone: true }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    claimTokenUnique: uniqueIndex("agent_registrations_claim_token_hash_unique").on(table.claimTokenHash),
+    claimAttemptTokenUnique: uniqueIndex("agent_registrations_claim_attempt_token_hash_unique").on(table.claimAttemptTokenHash),
+    userCodeIdx: index("agent_registrations_user_code_idx").on(table.userCodeHash),
+    ownerIdx: index("agent_registrations_owner_idx").on(table.ownerUserId),
+    loginHintIdx: index("agent_registrations_login_hint_idx").on(sql`lower(${table.loginHint})`),
+    activeIdx: index("agent_registrations_active_idx").on(table.status, table.revokedAt, table.expiresAt),
+    assertionJtiUnique: uniqueIndex("agent_registrations_assertion_jti_hash_unique").on(table.assertionJtiHash)
+  })
+);
+
+export const agentAccessTokens = pgTable(
+  "agent_access_tokens",
+  {
+    id: text("id").primaryKey(),
+    registrationId: text("registration_id")
+      .notNull()
+      .references(() => agentRegistrations.id, { onDelete: "cascade" }),
+    ownerUserId: text("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    tokenKind: agentAccessTokenKind("token_kind").notNull(),
+    scopes: jsonb("scopes").$type<string[]>().default([]).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("agent_access_tokens_token_hash_unique").on(table.tokenHash),
+    registrationIdx: index("agent_access_tokens_registration_idx").on(table.registrationId),
+    activeTokenIdx: index("agent_access_tokens_active_token_idx").on(table.tokenHash, table.revokedAt, table.expiresAt),
+    ownerIdx: index("agent_access_tokens_owner_idx").on(table.ownerUserId)
+  })
+);
+
+export const agentDelegations = pgTable(
+  "agent_delegations",
+  {
+    id: text("id").primaryKey(),
+    issuer: text("issuer").notNull(),
+    subject: text("subject").notNull(),
+    audience: text("audience").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true })
+  },
+  (table) => ({
+    issuerSubjectAudienceUnique: uniqueIndex("agent_delegations_issuer_subject_audience_unique").on(
+      table.issuer,
+      table.subject,
+      table.audience
+    ),
+    userIdx: index("agent_delegations_user_idx").on(table.userId)
+  })
+);
+
 export const artifactType = pgEnum("artifact_type", ["html", "md", "jsx"]);
 export const artifactState = pgEnum("artifact_state", ["active", "deleted"]);
 export const artifactRole = pgEnum("artifact_role", ["owner", "admin", "editor", "viewer"]);

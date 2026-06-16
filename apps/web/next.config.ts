@@ -13,6 +13,8 @@ const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001";
 const isDev = process.env.NODE_ENV === "development";
 const defaultMintlifyDocsUrl = isDev ? "http://127.0.0.1:3002" : "https://docs.agent-artifacts.com";
 const mintlifyDocsUrl = process.env.MINTLIFY_DOCS_URL ?? defaultMintlifyDocsUrl;
+const mintlifyDocsOrigin = mintlifyDocsUrl.replace(/\/+$/, "");
+const docsReferer = [{ type: "header" as const, key: "referer", value: ".*/docs(?:/.*)?$" }];
 
 function betterStackConnectSrc(): string {
   const ingestUrl = process.env.NEXT_PUBLIC_BETTER_STACK_INGESTING_URL;
@@ -64,12 +66,40 @@ const nextConfig: NextConfig = {
     return {
       beforeFiles: [
         {
+          source: "/_next/static/:path*",
+          has: docsReferer,
+          destination: `${mintlifyDocsOrigin}/_next/static/:path*`
+        },
+        {
+          source: "/_mintlify/:path*",
+          destination: `${mintlifyDocsOrigin}/_mintlify/:path*`
+        },
+        {
+          source: "/mintlify-assets/:path*",
+          destination: `${mintlifyDocsOrigin}/mintlify-assets/:path*`
+        },
+        {
+          source: "/brand/:path*",
+          has: docsReferer,
+          destination: `${mintlifyDocsOrigin}/brand/:path*`
+        },
+        {
+          source: "/favicons/:path*",
+          has: docsReferer,
+          destination: `${mintlifyDocsOrigin}/favicons/:path*`
+        },
+        {
+          source: "/fonts/:path*",
+          has: docsReferer,
+          destination: `${mintlifyDocsOrigin}/fonts/:path*`
+        },
+        {
           source: "/docs",
-          destination: mintlifyDocsUrl.replace(/\/+$/, "")
+          destination: mintlifyDocsOrigin
         },
         {
           source: "/docs/:path*",
-          destination: `${mintlifyDocsUrl.replace(/\/+$/, "")}/:path*`
+          destination: `${mintlifyDocsOrigin}/:path*`
         },
         {
           source: "/.well-known/oauth-protected-resource",

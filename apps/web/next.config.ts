@@ -11,6 +11,8 @@ if (process.env.BETTER_STACK_WEB_SOURCE_TOKEN && !process.env.BETTER_STACK_SOURC
 
 const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001";
 const isDev = process.env.NODE_ENV === "development";
+const defaultMintlifyDocsUrl = isDev ? "http://127.0.0.1:3002" : "https://docs.agent-artifacts.com";
+const mintlifyDocsUrl = process.env.MINTLIFY_DOCS_URL ?? defaultMintlifyDocsUrl;
 
 function betterStackConnectSrc(): string {
   const ingestUrl = process.env.NEXT_PUBLIC_BETTER_STACK_INGESTING_URL;
@@ -53,7 +55,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/((?!_next/static|_next/image|favicon.ico).*)",
+        source: "/((?!_next/static|_next/image|favicon.ico|docs(?:$|/)).*)",
         headers: securityHeaders
       }
     ];
@@ -61,6 +63,14 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
+        {
+          source: "/docs",
+          destination: mintlifyDocsUrl.replace(/\/+$/, "")
+        },
+        {
+          source: "/docs/:path*",
+          destination: `${mintlifyDocsUrl.replace(/\/+$/, "")}/:path*`
+        },
         {
           source: "/.well-known/oauth-protected-resource",
           destination: `${internalApiUrl.replace(/\/+$/, "")}/.well-known/oauth-protected-resource`

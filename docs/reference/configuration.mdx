@@ -15,6 +15,8 @@ Every environment variable Artifacts reads, grouped by area. During local develo
 | --- | --- | --- |
 | `PUBLIC_APP_URL` | API, web | Browser-visible app origin |
 | `NEXT_PUBLIC_APP_URL` | Web | Optional public app URL exposed to browser code |
+| `NEXT_PUBLIC_DOCS_URL` | Web | Browser-visible docs URL; defaults to `/docs` |
+| `MINTLIFY_DOCS_URL` | Web | Mintlify origin that Next.js proxies from `/docs` |
 | `INTERNAL_API_URL` | Web | Hono API origin used by Next.js rewrites |
 | `BETTER_AUTH_URL` | Auth | Canonical auth base URL |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Auth | Extra comma-separated auth origins |
@@ -23,6 +25,9 @@ Local defaults:
 
 ```bash
 PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_DOCS_URL="http://localhost:3000/docs"
+MINTLIFY_DOCS_URL="http://127.0.0.1:3002"
 BETTER_AUTH_URL="http://localhost:3000"
 INTERNAL_API_URL="http://127.0.0.1:3001"
 ```

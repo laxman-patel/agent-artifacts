@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 const DEFAULT_APP_URL = "http://localhost:3000";
-const DEFAULT_DOCS_URL = "https://docs.agent-artifacts.com";
+const DEFAULT_DOCS_URL = "/docs";
 
 export const SITE_NAME = "Artifacts";
 export const SITE_TITLE = "Artifacts | Agent-native artifact hosting";

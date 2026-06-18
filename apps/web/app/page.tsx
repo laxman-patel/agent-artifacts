@@ -4,6 +4,7 @@ import { Code2, GitBranch, Globe2, LockKeyhole, PackageCheck, ShieldCheck } from
 
 import { CommandCopyButton } from "./components/command-copy-button";
 import { HeroDitherShader } from "./components/hero-dither-shader";
+import { HoverLipCard } from "./components/hover-lip-card";
 import { MarketingAuthLink } from "./components/marketing-auth-link";
 import { docsUrl } from "@/lib/site-metadata";
 import { cn } from "@/lib/utils";
@@ -241,15 +242,16 @@ function FeatureCard({
   className?: string;
 }) {
   return (
-    <div className={cn("group rounded-[10px] border border-border p-1 transition-colors hover:border-foreground/[0.14]", className)}>
-      <div className="flex h-full flex-col gap-3 rounded-md border border-foreground/[0.1] px-5 py-4 transition-colors group-hover:border-foreground/[0.14] group-hover:bg-foreground/[0.015]">
-        <Icon className="size-5 text-[oklch(0.56_0_0)] transition-colors group-hover:text-[oklch(0.68_0_0)]" aria-hidden />
-        <div className="space-y-1.5">
-          <h3 className="text-sm font-semibold text-foreground/90">{title}</h3>
-          <p className="max-w-[52ch] text-sm leading-relaxed text-foreground/45">{description}</p>
-        </div>
+    <HoverLipCard
+      className={cn("group rounded-[10px] border border-border p-1 transition-colors hover:border-foreground/[0.14]", className)}
+      innerClassName="flex h-full flex-col gap-3 rounded-md border border-foreground/[0.1] bg-background px-5 py-4 transition-colors group-hover:border-foreground/[0.14] group-hover:bg-[oklch(0.18_0_0)]"
+    >
+      <Icon className="size-5 text-[oklch(0.56_0_0)] transition-colors group-hover:text-[oklch(0.68_0_0)]" aria-hidden />
+      <div className="space-y-1.5">
+        <h3 className="text-sm font-semibold text-foreground/90">{title}</h3>
+        <p className="max-w-[52ch] text-sm leading-relaxed text-foreground/45">{description}</p>
       </div>
-    </div>
+    </HoverLipCard>
   );
 }
 
@@ -365,36 +367,37 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
 
 function DemoPanel() {
   return (
-    <div className="rounded-[10px] border border-border p-1">
-      <div className="demo-video-frame overflow-hidden rounded-md border border-foreground/[0.1] bg-card">
-        <div className="flex items-center gap-2 border-b border-foreground/[0.08] px-4 py-3">
-          <span className="size-2 rounded-full bg-red-400/70" />
-          <span className="size-2 rounded-full bg-amber-400/70" />
-          <span className="size-2 rounded-full bg-emerald-400/70" />
-          <div className="ml-3 min-w-0 flex-1 truncate text-[12px] font-medium tracking-[-0.015em] text-foreground/48">
-            artifacts-demo-final-final-v2.mp4
-          </div>
-
+    <HoverLipCard
+      className="rounded-[10px] border border-border p-1"
+      innerClassName="demo-video-frame overflow-hidden rounded-md border border-foreground/[0.1] bg-card"
+    >
+      <div className="flex items-center gap-2 border-b border-foreground/[0.08] px-4 py-3">
+        <span className="size-2 rounded-full bg-red-400/70" />
+        <span className="size-2 rounded-full bg-amber-400/70" />
+        <span className="size-2 rounded-full bg-emerald-400/70" />
+        <div className="ml-3 min-w-0 flex-1 truncate text-[12px] font-medium tracking-[-0.015em] text-foreground/48">
+          artifacts-demo-final-final-v2.mp4
         </div>
 
-        <div className="demo-video-screen relative aspect-video overflow-hidden bg-background" aria-label="Demo video placeholder">
-          {/* Replace this placeholder with the recorded demo when ready:
+      </div>
+
+      <div className="demo-video-screen relative aspect-video overflow-hidden bg-background" aria-label="Demo video placeholder">
+        {/* Replace this placeholder with the recorded demo when ready:
           <video className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline preload="metadata" poster="/demo/artifacts-demo-poster.jpg">
             <source src="/demo/artifacts-demo.mp4" type="video/mp4" />
           </video>
           */}
-          <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-            <div className="max-w-md">
-              <img src={logoPath} alt="" className="mx-auto mb-4 size-5 opacity-45" />
-              <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/35">Demo recording</div>
-              <p className="mt-2 text-sm leading-relaxed text-foreground/45">
-                Drop in the Claude Code run here: generate a PR report, publish the URL, then append v2.
-              </p>
-            </div>
+        <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
+          <div className="max-w-md">
+            <img src={logoPath} alt="" className="mx-auto mb-4 size-5 opacity-45" />
+            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/35">Demo recording</div>
+            <p className="mt-2 text-sm leading-relaxed text-foreground/45">
+              Drop in the Claude Code run here: generate a PR report, publish the URL, then append v2.
+            </p>
           </div>
         </div>
       </div>
-    </div>
+    </HoverLipCard>
   );
 }
 
@@ -440,13 +443,15 @@ export default function HomePage() {
         </div>
         <div className="mb-8 grid gap-4 md:grid-cols-3">
           {workflow.map((item) => (
-            <div key={item.step} className="rounded-[10px] border border-foreground/[0.08] p-1">
-              <div className="h-full rounded-md border border-foreground/[0.06] p-5">
-                <div className="font-mono text-[11px] text-foreground/35">{item.step}</div>
-                <h3 className="font-pixel mt-4 text-base font-normal tracking-[-0.03em] text-foreground/90">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/45">{item.description}</p>
-              </div>
-            </div>
+            <HoverLipCard
+              key={item.step}
+              className="rounded-[10px] border border-foreground/[0.08] p-1"
+              innerClassName="h-full rounded-md border border-foreground/[0.06] bg-background p-5"
+            >
+              <div className="font-mono text-[11px] text-foreground/35">{item.step}</div>
+              <h3 className="font-pixel mt-4 text-base font-normal tracking-[-0.03em] text-foreground/90">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-foreground/45">{item.description}</p>
+            </HoverLipCard>
           ))}
         </div>
         <DemoPanel />
@@ -486,13 +491,14 @@ export default function HomePage() {
                 style={{ "--artifact-accent": accent } as CSSProperties}
                 className="artifact-card flex flex-col"
               >
-                <div className="mb-4 rounded-[10px] border border-border p-1">
-                  <div className="artifact-preview flex h-[7.6rem] items-center rounded-md border p-3">
-                    <div className="w-full">
-                      <ArtifactPreview variant={kind.variant} />
-                    </div>
+                <HoverLipCard
+                  className="mb-4 rounded-[10px] border border-border p-1"
+                  innerClassName="artifact-preview flex h-[7.6rem] items-center rounded-md border p-3"
+                >
+                  <div className="w-full">
+                    <ArtifactPreview variant={kind.variant} />
                   </div>
-                </div>
+                </HoverLipCard>
                 <h3 className="text-sm font-semibold text-foreground/90">{kind.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-foreground/45">{kind.description}</p>
               </article>

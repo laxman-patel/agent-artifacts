@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import { Plus } from "lucide-react";
 import { artifactPath } from "../../../lib/paths";
+import { HoverLipCard } from "../../components/hover-lip-card";
 import type { ArtifactOwnerSummary } from "../../../lib/server-api";
 import { artifactKind } from "./artifact-kind";
 import { ArtifactThumbnail } from "./artifact-thumbnail";
@@ -56,21 +57,22 @@ function ArtifactTile({
       className="artifact-card group flex flex-col rounded-[11px] focus-visible:outline-none"
       suppressHydrationWarning
     >
-      <div className="rounded-[11px] border border-border p-1 transition-colors group-focus-visible:border-foreground/45">
-        <div className="artifact-preview relative aspect-[4/3] overflow-hidden rounded-md border">
-          <ArtifactThumbnail
-            artifactId={artifact.id}
-            cacheKey={`${artifact.id}:${artifact.updatedAt}`}
-            thumbnailUrl={artifact.thumbnailUrl}
-            type={artifact.type}
-            content={previewContent}
-          />
-          <div className="pointer-events-none absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-[0.3rem] border border-border bg-[var(--wb-content)]/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-foreground/70 backdrop-blur-sm">
-            <kind.Icon className="size-2.5" style={{ color: kind.accent }} aria-hidden />
-            {kind.label}
-          </div>
+      <HoverLipCard
+        className="rounded-[11px] border border-border p-1 transition-colors group-focus-visible:border-foreground/45"
+        innerClassName="artifact-preview relative aspect-[4/3] overflow-hidden rounded-md border"
+      >
+        <ArtifactThumbnail
+          artifactId={artifact.id}
+          cacheKey={`${artifact.id}:${artifact.updatedAt}`}
+          thumbnailUrl={artifact.thumbnailUrl}
+          type={artifact.type}
+          content={previewContent}
+        />
+        <div className="pointer-events-none absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-[0.3rem] border border-border bg-[var(--wb-content)]/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-foreground/70 backdrop-blur-sm">
+          <kind.Icon className="size-2.5" style={{ color: kind.accent }} aria-hidden />
+          {kind.label}
         </div>
-      </div>
+      </HoverLipCard>
       <div className="mt-2.5 min-w-0 px-1">
         <p
           className="truncate text-[13px] font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground"

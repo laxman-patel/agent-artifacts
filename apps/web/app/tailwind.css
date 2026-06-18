@@ -188,6 +188,7 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  transition: border-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .lip-hover-card::before {
@@ -213,6 +214,11 @@
 .lip-hover-card:hover::before,
 .lip-hover-card:focus-within::before {
   opacity: 1;
+}
+
+.lip-hover-card:hover,
+.lip-hover-card:focus-within {
+  border-color: color-mix(in oklch, oklch(0.985 0 0) 82%, var(--artifact-orange));
 }
 
 .lip-hover-card__inner {

@@ -24,6 +24,7 @@
   "dependencies": {
     "@agent-artifacts/artifact": "workspace:*",
     "@agent-artifacts/config": "workspace:*",
+    "@agent-artifacts/workspace": "workspace:*",
     "commander": "^14.0.3",
     "zod": "^4.4.3"
   }

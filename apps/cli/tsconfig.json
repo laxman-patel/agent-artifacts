@@ -8,7 +8,8 @@
   },
   "references": [
     { "path": "../../packages/artifact" },
-    { "path": "../../packages/config" }
+    { "path": "../../packages/config" },
+    { "path": "../../packages/workspace" }
   ],
   "include": ["src/**/*.ts"],
   "exclude": ["tests/**"]

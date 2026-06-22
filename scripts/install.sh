@@ -3,7 +3,7 @@ set -eu
 
 INSTALL_DIR="${ARTIFACTS_INSTALL_DIR:-$HOME/.local/bin}"
 VERSION="${ARTIFACTS_VERSION:-latest}"
-DOWNLOAD_BASE_URL="${ARTIFACTS_DOWNLOAD_BASE_URL:-https://downloads.hostartifacts.dev/cli}"
+DOWNLOAD_BASE_URL="${ARTIFACTS_DOWNLOAD_BASE_URL:-https://github.com/laxman-patel/agent-artifacts/releases}"
 SKILL_SOURCE="${ARTIFACTS_SKILL_SOURCE:-https://github.com/laxman-patel/agent-artifacts}"
 SKILL_NAME="${ARTIFACTS_SKILL_NAME:-agent-artifacts}"
 SKILL_AGENTS="${ARTIFACTS_SKILL_AGENTS:-*}"
@@ -61,15 +61,32 @@ sha256() {
 }
 
 release_path() {
-  case "$VERSION" in
-    latest)
-      printf '%s/latest' "$DOWNLOAD_BASE_URL"
-      ;;
-    v*)
-      printf '%s/%s' "$DOWNLOAD_BASE_URL" "$VERSION"
+  case "$DOWNLOAD_BASE_URL" in
+    */releases)
+      case "$VERSION" in
+        latest)
+          printf '%s/latest/download' "$DOWNLOAD_BASE_URL"
+          ;;
+        v*)
+          printf '%s/download/%s' "$DOWNLOAD_BASE_URL" "$VERSION"
+          ;;
+        *)
+          printf '%s/download/v%s' "$DOWNLOAD_BASE_URL" "$VERSION"
+          ;;
+      esac
       ;;
     *)
-      printf '%s/v%s' "$DOWNLOAD_BASE_URL" "$VERSION"
+      case "$VERSION" in
+        latest)
+          printf '%s/latest' "$DOWNLOAD_BASE_URL"
+          ;;
+        v*)
+          printf '%s/%s' "$DOWNLOAD_BASE_URL" "$VERSION"
+          ;;
+        *)
+          printf '%s/v%s' "$DOWNLOAD_BASE_URL" "$VERSION"
+          ;;
+      esac
       ;;
   esac
 }

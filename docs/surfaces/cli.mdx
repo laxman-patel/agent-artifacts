@@ -63,7 +63,7 @@ For public distribution, build release assets:
 bun run cli:build:release:env-file
 ```
 
-Upload `apps/cli/dist/release/v<version>/` and `apps/cli/dist/release/latest/` to the R2-backed download domain at `https://downloads.hostartifacts.dev/cli/`. The public web app on Railway exposes `hostartifacts.dev/install.sh` as the memorable installer URL.
+Upload the files from `apps/cli/dist/release/v<version>/` to the matching GitHub Release tag. The public web app on Railway exposes `hostartifacts.dev/install.sh` as the memorable installer URL, redirecting to the latest release installer.
 
 URLs resolve in this order:
 

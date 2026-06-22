@@ -8,10 +8,14 @@ const installer = readFileSync(join(repoRoot, "scripts", "install.sh"), "utf8");
 const skill = readFileSync(join(repoRoot, "skills", "agent-artifacts", "SKILL.md"), "utf8");
 
 describe("public installer script", () => {
-  it("downloads release assets from the R2-backed default domain", () => {
+  it("downloads release assets from GitHub Releases by default", () => {
     expect(installer).toContain(
-      "ARTIFACTS_DOWNLOAD_BASE_URL:-https://downloads.hostartifacts.dev/cli"
+      "ARTIFACTS_DOWNLOAD_BASE_URL:-https://github.com/laxman-patel/agent-artifacts/releases"
     );
+    expect(installer).toContain("printf '%s/latest/download' \"$DOWNLOAD_BASE_URL\"");
+    expect(installer).toContain("printf '%s/download/%s' \"$DOWNLOAD_BASE_URL\" \"$VERSION\"");
+    expect(installer).toContain("printf '%s/download/v%s' \"$DOWNLOAD_BASE_URL\" \"$VERSION\"");
+    expect(installer).toContain("printf '%s/latest' \"$DOWNLOAD_BASE_URL\"");
     expect(installer).toContain("download \"$RELEASE_URL/manifest.json\" \"$MANIFEST\"");
     expect(installer).toContain("download \"$base_url/$asset_file\" \"$tmp_binary\"");
   });

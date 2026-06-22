@@ -71,7 +71,7 @@ Dev builds (`cli:build`) keep localhost defaults.
 
 ### Public release assets
 
-Build all installer assets for Cloudflare R2:
+Build all installer assets for GitHub Releases:
 
 ```bash
 bun run cli:build:release:env-file
@@ -91,7 +91,7 @@ Each release directory contains:
 - `install.sh`;
 - `manifest.json` with SHA-256 checksums.
 
-Publish the files under `https://downloads.hostartifacts.dev/cli/v<version>/` and mirror the validated release under `https://downloads.hostartifacts.dev/cli/latest/`. The Railway web app serves `hostartifacts.dev/install.sh` as a redirect to the R2-hosted latest installer.
+Upload the files from `apps/cli/dist/release/v<version>/` to the matching GitHub Release tag, for example `v0.1.0`. The Railway web app serves `hostartifacts.dev/install.sh` as a redirect to the latest release installer.
 
 ## Authentication
 

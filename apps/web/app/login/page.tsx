@@ -30,7 +30,7 @@ export default function LoginPage() {
       </a>
       <MarketingNav />
 
-      <SectionShell id="content" last className="flex-1" contentClassName="grid min-h-[calc(100dvh-9.75rem)] place-items-center pb-16 pt-24 sm:pt-28 lg:pb-20 lg:pt-32">
+      <SectionShell id="content" last className="flex flex-1 flex-col" contentClassName="grid flex-1 min-h-[calc(100dvh-9.75rem)] place-items-center pb-16 pt-24 sm:pt-28 lg:pb-20 lg:pt-32">
         <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.18] mix-blend-screen" aria-hidden>
           <HeroDitherShader
             className="h-full min-h-[28rem]"

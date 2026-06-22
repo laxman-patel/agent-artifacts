@@ -9,7 +9,7 @@ import { MarketingAuthLink } from "./components/marketing-auth-link";
 import { docsUrl } from "@/lib/site-metadata";
 import { cn } from "@/lib/utils";
 
-const setupCommand = "curl -fsSL hostartifacts.dev/install.sh | sh";
+const setupCommand = "curl -fsSL https://hostartifacts.dev/install.sh | sh";
 const logoPath = "/brand/artifacts-logo.svg";
 const docsHref = docsUrl();
 

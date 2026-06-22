@@ -13,7 +13,7 @@ The `artifacts` CLI is the recommended interface for local agents, CI jobs, and 
 
 <CodeGroup>
 ```bash Public installer
-curl -fsSL hostartifacts.dev/install.sh | sh
+curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
 ```bash From the monorepo
@@ -32,13 +32,13 @@ The public installer downloads a standalone binary, installs it to `~/.local/bin
 Target only specific agents:
 
 ```bash
-ARTIFACTS_SKILL_AGENTS="cursor claude-code codex" curl -fsSL hostartifacts.dev/install.sh | sh
+ARTIFACTS_SKILL_AGENTS="cursor claude-code codex" curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
 Install only the CLI:
 
 ```bash
-ARTIFACTS_SKIP_SKILLS=1 curl -fsSL hostartifacts.dev/install.sh | sh
+ARTIFACTS_SKIP_SKILLS=1 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
 ## Point it at your services
@@ -63,7 +63,7 @@ For public distribution, build release assets:
 bun run cli:build:release:env-file
 ```
 
-Upload the files from `apps/cli/dist/release/v<version>/` to the matching GitHub Release tag. The public web app on Railway exposes `hostartifacts.dev/install.sh` as the memorable installer URL, redirecting to the latest release installer.
+Upload the files from `apps/cli/dist/release/v<version>/` to the matching GitHub Release tag. The public web app on Railway exposes `https://hostartifacts.dev/install.sh` as the memorable installer URL, redirecting to the latest release installer.
 
 URLs resolve in this order:
 

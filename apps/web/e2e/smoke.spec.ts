@@ -4,7 +4,7 @@ test.describe("web smoke", () => {
   test("landing page renders hero copy", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /Every artifact your agent creates has a home/i })).toBeVisible();
-    await expect(page.getByText("curl -fsSL hostartifacts.dev/install.sh | sh").first()).toBeVisible();
+    await expect(page.getByText("curl -fsSL https://hostartifacts.dev/install.sh | sh").first()).toBeVisible();
   });
 
   test("pricing page renders plan tiers", async ({ page }) => {

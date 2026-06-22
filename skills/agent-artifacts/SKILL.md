@@ -26,7 +26,7 @@ artifacts health
 2. If the CLI is missing, install it:
 
 ```bash
-curl -fsSL hostartifacts.dev/install.sh | sh
+curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
 3. Authenticate interactively for local work:

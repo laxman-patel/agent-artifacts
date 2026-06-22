@@ -1,0 +1,17 @@
+{
+	admin off
+	auto_https off
+}
+
+# Railway terminates TLS at its edge and routes the attached custom domain
+# (docs.hostartifacts.dev) to this container on $PORT over plain HTTP.
+# We reverse-proxy everything to the Mintlify-hosted docs origin.
+# DOCS_UPSTREAM is the Mintlify host (e.g. <subdomain>.mintlify.app) and is set
+# as a Railway variable so the upstream can change without rebuilding the image.
+# Using the https:// scheme makes Caddy dial :443 with TLS + correct SNI.
+:{$PORT:8080} {
+	reverse_proxy https://{$DOCS_UPSTREAM:example.com} {
+		# Mintlify routes by Host and wants its own host (not the original).
+		header_up Host {$DOCS_UPSTREAM:example.com}
+	}
+}

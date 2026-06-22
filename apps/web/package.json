@@ -6,6 +6,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "start": "next start",
     "typecheck": "tsc --noEmit --pretty false",
     "lint": "tsc --noEmit --pretty false",
     "test": "vitest run",

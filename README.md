@@ -18,7 +18,7 @@ The `artifacts` CLI is the recommended way for AI agents to use the platform. It
 Public install:
 
 ```bash
-curl -fsSL https://hostartifacts.dev/install.sh | sh
+curl -fsSL hostartifacts.dev/install.sh | sh
 ```
 
 This installs the standalone CLI and an `agent-artifacts` skill for supported local agents through Vercel's `skills` CLI.

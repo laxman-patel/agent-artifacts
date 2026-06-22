@@ -7,7 +7,7 @@ Primary interface for AI agents to use [agent-artifacts](https://github.com/agen
 Public installer:
 
 ```bash
-curl -fsSL https://hostartifacts.dev/install.sh | sh
+curl -fsSL hostartifacts.dev/install.sh | sh
 ```
 
 This installs the standalone `artifacts` binary into `~/.local/bin` and then uses Vercel's `skills` CLI to install the `agent-artifacts` skill for supported agents such as Cursor, Claude Code, Codex, OpenCode, and Copilot.
@@ -15,9 +15,9 @@ This installs the standalone `artifacts` binary into `~/.local/bin` and then use
 Installer overrides:
 
 ```bash
-ARTIFACTS_INSTALL_DIR="$HOME/bin" curl -fsSL https://hostartifacts.dev/install.sh | sh
-ARTIFACTS_SKIP_SKILLS=1 curl -fsSL https://hostartifacts.dev/install.sh | sh
-ARTIFACTS_SKILL_AGENTS="cursor claude-code codex" curl -fsSL https://hostartifacts.dev/install.sh | sh
+ARTIFACTS_INSTALL_DIR="$HOME/bin" curl -fsSL hostartifacts.dev/install.sh | sh
+ARTIFACTS_SKIP_SKILLS=1 curl -fsSL hostartifacts.dev/install.sh | sh
+ARTIFACTS_SKILL_AGENTS="cursor claude-code codex" curl -fsSL hostartifacts.dev/install.sh | sh
 ```
 
 Skill-only install:
@@ -91,7 +91,7 @@ Each release directory contains:
 - `install.sh`;
 - `manifest.json` with SHA-256 checksums.
 
-Publish the files under `https://downloads.hostartifacts.dev/cli/v<version>/` and mirror the validated release under `https://downloads.hostartifacts.dev/cli/latest/`. The Railway web app serves `https://hostartifacts.dev/install.sh` as a redirect to the R2-hosted latest installer.
+Publish the files under `https://downloads.hostartifacts.dev/cli/v<version>/` and mirror the validated release under `https://downloads.hostartifacts.dev/cli/latest/`. The Railway web app serves `hostartifacts.dev/install.sh` as a redirect to the R2-hosted latest installer.
 
 ## Authentication
 

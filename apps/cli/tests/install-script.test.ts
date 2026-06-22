@@ -40,6 +40,6 @@ describe("agent-artifacts skill package", () => {
     expect(skill).toContain("name: agent-artifacts");
     expect(skill).toContain("description:");
     expect(skill).toContain("artifacts schema --format json");
-    expect(skill).toContain("curl -fsSL https://hostartifacts.dev/install.sh | sh");
+    expect(skill).toContain("curl -fsSL hostartifacts.dev/install.sh | sh");
   });
 });

@@ -201,8 +201,8 @@
   background:
     radial-gradient(
       circle farthest-side at var(--lip-x, 50%) var(--lip-y, 50%),
-      oklch(0.985 0 0 / 0.5) 0%,
-      color-mix(in oklch, var(--artifact-orange) 78%, oklch(0.985 0 0)) 7%,
+      color-mix(in oklch, var(--artifact-orange) 72%, transparent) 0%,
+      color-mix(in oklch, var(--artifact-orange) 70%, var(--border)) 7%,
       color-mix(in oklch, var(--artifact-orange) 86%, transparent) 24%,
       color-mix(in oklch, var(--artifact-orange) 46%, transparent) 52%,
       color-mix(in oklch, var(--artifact-orange) 18%, transparent) 78%,
@@ -218,7 +218,7 @@
 
 .lip-hover-card:hover,
 .lip-hover-card:focus-within {
-  border-color: color-mix(in oklch, oklch(0.985 0 0) 82%, var(--artifact-orange));
+  border-color: color-mix(in oklch, var(--artifact-orange) 36%, var(--border));
 }
 
 .lip-hover-card__inner {

@@ -12,8 +12,8 @@ The `artifacts` CLI is the recommended interface for local agents, CI jobs, and 
 ## Install
 
 <CodeGroup>
-```bash Published package
-npx @agent-artifacts/cli@latest setup
+```bash Public installer
+curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
 ```bash From the monorepo
@@ -26,6 +26,20 @@ bun run cli:install
 bun run artifacts -- <command>
 ```
 </CodeGroup>
+
+The public installer downloads a standalone binary, installs it to `~/.local/bin/artifacts`, and then delegates skill installation to Vercel's `skills` CLI. The skill can be installed for Cursor, Claude Code, Codex, OpenCode, Copilot, and other supported agents.
+
+Target only specific agents:
+
+```bash
+ARTIFACTS_SKILL_AGENTS="cursor claude-code codex" curl -fsSL https://hostartifacts.dev/install.sh | sh
+```
+
+Install only the CLI:
+
+```bash
+ARTIFACTS_SKIP_SKILLS=1 curl -fsSL https://hostartifacts.dev/install.sh | sh
+```
 
 ## Point it at your services
 
@@ -42,6 +56,14 @@ For production, build a standalone binary with default URLs baked in from `.env`
 bun run cli:build:prod
 bun run cli:install:prod
 ```
+
+For public distribution, build release assets:
+
+```bash
+bun run cli:build:release:env-file
+```
+
+Upload `apps/cli/dist/release/v<version>/` and `apps/cli/dist/release/latest/` to the R2-backed download domain at `https://downloads.hostartifacts.dev/cli/`. The public web app on Railway exposes `https://hostartifacts.dev/install.sh` as the memorable installer URL.
 
 URLs resolve in this order:
 

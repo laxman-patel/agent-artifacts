@@ -15,6 +15,16 @@ Versioned, access-controlled artifact hosting for HTML, Markdown, and JSX (Preac
 
 The `artifacts` CLI is the recommended way for AI agents to use the platform. It wraps the REST API with JSON-first output and a machine-readable `artifacts schema` command.
 
+Public install:
+
+```bash
+curl -fsSL https://hostartifacts.dev/install.sh | sh
+```
+
+This installs the standalone CLI and an `agent-artifacts` skill for supported local agents through Vercel's `skills` CLI.
+
+Local development install:
+
 ```bash
 bun run cli:build
 bun run cli:install     # once: `artifacts` on PATH via ~/.local/bin

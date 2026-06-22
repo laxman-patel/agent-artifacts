@@ -4,10 +4,26 @@ Primary interface for AI agents to use [agent-artifacts](https://github.com/agen
 
 ## Install
 
-Published package:
+Public installer:
 
 ```bash
-npx @agent-artifacts/cli@latest setup
+curl -fsSL https://hostartifacts.dev/install.sh | sh
+```
+
+This installs the standalone `artifacts` binary into `~/.local/bin` and then uses Vercel's `skills` CLI to install the `agent-artifacts` skill for supported agents such as Cursor, Claude Code, Codex, OpenCode, and Copilot.
+
+Installer overrides:
+
+```bash
+ARTIFACTS_INSTALL_DIR="$HOME/bin" curl -fsSL https://hostartifacts.dev/install.sh | sh
+ARTIFACTS_SKIP_SKILLS=1 curl -fsSL https://hostartifacts.dev/install.sh | sh
+ARTIFACTS_SKILL_AGENTS="cursor claude-code codex" curl -fsSL https://hostartifacts.dev/install.sh | sh
+```
+
+Skill-only install:
+
+```bash
+npx skills add https://github.com/laxman-patel/agent-artifacts --skill agent-artifacts --agent '*' --global --copy -y
 ```
 
 From the monorepo root:
@@ -52,6 +68,30 @@ bun run cli:install:prod
 Users can still override URLs with env vars, flags, or by running `artifacts login` against another environment. Resolution order: flags → env → saved credentials → **build-time defaults**.
 
 Dev builds (`cli:build`) keep localhost defaults.
+
+### Public release assets
+
+Build all installer assets for Cloudflare R2:
+
+```bash
+bun run cli:build:release:env-file
+```
+
+Output:
+
+```text
+apps/cli/dist/release/v0.1.0/
+apps/cli/dist/release/latest/
+```
+
+Each release directory contains:
+
+- platform binaries named `artifacts-<version>-<platform>`;
+- `agent-artifacts-skill-<version>.tar.gz`;
+- `install.sh`;
+- `manifest.json` with SHA-256 checksums.
+
+Publish the files under `https://downloads.hostartifacts.dev/cli/v<version>/` and mirror the validated release under `https://downloads.hostartifacts.dev/cli/latest/`. The Railway web app serves `https://hostartifacts.dev/install.sh` as a redirect to the R2-hosted latest installer.
 
 ## Authentication
 

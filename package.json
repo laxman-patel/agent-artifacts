@@ -22,6 +22,8 @@
     "cli:build": "bun run --filter @agent-artifacts/cli build",
     "cli:build:prod": "infisical run --env=prod --path=/shared --path=/api -- bun run --filter @agent-artifacts/cli build:prod",
     "cli:build:prod:env-file": "bun --env-file=.env run --filter @agent-artifacts/cli build:prod",
+    "cli:build:release": "infisical run --env=prod --path=/shared --path=/api -- bun run --filter @agent-artifacts/cli build:release",
+    "cli:build:release:env-file": "bun --env-file=.env run --filter @agent-artifacts/cli build:release",
     "cli:install": "bun run cli:build && node scripts/install-cli.mjs",
     "cli:install:prod": "bun run cli:build:prod && node scripts/install-cli.mjs --prod",
     "railway:sync-env": "node scripts/sync-infisical-to-railway.mjs",

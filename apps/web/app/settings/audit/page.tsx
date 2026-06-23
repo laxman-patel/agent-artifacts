@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cookieHeader, fetchAuditEvents, fetchProfileMe } from "../../../lib/server-api";
+import { SettingsHeader, SettingsPanel } from "../components/settings-chrome";
 
 export default async function GlobalAuditLogPage() {
   const cookieStore = await cookies();
@@ -13,49 +13,50 @@ export default async function GlobalAuditLogPage() {
   }
 
   const eventsResult = await fetchAuditEvents(header, { limit: 100 });
+  const events = eventsResult.ok ? eventsResult.body.events : [];
 
   return (
-    <main className="mx-auto w-full max-w-[1100px] px-6 pb-24 pt-16 sm:px-10 lg:pt-12">
-      <header className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--wb-line)] pb-6">
-        <div>
-          <h1 className="font-pixel text-[2rem] font-normal leading-none tracking-[-0.045em] text-foreground/95">
-            Audit log
-          </h1>
-          <p className="mt-3 text-sm text-foreground/50">All activity on your account.</p>
-        </div>
-        <Link className="ghost-button" href="/settings/account">
-          Account
-        </Link>
-      </header>
+    <>
+      <SettingsHeader title="Audit log" description="Recent activity recorded across your account." />
 
-      <section className="card flat">
-        {!eventsResult.ok && <p className="muted">Could not load audit events.</p>}
-        {eventsResult.ok && eventsResult.body.events.length === 0 && (
-          <p className="muted">No audit events yet.</p>
-        )}
-        {eventsResult.ok && eventsResult.body.events.length > 0 && (
-          <table className="audit-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Action</th>
-                <th>Artifact</th>
-                <th>Actor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {eventsResult.body.events.map((event) => (
-                <tr key={event.id}>
-                  <td className="small muted">{new Date(event.createdAt).toLocaleString()}</td>
-                  <td className="small"><code>{event.action}</code></td>
-                  <td className="small muted">{event.artifactId ? event.artifactId.slice(0, 8) : "not linked"}</td>
-                  <td className="small muted">{event.actorPrincipalType}:{event.actorPrincipalId.slice(0, 8)}</td>
+      <SettingsPanel className="overflow-hidden">
+        {!eventsResult.ok ? (
+          <p className="px-5 py-12 text-center text-[13px] text-foreground/45">Could not load audit events.</p>
+        ) : events.length === 0 ? (
+          <p className="px-5 py-12 text-center text-[13px] text-foreground/45">No audit events yet.</p>
+        ) : (
+          <div className="wb-scroll overflow-x-auto">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-[var(--wb-line)] font-mono text-[10px] uppercase tracking-[0.12em] text-foreground/40">
+                  <th className="px-5 py-2.5 font-medium">Time</th>
+                  <th className="px-5 py-2.5 font-medium">Action</th>
+                  <th className="px-5 py-2.5 font-medium">Artifact</th>
+                  <th className="px-5 py-2.5 font-medium">Actor</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event.id} className="border-b border-[var(--wb-line)] last:border-0">
+                    <td className="whitespace-nowrap px-5 py-2.5 font-mono text-[12px] text-foreground/50">
+                      {new Date(event.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-5 py-2.5">
+                      <code className="font-mono text-[12px] text-foreground/85">{event.action}</code>
+                    </td>
+                    <td className="px-5 py-2.5 font-mono text-[12px] text-foreground/45">
+                      {event.artifactId ? event.artifactId.slice(0, 8) : "—"}
+                    </td>
+                    <td className="px-5 py-2.5 font-mono text-[12px] text-foreground/45">
+                      {event.actorPrincipalType}:{event.actorPrincipalId.slice(0, 8)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </section>
-    </main>
+      </SettingsPanel>
+    </>
   );
 }

@@ -54,7 +54,7 @@ export function MarketingNav({ active }: { active?: "pricing" }) {
         className={cn(
           "relative mx-auto box-border flex items-stretch justify-between border-border transition-all duration-300 ease-out",
           scrolled
-            ? "h-[42px] w-[calc(100%-1.5rem)] max-w-[48rem] rounded-xl border bg-background/70 shadow-[0_18px_50px_oklch(0.02_0_0/0.6)] backdrop-blur-xl"
+            ? "h-[42px] w-[calc(100%-1.5rem)] max-w-[48rem] rounded-sm border bg-background/70 shadow-[0_18px_50px_oklch(0.02_0_0/0.6)] backdrop-blur-xl"
             : "h-[45px] w-[calc(100%-1rem)] max-w-[76rem] border-x sm:w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)] xl:w-full"
         )}
       >

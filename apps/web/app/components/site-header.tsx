@@ -39,6 +39,7 @@ export function SiteHeader() {
     pathname === "/" ||
     pathname === "/pricing" ||
     pathname.startsWith("/login") ||
+    pathname.startsWith("/cli") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/teams") ||

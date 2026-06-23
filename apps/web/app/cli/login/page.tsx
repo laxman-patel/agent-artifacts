@@ -32,13 +32,18 @@ function isValidState(value: string | undefined): value is string {
 
 function CliLoginShell({ children }: { children: ReactNode }) {
   return (
-    <main id="cli-login" className="marketing dark flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
+    <main id="cli-login" className="marketing dark relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
       <a
         href="#content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-sm focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
       >
         Skip to authorization
       </a>
+
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.18] mix-blend-screen" aria-hidden>
+        <HeroDitherShader className="!h-full w-full" fieldClassName="auth-shader-field" frontColor="#FF570A" speed={0.18} />
+      </div>
+
       <MarketingNav />
 
       <SectionShell
@@ -47,9 +52,6 @@ function CliLoginShell({ children }: { children: ReactNode }) {
         className="flex flex-1 flex-col"
         contentClassName="grid flex-1 min-h-[calc(100dvh-9.75rem)] place-items-center pb-16 pt-24 sm:pt-28 lg:pb-20 lg:pt-32"
       >
-        <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.18] mix-blend-screen" aria-hidden>
-          <HeroDitherShader className="h-full min-h-[28rem]" fieldClassName="auth-shader-field" frontColor="#FF570A" speed={0.18} />
-        </div>
         {children}
       </SectionShell>
 

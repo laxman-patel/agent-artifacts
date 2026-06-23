@@ -49,13 +49,6 @@ export function CliLoginAuthorize({ port, state }: CliLoginAuthorizeProps) {
         The Artifacts CLI on your machine is requesting access to your account.
       </p>
 
-      <dl className="mt-5 border border-border bg-foreground/[0.02]">
-        <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-          <dt className="font-mono text-[10px] uppercase leading-none tracking-[0.16em] text-foreground/40">Callback</dt>
-          <dd className="font-mono text-[12px] leading-none text-foreground/75">127.0.0.1:{port}</dd>
-        </div>
-      </dl>
-
       <p className="mt-4 text-[12px] leading-5 text-foreground/40">
         Only continue if you just ran <code className="font-mono text-foreground/70">artifacts login</code> yourself.
       </p>

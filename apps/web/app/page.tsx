@@ -20,33 +20,33 @@ const githubUrl = "https://github.com/laxman-patel/agent-artifacts";
 const features: { icon: IconComponent; title: string; description: string }[] = [
   {
     icon: Globe2,
-    title: "Real URLs",
-    description: "Return one stable link from every agent run. No temp paths, uploads, or lost chat attachments."
+    title: "Permanent URLs",
+    description: "Every artifact gets one stable link. No temp paths, no re-uploads, no attachments lost in a chat log."
   },
   {
     icon: GitBranch,
     title: "Version history",
-    description: "Every update becomes an immutable snapshot you can compare, restore, or pin for review."
+    description: "Each update saves a new immutable version. Diff any two, or restore an earlier one."
   },
   {
     icon: ShieldCheck,
     title: "Safe rendering",
-    description: "Preview HTML, Markdown, and JSX through controlled viewers built for untrusted generated content."
+    description: "HTML renders sandboxed, Markdown is sanitized, and JSX runs on a Preact runtime. Built for untrusted output."
   },
   {
     icon: LockKeyhole,
     title: "Access control",
-    description: "Share publicly, privately, by allowlist, or by scoped link without changing the artifact URL."
+    description: "Public, private, email allowlist, or a scoped share link. The URL stays the same."
   },
   {
     icon: PackageCheck,
     title: "Agent-ready API",
-    description: "Create and update artifacts from CLI, REST, or MCP with the same object model humans use."
+    description: "Publish and update from the CLI, REST API, or MCP, with the same model and permissions humans use."
   },
   {
     icon: Code2,
     title: "Team ownership",
-    description: "Move useful outputs from personal experiments into teams when they become shared context."
+    description: "Move an artifact from your personal workspace into a team when it becomes shared context."
   }
 ];
 
@@ -127,18 +127,18 @@ const quoteNotes = [
 const workflow = [
   {
     step: "01",
-    title: "Agent writes the output",
-    description: "A report, prototype, review surface, spec, or one-off tool lands in the team."
+    title: "Your agent creates an output",
+    description: "A report, spec, prototype, or one-off tool, written as HTML, Markdown, or JSX."
   },
   {
     step: "02",
-    title: "Artifacts stores it",
-    description: "Content goes to object storage, metadata goes to Postgres, and a stable URL comes back."
+    title: "Publish it to Artifacts",
+    description: "One call from the CLI, REST API, or MCP stores the content and returns a permanent URL."
   },
   {
     step: "03",
-    title: "Teams review safely",
-    description: "Open the preview, inspect versions, manage access, and share without losing context."
+    title: "Share and update it",
+    description: "Open it in the browser, control who can see it, and update it without losing old versions."
   }
 ];
 
@@ -356,12 +356,12 @@ export default function HomePage() {
         <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative z-20 w-full lg:basis-[45%]">
             <h1 className="font-pixel !m-0 max-w-2xl !text-3xl !font-normal !leading-tight !tracking-tight text-foreground/95 md:!text-3xl lg:!text-[2.5rem]">
-              Every artifact your <br />
-              agent creates has a home.
+              Give your agent’s output <br />
+              a permanent URL.
             </h1>
             <p className="mt-5 max-w-md text-[13px] leading-relaxed text-foreground/50 sm:text-sm">
-              Publish HTML reports, Markdown specs, JSX prototypes, PR writeups, and one-off tools with permanent URLs,
-              immutable versions, access control, and MCP-native automation.
+              Artifacts hosts the HTML reports, Markdown specs, and JSX prototypes your agents produce — each with
+              version history, access control, and a URL that never changes.
             </p>
             <div className="mt-8 flex flex-col items-start gap-3">
               <CommandCopyButton command={setupCommand} />
@@ -380,8 +380,7 @@ export default function HomePage() {
         <div className="mb-8 max-w-2xl space-y-2 lg:mb-10">
           <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">How it works</h2>
           <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
-            A Claude Code recording will show the whole path: prompt, generated HTML report, publish command, live URL,
-            and a version update.
+            Three steps from a finished agent output to a permanent, shareable URL.
           </p>
         </div>
         <div className="mb-8 grid gap-4 md:grid-cols-3">
@@ -404,7 +403,7 @@ export default function HomePage() {
         <div className="mb-8 max-w-lg space-y-2 lg:mb-10">
           <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">Features</h2>
           <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
-            Everything generated work needs after the model is done writing it.
+            Everything an artifact needs once the model is done writing it.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -417,12 +416,12 @@ export default function HomePage() {
       <SectionShell id="create">
         <div className="mb-8 max-w-xl space-y-2 lg:mb-10">
           <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">
-            Outputs worth keeping
+            Built for what your agents already make
           </h2>
           <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
-            Agents already make finished surfaces. Artifacts gives
+            Reports, plans, reviews, and one-off tools.
             <br />
-            those surfaces somewhere to live after the task ends.
+            Artifacts turns each one into a page you can share.
           </p>
         </div>
         <div className="grid items-start gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
@@ -455,9 +454,9 @@ export default function HomePage() {
         <div className="mb-8 max-w-xl space-y-2 lg:mb-10">
           <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">The shift to HTML artifacts</h2>
           <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
-            Industry voices are pointing past chat text toward rich,
+            Chat text is giving way to outputs you can
             <br />
-            inspectable web outputs.
+            open, inspect, and share.
           </p>
         </div>
         <div className="relative -mx-5 py-3 sm:-mx-8 lg:-mx-12">
@@ -491,10 +490,10 @@ export default function HomePage() {
         <div className="flex flex-col items-center gap-5 text-center">
           <img src={logoPath} alt="" className="size-7 opacity-90" />
           <h2 className="font-pixel max-w-xl text-3xl font-normal tracking-[-0.045em] text-foreground/90 sm:text-4xl">
-            Give the next agent output a durable URL.
+            Give your next output a permanent URL.
           </h2>
           <p className="max-w-md text-sm leading-relaxed text-foreground/45 sm:text-base">
-            One setup command, then your reports, prototypes, specs, and tools have somewhere to live.
+            One command installs the CLI and adds the skill to your coding agents.
           </p>
           <div className="flex flex-col items-center gap-3">
             <CommandCopyButton command={setupCommand} />

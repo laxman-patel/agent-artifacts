@@ -103,14 +103,14 @@ const artifactKinds: {
 
 const quoteNotes = [
   {
-    person: "Thariq",
-    avatarUrl: "https://github.com/thdxr.png",
-    note: "HTML is the new Markdown."
+    person: "Thariq Shihipar",
+    avatarUrl: "https://github.com/ThariqS.png",
+    note: "HTML is the new markdown."
   },
   {
-    person: "Karpathy",
+    person: "Andrej Karpathy",
     avatarUrl: "https://github.com/karpathy.png",
-    note: "Vision, images, animations, and video, are the preferred output from AI."
+    note: "Hot tip: try ask for HTML."
   },
   {
     person: "Theo",
@@ -118,9 +118,19 @@ const quoteNotes = [
     note: "There is evidently an opportunity for a microservice for this."
   },
   {
-    person: "Anthropic",
-    avatarUrl: "https://github.com/anthropics.png",
-    note: "Each file trades a document you would skim for one you would actually read."
+    person: "Boris Cherny",
+    avatarUrl: "https://github.com/bcherny.png",
+    note: "Artifacts are a game changer for how I work with Claude."
+  },
+  {
+    person: "Thariq Shihipar",
+    avatarUrl: "https://github.com/ThariqS.png",
+    note: "Markdown is a report. HTML is an interface."
+  },
+  {
+    person: "Simon Willison",
+    avatarUrl: "https://github.com/simonw.png",
+    note: "HTML can drop in SVG diagrams, interactive widgets, and in-page navigation."
   }
 ];
 

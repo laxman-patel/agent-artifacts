@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  chmodSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -13,11 +14,9 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   createReleaseManifest,
-  releaseBinaryName,
+  releaseCliAssetName,
   releaseSkillArchiveName,
-  RELEASE_TARGETS,
-  type ReleaseFileInfo,
-  type ReleasePlatform
+  type ReleaseFileInfo
 } from "../src/release-assets.js";
 import { loadProdBuildUrls } from "../src/prod-build-urls.js";
 
@@ -96,35 +95,31 @@ if (!existsSync(installerPath)) {
 const version = readCliVersion();
 const versionDir = join(releaseRoot, `v${version}`);
 const latestDir = join(releaseRoot, "latest");
-const binaryAssets = {} as Record<ReleasePlatform, ReleaseFileInfo>;
 
 rmSync(versionDir, { recursive: true, force: true });
 mkdirSync(versionDir, { recursive: true });
 
-for (const target of RELEASE_TARGETS) {
-  const outFile = join(versionDir, releaseBinaryName(version, target.platform));
-  run(
-    "bun",
-    [
-      "build",
-      join(cliDir, "src", "cli.ts"),
-      "--compile",
-      "--minify",
-      "--target",
-      target.bunTarget,
-      "--outfile",
-      outFile,
-      "--define",
-      `globalThis.__CLI_DEFAULT_BASE_URL__=${JSON.stringify(urls.baseUrl)}`,
-      "--define",
-      `globalThis.__CLI_DEFAULT_WEB_URL__=${JSON.stringify(urls.webUrl)}`,
-      "--define",
-      `globalThis.__CLI_VERSION__=${JSON.stringify(version)}`
-    ],
-    cliDir
-  );
-  binaryAssets[target.platform] = fileInfo(outFile);
-}
+const cliAssetPath = join(versionDir, releaseCliAssetName(version));
+run(
+  "bun",
+  [
+    "build",
+    join(cliDir, "src", "cli.ts"),
+    "--target",
+    "node",
+    "--minify",
+    "--outfile",
+    cliAssetPath,
+    "--define",
+    `globalThis.__CLI_DEFAULT_BASE_URL__=${JSON.stringify(urls.baseUrl)}`,
+    "--define",
+    `globalThis.__CLI_DEFAULT_WEB_URL__=${JSON.stringify(urls.webUrl)}`,
+    "--define",
+    `globalThis.__CLI_VERSION__=${JSON.stringify(version)}`
+  ],
+  cliDir
+);
+chmodSync(cliAssetPath, 0o755);
 
 const skillArchivePath = join(versionDir, releaseSkillArchiveName(version));
 run("tar", ["-czf", skillArchivePath, "-C", dirname(skillDir), basename(skillDir)], monorepoRoot);
@@ -137,9 +132,9 @@ const manifest = createReleaseManifest({
   generatedAt: new Date().toISOString(),
   cli: {
     baseUrl: urls.baseUrl,
-    webUrl: urls.webUrl
+    webUrl: urls.webUrl,
+    ...fileInfo(cliAssetPath)
   },
-  binaries: binaryAssets,
   skill: fileInfo(skillArchivePath),
   installer: fileInfo(installerReleasePath)
 });

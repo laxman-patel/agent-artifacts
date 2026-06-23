@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadProdBuildUrls } from "../src/prod-build-urls.js";
@@ -39,7 +39,8 @@ const proc = Bun.spawnSync(
     "bun",
     "build",
     join(cliDir, "src", "cli.ts"),
-    "--compile",
+    "--target",
+    "node",
     "--minify",
     "--outfile",
     outFile,
@@ -65,6 +66,8 @@ if (!existsSync(outFile)) {
   process.exit(1);
 }
 
-console.error(`Built production CLI → ${outFile}`);
+chmodSync(outFile, 0o755);
+
+console.error(`Built production Node CLI → ${outFile}`);
 console.error(`  API: ${baseUrl}`);
 console.error(`  Web: ${webUrl}`);

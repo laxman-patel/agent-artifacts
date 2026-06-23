@@ -23,11 +23,11 @@ bun run cli:install
 ```
 
 ```bash Without installing
-bun run artifacts -- <command>
+node apps/cli/dist/cli.js <command>
 ```
 </CodeGroup>
 
-The public installer downloads a standalone binary, installs it to `~/.local/bin/artifacts`, and then delegates skill installation to Vercel's `skills` CLI. The skill can be installed for Cursor, Claude Code, Codex, OpenCode, Copilot, and other supported agents.
+The public installer requires Node.js 24+, downloads the Node-based CLI, installs it to `~/.local/bin/artifacts`, and then delegates skill installation to Vercel's `skills` CLI. The skill can be installed for Cursor, Claude Code, Codex, OpenCode, Copilot, and other supported agents.
 
 Target only specific agents:
 
@@ -50,7 +50,7 @@ export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
 export AGENT_ARTIFACTS_WEB_URL="http://localhost:3000"
 ```
 
-For production, build a standalone binary with default URLs baked in from `.env`:
+For production, build a bundled Node CLI with default URLs baked in from `.env`:
 
 ```bash
 bun run cli:build:prod

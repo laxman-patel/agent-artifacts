@@ -28,7 +28,7 @@
     "cli:install:prod": "bun run cli:build:prod && node scripts/install-cli.mjs --prod",
     "railway:sync-env": "node scripts/sync-infisical-to-railway.mjs",
     "railway:sync-env:dry-run": "node scripts/sync-infisical-to-railway.mjs --dry-run",
-    "artifacts": "bun apps/cli/dist/cli.js"
+    "artifacts": "node apps/cli/dist/cli.js"
   },
   "engines": {
     "node": ">=24.0.0"

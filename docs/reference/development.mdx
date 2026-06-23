@@ -40,9 +40,9 @@ packages/
 | `bun run db:generate` | Generate Drizzle migrations |
 | `bun run cli:build` | Build the CLI |
 | `bun run cli:install` | Install local CLI into `~/.local/bin` |
-| `bun run cli:build:prod` | Build production CLI binary with baked URLs |
+| `bun run cli:build:prod` | Build production Node CLI with baked URLs |
 | `bun run cli:build:release:env-file` | Build public CLI installer assets from `.env` |
-| `bun run artifacts -- <command>` | Run CLI from repo root |
+| `node apps/cli/dist/cli.js <command>` | Run built CLI from repo root |
 
 ## Type Checking
 
@@ -104,7 +104,7 @@ bun run cli:build
 Run without installing:
 
 ```bash
-bun run artifacts -- schema
+node apps/cli/dist/cli.js schema
 ```
 
 Run from TypeScript source:

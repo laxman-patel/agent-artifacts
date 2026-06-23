@@ -80,7 +80,7 @@ artifacts share create --artifact-id ARTIFACT_ID --role viewer --format json
 
 ## Defaults
 
-The public installer ships a standalone CLI with these production defaults baked in:
+The public installer ships a Node-based CLI with these production defaults baked in:
 
 ```bash
 AGENT_ARTIFACTS_BASE_URL=https://hostartifacts.dev

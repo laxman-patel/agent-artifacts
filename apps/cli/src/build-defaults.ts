@@ -1,5 +1,5 @@
 declare global {
-  // Injected at production compile time via `bun build --define`.
+  // Injected at production bundle time via `bun build --define`.
   var __CLI_DEFAULT_BASE_URL__: string | undefined;
   var __CLI_DEFAULT_WEB_URL__: string | undefined;
 }

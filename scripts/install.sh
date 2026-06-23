@@ -27,6 +27,10 @@ need() {
   command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
 }
 
+node_major() {
+  node -p 'Number(process.versions.node.split(".")[0])'
+}
+
 download() {
   url="$1"
   output="$2"
@@ -91,34 +95,11 @@ release_path() {
   esac
 }
 
-detect_platform() {
-  os="$(uname -s)"
-  arch="$(uname -m)"
-
-  case "$os:$arch" in
-    Linux:x86_64|Linux:amd64)
-      printf 'linux-x64'
-      ;;
-    Linux:aarch64|Linux:arm64)
-      printf 'linux-arm64'
-      ;;
-    Darwin:x86_64|Darwin:amd64)
-      printf 'darwin-x64'
-      ;;
-    Darwin:aarch64|Darwin:arm64)
-      printf 'darwin-arm64'
-      ;;
-    *)
-      fail "unsupported OS/architecture: $os $arch"
-      ;;
-  esac
-}
-
 manifest_field() {
-  platform="$1"
+  section="$1"
   field="$2"
   manifest="$3"
-  sed -n "/\"$platform\": {/,/}/ s/.*\"$field\": \"\\([^\"]*\\)\".*/\\1/p" "$manifest" | sed -n '1p'
+  sed -n "/\"$section\": {/,/}/ s/.*\"$field\": \"\\([^\"]*\\)\".*/\\1/p" "$manifest" | sed -n '1p'
 }
 
 verify_sha256() {
@@ -130,25 +111,24 @@ verify_sha256() {
   fi
 }
 
-install_binary() {
-  platform="$1"
-  base_url="$2"
-  manifest="$3"
+install_cli() {
+  base_url="$1"
+  manifest="$2"
 
-  asset_file="$(manifest_field "$platform" "file" "$manifest")"
-  asset_sha="$(manifest_field "$platform" "sha256" "$manifest")"
+  asset_file="$(manifest_field "cli" "file" "$manifest")"
+  asset_sha="$(manifest_field "cli" "sha256" "$manifest")"
 
-  [ -n "$asset_file" ] || fail "manifest does not contain a file for $platform"
-  [ -n "$asset_sha" ] || fail "manifest does not contain a checksum for $platform"
+  [ -n "$asset_file" ] || fail "manifest does not contain a CLI file"
+  [ -n "$asset_sha" ] || fail "manifest does not contain a CLI checksum"
 
-  tmp_binary="$TMP_DIR/$asset_file"
-  download "$base_url/$asset_file" "$tmp_binary"
-  verify_sha256 "$tmp_binary" "$asset_sha"
+  tmp_cli="$TMP_DIR/$asset_file"
+  download "$base_url/$asset_file" "$tmp_cli"
+  verify_sha256 "$tmp_cli" "$asset_sha"
 
   mkdir -p "$INSTALL_DIR"
   target="$INSTALL_DIR/artifacts"
   install_tmp="$target.tmp.$$"
-  cp "$tmp_binary" "$install_tmp"
+  cp "$tmp_cli" "$install_tmp"
   chmod 755 "$install_tmp"
   mv "$install_tmp" "$target"
 
@@ -187,7 +167,7 @@ install_skills() {
 need curl
 need awk
 need sed
-need uname
+need node
 need mktemp
 need mkdir
 need cp
@@ -202,14 +182,15 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-PLATFORM="$(detect_platform)"
+NODE_MAJOR="$(node_major)"
+[ "$NODE_MAJOR" -ge 24 ] || fail "Node.js 24 or newer is required; found $(node -v)"
 RELEASE_URL="$(release_path)"
 MANIFEST="$TMP_DIR/manifest.json"
 
 say "Downloading artifacts CLI release metadata from $RELEASE_URL"
 download "$RELEASE_URL/manifest.json" "$MANIFEST"
 
-install_binary "$PLATFORM" "$RELEASE_URL" "$MANIFEST"
+install_cli "$RELEASE_URL" "$MANIFEST"
 install_skills
 
 say "Done. Try: artifacts schema"

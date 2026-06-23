@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { preParseGlobals, resolveConfig } from "./config.js";
 import { CliError } from "./errors.js";
 import { emitFailure } from "./output.js";

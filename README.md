@@ -21,7 +21,7 @@ Public install:
 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
-This installs the standalone CLI and an `agent-artifacts` skill for supported local agents through Vercel's `skills` CLI.
+This requires Node.js 24+, installs the Node-based CLI, and adds an `agent-artifacts` skill for supported local agents through Vercel's `skills` CLI.
 
 Local development install:
 
@@ -36,7 +36,7 @@ artifacts push --owner alice --project-slug default --file ./report.md
 artifacts artifact list
 ```
 
-Without installing: `bun run artifacts -- <command>` from the repo root.
+Without installing: `node apps/cli/dist/cli.js <command>` from the repo root after `bun run cli:build`.
 
 See [apps/cli/README.md](apps/cli/README.md).
 

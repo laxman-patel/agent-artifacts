@@ -11,7 +11,7 @@ if (process.env.BETTER_STACK_WEB_SOURCE_TOKEN && !process.env.BETTER_STACK_SOURC
 
 const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://127.0.0.1:3001";
 const isDev = process.env.NODE_ENV === "development";
-const defaultMintlifyDocsUrl = isDev ? "http://127.0.0.1:3002" : "https://docs.agent-artifacts.com";
+const defaultMintlifyDocsUrl = isDev ? "http://127.0.0.1:3002" : "https://docs.hostartifacts.dev";
 const mintlifyDocsUrl = process.env.MINTLIFY_DOCS_URL ?? defaultMintlifyDocsUrl;
 const mintlifyDocsOrigin = mintlifyDocsUrl.replace(/\/+$/, "");
 const docsReferer = [{ type: "header" as const, key: "referer", value: ".*/docs(?:/.*)?$" }];

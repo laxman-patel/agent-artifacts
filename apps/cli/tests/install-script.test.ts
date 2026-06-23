@@ -17,14 +17,16 @@ describe("public installer script", () => {
     expect(installer).toContain("printf '%s/download/v%s' \"$DOWNLOAD_BASE_URL\" \"$VERSION\"");
     expect(installer).toContain("printf '%s/latest' \"$DOWNLOAD_BASE_URL\"");
     expect(installer).toContain("download \"$RELEASE_URL/manifest.json\" \"$MANIFEST\"");
-    expect(installer).toContain("download \"$base_url/$asset_file\" \"$tmp_binary\"");
+    expect(installer).toContain("download \"$base_url/$asset_file\" \"$tmp_cli\"");
   });
 
-  it("verifies checksums before replacing the installed binary", () => {
+  it("requires Node and verifies checksums before replacing the installed CLI", () => {
     expect(installer).toContain("curl -fL --proto '=https' --tlsv1.2");
+    expect(installer).toContain("need node");
+    expect(installer).toContain("Node.js 24 or newer is required");
     expect(installer).toContain("ARTIFACTS_ALLOW_INSECURE");
     expect(installer).toContain("refusing non-HTTPS download URL");
-    expect(installer).toContain("verify_sha256 \"$tmp_binary\" \"$asset_sha\"");
+    expect(installer).toContain("verify_sha256 \"$tmp_cli\" \"$asset_sha\"");
     expect(installer).toContain("mv \"$install_tmp\" \"$target\"");
   });
 

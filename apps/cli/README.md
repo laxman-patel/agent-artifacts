@@ -1,6 +1,6 @@
 # artifacts CLI
 
-Primary interface for AI agents to use [agent-artifacts](https://github.com/agent-artifacts/agent-artifacts). A thin, deterministic wrapper over the REST API. Runs on **Bun**.
+Primary interface for AI agents to use [agent-artifacts](https://github.com/agent-artifacts/agent-artifacts). A thin, deterministic wrapper over the REST API. Runs on **Node.js 24+**.
 
 ## Install
 
@@ -10,7 +10,7 @@ Public installer:
 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
-This installs the standalone `artifacts` binary into `~/.local/bin` and then uses Vercel's `skills` CLI to install the `agent-artifacts` skill for supported agents such as Cursor, Claude Code, Codex, OpenCode, and Copilot.
+This installs the Node-based `artifacts` command into `~/.local/bin` and then uses Vercel's `skills` CLI to install the `agent-artifacts` skill for supported agents such as Cursor, Claude Code, Codex, OpenCode, and Copilot.
 
 Installer overrides:
 
@@ -37,7 +37,7 @@ bun run cli:install   # symlinks `artifacts` into ~/.local/bin (ensure that dir 
 After install, run `artifacts` from anywhere. Without installing globally:
 
 ```bash
-bun run artifacts -- <command>          # from repo root (uses built dist/cli.js)
+node apps/cli/dist/cli.js <command>   # from repo root after cli:build
 ./apps/cli/dist/cli.js <command>      # direct path after cli:build
 bun run --filter @agent-artifacts/cli dev -- <command>  # run from TypeScript source
 ```
@@ -46,7 +46,7 @@ Rebuild after CLI code changes: `bun run cli:build`.
 
 ### Production bundle (URLs baked in)
 
-Ship a standalone binary with your deployed API and web URLs as defaults. The build reads the repo **`.env`** file automatically (same vars as the web app):
+Ship a bundled Node CLI with your deployed API and web URLs as defaults. The build reads the repo **`.env`** file automatically (same vars as the web app):
 
 | Baked into CLI | From `.env` (first match wins) |
 |----------------|--------------------------------|
@@ -59,7 +59,7 @@ Set production values in `.env`, then:
 bun run cli:build:prod
 ```
 
-Output: `apps/cli/dist/artifacts` — a compiled Bun binary. Install globally:
+Output: `apps/cli/dist/artifacts` — an executable Node script. Install globally:
 
 ```bash
 bun run cli:install:prod
@@ -86,7 +86,7 @@ apps/cli/dist/release/latest/
 
 Each release directory contains:
 
-- platform binaries named `artifacts-<version>-<platform>`;
+- one Node CLI asset named `artifacts-<version>`;
 - `agent-artifacts-skill-<version>.tar.gz`;
 - `install.sh`;
 - `manifest.json` with SHA-256 checksums.

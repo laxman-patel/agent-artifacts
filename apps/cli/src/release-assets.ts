@@ -1,11 +1,4 @@
-export const RELEASE_TARGETS = [
-  { platform: "linux-x64", bunTarget: "bun-linux-x64" },
-  { platform: "linux-arm64", bunTarget: "bun-linux-arm64" },
-  { platform: "darwin-x64", bunTarget: "bun-darwin-x64" },
-  { platform: "darwin-arm64", bunTarget: "bun-darwin-arm64" }
-] as const;
-
-export type ReleasePlatform = (typeof RELEASE_TARGETS)[number]["platform"];
+export const MIN_NODE_MAJOR = 24;
 
 export interface ReleaseFileInfo {
   file: string;
@@ -13,29 +6,27 @@ export interface ReleaseFileInfo {
   size: number;
 }
 
-export interface ReleaseBinaryAsset extends ReleaseFileInfo {
-  target: (typeof RELEASE_TARGETS)[number]["bunTarget"];
-}
-
 export interface ReleaseSkillAsset extends ReleaseFileInfo {
   name: "agent-artifacts";
 }
 
 export interface ReleaseManifest {
-  schemaVersion: 1;
+  schemaVersion: 2;
   version: string;
   generatedAt: string;
+  node: {
+    minMajor: typeof MIN_NODE_MAJOR;
+  };
   cli: {
     baseUrl: string;
     webUrl: string;
-  };
-  binaries: Record<ReleasePlatform, ReleaseBinaryAsset>;
+  } & ReleaseFileInfo;
   skill: ReleaseSkillAsset;
   installer: ReleaseFileInfo;
 }
 
-export function releaseBinaryName(version: string, platform: ReleasePlatform): string {
-  return `artifacts-${version}-${platform}`;
+export function releaseCliAssetName(version: string): string {
+  return `artifacts-${version}`;
 }
 
 export function releaseSkillArchiveName(version: string): string {
@@ -45,27 +36,18 @@ export function releaseSkillArchiveName(version: string): string {
 export function createReleaseManifest(args: {
   version: string;
   generatedAt: string;
-  cli: ReleaseManifest["cli"];
-  binaries: Record<ReleasePlatform, ReleaseFileInfo>;
+  cli: Pick<ReleaseManifest["cli"], "baseUrl" | "webUrl"> & ReleaseFileInfo;
   skill: ReleaseFileInfo;
   installer: ReleaseFileInfo;
 }): ReleaseManifest {
-  const binaries = Object.fromEntries(
-    RELEASE_TARGETS.map((target) => [
-      target.platform,
-      {
-        ...args.binaries[target.platform],
-        target: target.bunTarget
-      }
-    ])
-  ) as Record<ReleasePlatform, ReleaseBinaryAsset>;
-
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     version: args.version,
     generatedAt: args.generatedAt,
+    node: {
+      minMajor: MIN_NODE_MAJOR
+    },
     cli: args.cli,
-    binaries,
     skill: {
       name: "agent-artifacts",
       ...args.skill

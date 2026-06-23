@@ -21,7 +21,7 @@ Public install:
 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
-This requires Node.js 24+, installs the Node-based CLI, and adds an `agent-artifacts` skill for supported local agents through Vercel's `skills` CLI.
+This requires Node.js 24+, installs the Node-based CLI, and then lets you choose which local coding agents receive the `agent-artifacts` skill through Vercel's `skills` CLI.
 
 Local development install:
 

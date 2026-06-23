@@ -27,9 +27,9 @@ node apps/cli/dist/cli.js <command>
 ```
 </CodeGroup>
 
-The public installer requires Node.js 24+, downloads the Node-based CLI, installs it to `~/.local/bin/artifacts`, and then delegates skill installation to Vercel's `skills` CLI. The skill can be installed for Cursor, Claude Code, Codex, OpenCode, Copilot, and other supported agents.
+The public installer requires Node.js 24+, downloads the Node-based CLI, and installs it to `~/.local/bin/artifacts`. It then shows an interactive picker so you choose which coding agents receive the `agent-artifacts` skill (via Vercel's `skills` CLI). Agents already installed on your machine are preselected; toggle entries by number, or press Enter to accept. Supported choices include Cursor, Claude Code, Codex, OpenCode, Copilot, Gemini CLI, and Windsurf.
 
-Target only specific agents:
+Skip the picker and target specific agents (use `'*'` for all):
 
 ```bash
 ARTIFACTS_SKILL_AGENTS="cursor claude-code codex" curl -fsSL https://hostartifacts.dev/install.sh | sh

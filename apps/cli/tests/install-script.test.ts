@@ -21,7 +21,7 @@ describe("public installer script", () => {
   });
 
   it("requires Node and verifies checksums before replacing the installed CLI", () => {
-    expect(installer).toContain("curl -fL --proto '=https' --tlsv1.2");
+    expect(installer).toContain("curl -fsSL --proto '=https' --tlsv1.2");
     expect(installer).toContain("need node");
     expect(installer).toContain("Node.js 24 or newer is required");
     expect(installer).toContain("ARTIFACTS_ALLOW_INSECURE");
@@ -30,14 +30,31 @@ describe("public installer script", () => {
     expect(installer).toContain("mv \"$install_tmp\" \"$target\"");
   });
 
-  it("delegates multi-agent skill installation to Vercel skills", () => {
+  it("delegates skill installation to Vercel skills for the chosen agents", () => {
     expect(installer).toContain(
       "ARTIFACTS_SKILL_SOURCE:-https://github.com/laxman-patel/agent-artifacts"
     );
-    expect(installer).toContain("ARTIFACTS_SKILL_AGENTS:-*");
+    // Empty default so the installer prompts/auto-detects instead of targeting every agent.
+    expect(installer).toContain("ARTIFACTS_SKILL_AGENTS:-}");
     expect(installer).toContain("npx -y skills add");
     expect(installer).toContain("--global --copy -y");
+    expect(installer).toContain('set -- "$@" --agent "$agent"');
     expect(installer).toContain("ARTIFACTS_SKIP_SKILLS");
+  });
+
+  it("offers an interactive agent picker with detection over /dev/tty", () => {
+    expect(installer).toContain("ARTIFACTS_TTY:-/dev/tty");
+    expect(installer).toContain("is_interactive()");
+    expect(installer).toContain("choose_agents");
+    expect(installer).toContain("preselect_detected");
+    expect(installer).toContain("exec 3<\"$TTY_DEV\"");
+    expect(installer).toContain("read -r _input <&3");
+    expect(installer).toContain("toggle numbers");
+    expect(installer).toContain("enter confirm");
+    // Curated, common agents with their `skills` slugs.
+    expect(installer).toContain("cursor|Cursor|");
+    expect(installer).toContain("claude-code|Claude Code|");
+    expect(installer).toContain("github-copilot|GitHub Copilot|");
   });
 });
 

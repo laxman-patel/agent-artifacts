@@ -130,8 +130,7 @@ export const DODO_PRODUCT_CONFIG = {
   studio: {
     planId: "studio",
     monthlyPriceUsd: 12,
-    includedSeats: 3,
-    additionalSeatPriceUsd: 3
+    includedSeats: 3
   }
 } as const;
 

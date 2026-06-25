@@ -55,7 +55,7 @@ function planFeatures(plan: BillingPlan): string[] {
   ];
 
   if (plan.id === "studio") {
-    features.splice(1, 0, `${entitlements.includedSeats} seats included, $3 per extra seat`, "Team projects and member roles");
+    features.splice(1, 0, `${entitlements.includedSeats} seats included`, "Team projects and member roles");
   }
 
   return features;

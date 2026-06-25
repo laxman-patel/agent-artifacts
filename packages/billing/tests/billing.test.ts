@@ -6,6 +6,7 @@ import {
   type BillingGateway,
   type BillingPlanId,
   type BillingRepository,
+  categorizeDodoWebhookEvent,
   DODO_PRODUCT_CONFIG,
   DODO_USAGE_METERS,
   EntitlementLimitError,
@@ -132,6 +133,20 @@ describe("Dodo webhook verification", () => {
 
     expect(verifyDodoWebhookSignature({ payload, timestamp, signature, secret, now: Number(timestamp) * 1000 })).toBe(true);
     expect(verifyDodoWebhookSignature({ payload, timestamp, signature: "v1,bad", secret, now: Number(timestamp) * 1000 })).toBe(false);
+  });
+});
+
+describe("Dodo webhook categorization", () => {
+  it("classifies subscription, billing, and unknown events by type prefix", () => {
+    expect(categorizeDodoWebhookEvent("subscription.active")).toBe("subscription");
+    expect(categorizeDodoWebhookEvent("subscription.cancelled")).toBe("subscription");
+    expect(categorizeDodoWebhookEvent("payment.succeeded")).toBe("payment");
+    expect(categorizeDodoWebhookEvent("payment.failed")).toBe("payment");
+    expect(categorizeDodoWebhookEvent("refund.succeeded")).toBe("refund");
+    expect(categorizeDodoWebhookEvent("dispute.opened")).toBe("dispute");
+    expect(categorizeDodoWebhookEvent("license_key.created")).toBe("license_key");
+    expect(categorizeDodoWebhookEvent("something.unexpected")).toBe("unknown");
+    expect(categorizeDodoWebhookEvent("")).toBe("unknown");
   });
 });
 

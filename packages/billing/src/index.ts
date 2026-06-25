@@ -303,6 +303,32 @@ function createCheckoutSessionInput(input: {
   };
 }
 
+export type DodoWebhookCategory = "subscription" | "payment" | "refund" | "dispute" | "license_key" | "unknown";
+
+/**
+ * Classify a Dodo webhook event by its type prefix. Subscription events drive
+ * local plan state; payment/refund/dispute/license_key events are known and
+ * acknowledged for observability; anything else is treated as unknown so it
+ * surfaces in logs instead of being silently dropped.
+ */
+export function categorizeDodoWebhookEvent(eventType: string): DodoWebhookCategory {
+  const prefix = eventType.split(".", 1)[0];
+  switch (prefix) {
+    case "subscription":
+      return "subscription";
+    case "payment":
+      return "payment";
+    case "refund":
+      return "refund";
+    case "dispute":
+      return "dispute";
+    case "license_key":
+      return "license_key";
+    default:
+      return "unknown";
+  }
+}
+
 export function verifyDodoWebhookSignature(input: {
   payload: string;
   signature: string;

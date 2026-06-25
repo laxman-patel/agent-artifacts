@@ -5,6 +5,7 @@ import {
   BILLING_PLANS,
   DODO_PRODUCT_CONFIG,
   DODO_USAGE_METERS,
+  categorizeDodoWebhookEvent,
   verifyDodoWebhookSignature,
   type BillingPlanId
 } from "@agent-artifacts/billing";
@@ -145,23 +146,35 @@ export function registerBillingRoutes(app: Hono<{ Variables: AppVariables }>) {
       } catch {
         return c.json({ error: "invalid_request", message: "Webhook body must be valid JSON." }, 400);
       }
-      if (event.type.startsWith("subscription.")) {
-        await getBillingService().handleDodoSubscriptionEvent(
-          {
-            eventId: webhookId || event.id || `${event.type}:${timestamp}`,
-            type: event.type,
-            data: event.data as never
-          },
-          {
-            builderProductId: env.DODO_BUILDER_PRODUCT_ID,
-            studioProductId: env.DODO_STUDIO_PRODUCT_ID
-          }
-        );
-      } else {
-        logger.warn("billing_webhook_unhandled", {
-          eventId: webhookId || event.id,
-          eventType: event.type
-        });
+      const eventId = webhookId || event.id;
+      const category = categorizeDodoWebhookEvent(event.type);
+      switch (category) {
+        case "subscription":
+          await getBillingService().handleDodoSubscriptionEvent(
+            {
+              eventId: eventId || `${event.type}:${timestamp}`,
+              type: event.type,
+              data: event.data as never
+            },
+            {
+              builderProductId: env.DODO_BUILDER_PRODUCT_ID,
+              studioProductId: env.DODO_STUDIO_PRODUCT_ID
+            }
+          );
+          break;
+        case "payment":
+        case "refund":
+        case "dispute":
+        case "license_key":
+          logger.info("billing_webhook_acknowledged", { eventId, eventType: event.type, category });
+          break;
+        case "unknown":
+          logger.warn("billing_webhook_unhandled", { eventId, eventType: event.type });
+          break;
+        default: {
+          const _exhaustive: never = category;
+          logger.warn("billing_webhook_unhandled", { eventId, eventType: event.type, category: _exhaustive });
+        }
       }
 
       return { received: true };

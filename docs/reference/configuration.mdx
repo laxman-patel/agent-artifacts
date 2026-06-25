@@ -88,7 +88,7 @@ Billing uses Dodo Payments.
 | `DODO_PAYMENTS_WEBHOOK_SECRET` | Webhook signature secret |
 | `DODO_BUILDER_PRODUCT_ID` | Product ID for the Pro plan |
 | `DODO_STUDIO_PRODUCT_ID` | Product ID for the Team plan |
-| `ENABLE_BILLING_CRON` | Set to `true` on one API instance to record daily storage usage |
+| `ENABLE_BILLING_CRON` | Set to `true` on the API service only (never web) to record daily storage usage. A Postgres advisory lock keeps it safe across multiple API replicas. |
 | `BILLING_CRON_INTERVAL_MS` | Optional scheduler interval override for dev/test |
 | `BILLING_CRON_SECRET` | Bearer secret for internal storage snapshot route |
 

@@ -119,7 +119,7 @@ CI builds set `productionBrowserSourceMaps=true` when `CI=true` so production st
 
 ### Billing Scheduler
 
-Set `ENABLE_BILLING_CRON=true` on one API instance to record daily `artifact.storage_gb_days` usage events for active paid accounts. The job calls billing services directly; `POST /api/internal/billing/storage-snapshots` remains available for external schedulers when authenticated with `BILLING_CRON_SECRET`.
+Set `ENABLE_BILLING_CRON=true` to record daily `artifact.storage_gb_days` usage events for active paid accounts. Enable it on the **API service only — never the web service**. A Postgres advisory lock makes it safe when the API runs multiple replicas (only one process wins each run), so you can leave it enabled on the API even when scaling out. The job calls billing services directly; `POST /api/internal/billing/storage-snapshots` remains available for external schedulers when authenticated with `BILLING_CRON_SECRET`.
 
 ### Better Stack MCP server
 

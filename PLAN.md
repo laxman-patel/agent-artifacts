@@ -1227,7 +1227,6 @@ Planned extensions:
 - Artifact collections.
 - Branching and merge workflows.
 - Expiring edit sessions.
-- Usage billing.
 
 ## Implementation Parts
 

@@ -15,7 +15,6 @@ export function WorkspaceArtifactsView() {
     <ArtifactBrowser
       title={teamLabel(workspace)}
       artifacts={artifacts}
-      scope="workspace"
       emptyTitle="Nothing published yet"
       emptyHint="Artifacts published from the CLI, MCP, or REST API show up here with a live preview."
       createHref={`/dashboard/${workspace.slug}/artifacts/new`}

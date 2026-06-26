@@ -40,15 +40,12 @@ function RelativeTime({ iso }: { iso: string }) {
 
 function ArtifactTile({
   artifact,
-  showProject,
   previewContent
 }: {
   artifact: ArtifactOwnerSummary;
-  showProject: boolean;
   previewContent?: string;
 }) {
   const kind = artifactKind(artifact.type);
-  const meta = `${showProject ? `${artifact.projectSlug}/` : ""}${artifact.slug}`;
 
   return (
     <Link
@@ -80,8 +77,8 @@ function ArtifactTile({
         >
           {artifact.title}
         </p>
-        <p className="mt-1 truncate font-mono text-[11px] text-foreground/40" suppressHydrationWarning>
-          {meta} · <RelativeTime iso={artifact.updatedAt} />
+        <p className="mt-1 truncate text-[11px] leading-tight text-foreground/45" suppressHydrationWarning>
+          Updated <RelativeTime iso={artifact.updatedAt} />
         </p>
       </div>
     </Link>
@@ -92,7 +89,6 @@ export function ArtifactBrowser({
   title,
   description,
   artifacts,
-  scope,
   emptyTitle,
   emptyHint,
   createHref,
@@ -101,7 +97,6 @@ export function ArtifactBrowser({
   title: string;
   description?: string | null;
   artifacts: ArtifactOwnerSummary[];
-  scope: "workspace" | "project";
   emptyTitle: string;
   emptyHint: string;
   createHref?: string;
@@ -152,7 +147,6 @@ export function ArtifactBrowser({
             <li key={artifact.id} suppressHydrationWarning>
               <ArtifactTile
                 artifact={artifact}
-                showProject={scope === "workspace"}
                 previewContent={previewContent?.[artifact.id]}
               />
             </li>

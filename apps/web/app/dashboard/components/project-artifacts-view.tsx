@@ -13,7 +13,6 @@ export function ProjectArtifactsView({ projectSlug }: { projectSlug: string }) {
       <ArtifactBrowser
         title="Project not found"
         artifacts={[]}
-        scope="project"
         emptyTitle="Project not found"
         emptyHint="Choose a project from the sidebar to open a known namespace."
       />
@@ -27,7 +26,6 @@ export function ProjectArtifactsView({ projectSlug }: { projectSlug: string }) {
       title={project.title}
       description={project.description}
       artifacts={projectArtifacts}
-      scope="project"
       emptyTitle="No artifacts in this project"
       emptyHint={`Publish into ${projectPath(project)} to collect versioned artifacts under this namespace.`}
       createHref={`/dashboard/${project.workspaceSlug}/artifacts/new?project=${encodeURIComponent(project.slug)}`}

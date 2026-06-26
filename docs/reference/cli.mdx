@@ -30,17 +30,19 @@ A complete reference for the `artifacts` command. New to the CLI? Start with the
 | Command | Purpose |
 | --- | --- |
 | `artifacts schema` | Print machine-readable command catalog |
-| `artifacts health` | Call `GET /health` |
+| `artifacts health` | Check the API is reachable (`GET /api/health`) |
+| `artifacts status` | Show local auth/config state (no network call) |
 | `artifacts whoami` | Call `GET /api/profile/me` |
 
 ## Auth and Profile
 
-`artifacts login` stores bearer tokens in the OS credential store: `secret-tool`/libsecret on Linux, Keychain on macOS, and Credential Manager on Windows. The local credentials JSON file stores only non-secret metadata.
+`artifacts login` saves a bearer token to `~/.config/agent-artifacts/credentials.json` (mode `0600`) and stays signed in across runs. There is no dependency on an OS keyring, so it behaves identically on workstations, headless servers, containers, CI, and AI agents. Token precedence is `--token` flag → `AGENT_ARTIFACTS_TOKEN` env → saved login file.
 
 | Command | Purpose |
 | --- | --- |
-| `artifacts login` | Browser OAuth login and secure credential storage |
-| `artifacts logout` | Clear local credentials from the OS store |
+| `artifacts login` | Browser OAuth login; persists credentials locally |
+| `artifacts logout` | Revoke the issued key (best effort) and delete the local credentials file |
+| `artifacts status` | Report whether you are signed in, the token source, and the active URLs |
 | `artifacts profile get` | Read current profile |
 | `artifacts profile set-username --username <username>` | Claim username and personal workspace slug |
 

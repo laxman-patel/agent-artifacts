@@ -111,11 +111,13 @@ Billing meters:
 | `AGENT_ARTIFACTS_NO_INPUT` | Set to `1` for non-interactive mode |
 | `AGENT_ARTIFACTS_DEBUG` | Set to `1` for stack traces |
 
-Credentials from browser login are stored at:
+Credentials from browser login are stored as a single file with mode `0600`:
 
 ```text
 ~/.config/agent-artifacts/credentials.json
 ```
+
+This file holds the bearer token plus the resolved service URLs, so the CLI stays signed in across runs without an OS keyring or D-Bus session. Override the location with `AGENT_ARTIFACTS_CONFIG_DIR`. Run `artifacts status` to inspect the current auth state without a network call, or `artifacts logout` to delete the file.
 
 ## Observability
 

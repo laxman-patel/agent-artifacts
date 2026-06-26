@@ -38,6 +38,7 @@ describe("CLI schema", () => {
       "share create",
       "share list",
       "share revoke",
+      "status",
       "whoami",
       "workspace audit",
       "workspace invite",

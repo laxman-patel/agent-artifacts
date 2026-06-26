@@ -16,11 +16,11 @@ Use the `artifacts` CLI to create and manage hosted artifacts on `https://hostar
 
 ## Quick Start
 
-1. Verify the CLI exists:
+1. Verify the CLI exists and the API is reachable:
 
 ```bash
 command -v artifacts
-artifacts health
+artifacts health   # prints "ok" (text) or {"ok":true} (json); exit 0 when healthy
 ```
 
 2. If the CLI is missing, install it:
@@ -29,7 +29,14 @@ artifacts health
 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
-3. Authenticate interactively for local work:
+3. Check whether you are already signed in (no network call, always exits 0):
+
+```bash
+artifacts status   # { "authenticated": true|false, "tokenSource": ..., "baseUrl": ... }
+```
+
+4. If not authenticated, sign in interactively for local work. The token is saved to
+`~/.config/agent-artifacts/credentials.json` (mode 0600) and persists across runs:
 
 ```bash
 artifacts login

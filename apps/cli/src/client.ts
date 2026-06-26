@@ -48,13 +48,18 @@ export class ApiClient {
     try {
       response = await fetch(url, { method, headers, body });
     } catch (error) {
-      throw new CliError("network", error instanceof Error ? error.message : String(error), 1);
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new CliError(
+        "network",
+        `Could not reach the API at ${this.config.baseUrl}: ${reason}`,
+        exitCodeForKind("network")
+      );
     }
 
     if (options?.rawText) {
       const text = await response.text();
       if (!response.ok) {
-        throw apiErrorFromResponse(response.status, text);
+        throw apiErrorFromResponse(response.status, text, response.headers.get("content-type") ?? "");
       }
       return text as T;
     }
@@ -67,7 +72,7 @@ export class ApiClient {
       if (typeof payload === "object" && payload !== null && "error" in payload) {
         throw apiErrorFromBody(response.status, payload as ApiErrorBody);
       }
-      throw new CliError("unknown", `HTTP ${response.status}`, exitCodeForKind("unknown"), payload);
+      throw nonJsonError(response.status, typeof payload === "string" ? payload : undefined);
     }
 
     return payload as T;
@@ -100,11 +105,34 @@ function apiErrorFromBody(status: number, body: ApiErrorBody): CliError {
   return new CliError(kind, message, exitCodeForKind(kind), body.issues ?? body);
 }
 
-function apiErrorFromResponse(status: number, text: string): CliError {
-  try {
-    const body = JSON.parse(text) as ApiErrorBody;
-    return apiErrorFromBody(status, body);
-  } catch {
-    return new CliError("unknown", text || `HTTP ${status}`, 1);
+function apiErrorFromResponse(status: number, text: string, contentType: string): CliError {
+  if (contentType.includes("application/json")) {
+    try {
+      return apiErrorFromBody(status, JSON.parse(text) as ApiErrorBody);
+    } catch {
+      // Fall through to the non-JSON handling below.
+    }
   }
+  return nonJsonError(status, text);
+}
+
+const MAX_ERROR_SNIPPET = 200;
+
+/**
+ * Builds a clean error for non-JSON responses (e.g. an HTML 404/502 page from a
+ * proxy or the wrong base URL). We never surface the full body — dumping an
+ * entire HTML document as an error is what made commands like `health` produce
+ * pages of noise. A short, single-line snippet is enough to diagnose.
+ */
+function nonJsonError(status: number, body: string | undefined): CliError {
+  const kind = status === 404 ? "not_found" : "unknown";
+  const snippet = body
+    ?.replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_ERROR_SNIPPET);
+  const hint =
+    status === 404
+      ? "Endpoint not found. Check --base-url (it should point at the API, e.g. https://hostartifacts.dev)."
+      : `Unexpected non-JSON response from the API (HTTP ${status}).`;
+  return new CliError(kind, hint, exitCodeForKind(kind), snippet ? { status, body: snippet } : { status });
 }

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -10,17 +10,15 @@ describe("credentials store", () => {
   beforeEach(() => {
     configDir = mkdtempSync(join(tmpdir(), "agent-artifacts-credentials-"));
     process.env.AGENT_ARTIFACTS_CONFIG_DIR = configDir;
-    process.env.AGENT_ARTIFACTS_INSECURE_TEST_CREDENTIAL_STORE = "file";
   });
 
   afterEach(() => {
     clearStoredCredentials();
     rmSync(configDir, { recursive: true, force: true });
     delete process.env.AGENT_ARTIFACTS_CONFIG_DIR;
-    delete process.env.AGENT_ARTIFACTS_INSECURE_TEST_CREDENTIAL_STORE;
   });
 
-  it("loads saved credentials", () => {
+  it("round-trips saved credentials", () => {
     saveStoredCredentials({
       baseUrl: "http://127.0.0.1:3001",
       webUrl: "http://localhost:3000",
@@ -41,7 +39,7 @@ describe("credentials store", () => {
     expect(loadStoredCredentials()).toBeNull();
   });
 
-  it("keeps tokens out of the metadata file", () => {
+  it("persists the token without relying on an OS keyring", () => {
     saveStoredCredentials({
       baseUrl: "https://api.artifacts.example.com",
       webUrl: "https://artifacts.example.com",
@@ -50,9 +48,32 @@ describe("credentials store", () => {
       updatedAt: "2026-05-22T00:00:00.000Z"
     });
 
-    const metadata = JSON.parse(readFileSync(credentialsPath(), "utf8")) as Record<string, unknown>;
-    expect(metadata.token).toBeUndefined();
-    expect(metadata.store).toBe("test-file");
+    const stored = JSON.parse(readFileSync(credentialsPath(), "utf8")) as Record<string, unknown>;
+    expect(stored.token).toBe("sensitive-token");
+    expect(stored.apiKeyId).toBe("key_123");
     expect(loadStoredCredentials()?.token).toBe("sensitive-token");
+  });
+
+  it("writes the credentials file with 0600 permissions", () => {
+    saveStoredCredentials({
+      baseUrl: "https://api.artifacts.example.com",
+      webUrl: "https://artifacts.example.com",
+      token: "sensitive-token",
+      updatedAt: "2026-05-22T00:00:00.000Z"
+    });
+
+    const mode = statSync(credentialsPath()).mode & 0o777;
+    expect(mode).toBe(0o600);
+  });
+
+  it("ignores a corrupt credentials file instead of throwing", () => {
+    saveStoredCredentials({
+      baseUrl: "https://api.artifacts.example.com",
+      webUrl: "https://artifacts.example.com",
+      token: "sensitive-token",
+      updatedAt: "2026-05-22T00:00:00.000Z"
+    });
+    rmSync(credentialsPath(), { force: true });
+    expect(loadStoredCredentials()).toBeNull();
   });
 });

@@ -100,16 +100,17 @@ Upload the files from `apps/cli/dist/release/v<version>/` to the matching GitHub
 
 ### Browser login (recommended)
 
-Like Firebase CLI, `artifacts login` opens your browser, completes Google sign-in on the web app, and stores credentials securely:
+Like the Firebase CLI, `artifacts login` opens your browser, completes Google sign-in on the web app, and saves credentials locally:
 
 ```bash
 artifacts login
-artifacts whoami
+artifacts status   # local check, no network call
+artifacts whoami   # confirm against the API
 ```
 
-Bearer tokens are stored in the OS credential store: `secret-tool`/libsecret on Linux, Keychain on macOS, and Credential Manager on Windows. The file at `~/.config/agent-artifacts/credentials.json` contains only non-secret metadata such as URLs and profile hints.
+The bearer token is written to `~/.config/agent-artifacts/credentials.json` with mode `0600`. The CLI stays signed in across runs — no OS keyring or D-Bus session required, so it works the same on laptops, headless servers, containers, CI, and AI agents. (This matches how `gh`, `npm`, and `vercel` persist tokens.) Set `AGENT_ARTIFACTS_CONFIG_DIR` to relocate the file.
 
-On Linux, install `secret-tool` and make sure your keyring is unlocked before running `artifacts login`.
+Token precedence: `--token` flag → `AGENT_ARTIFACTS_TOKEN` env → saved login file.
 
 Override defaults if needed:
 
@@ -209,6 +210,7 @@ Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https:
 | `artifacts push --owner ... --project-slug ... --file ./report.md` | `POST /api/artifacts` |
 | `artifacts login` | Browser OAuth via web app |
 | `artifacts logout` | Clear local credentials |
+| `artifacts status` | Local auth/config check (no network) |
 | `artifacts whoami` | `GET /api/profile/me` |
 | `artifacts profile get` | `GET /api/profile/me` |
 | `artifacts project list` | `GET /api/profile/projects` |
@@ -221,7 +223,7 @@ Designed for non-interactive agent use (see [InfoQ: AI Agent Driven CLIs](https:
 | `artifacts path artifact --owner ... --project-slug ... --slug ...` | `GET /api/by-path/...` |
 | `artifacts share create --artifact-id <id> --json '...'` | `POST /api/artifacts/:id/share-links` |
 | `artifacts audit list` | `GET /api/audit-events` (default `--limit 50`) |
-| `artifacts health` | `GET /health` |
+| `artifacts health` | `GET /api/health` (reachability check) |
 
 ## Mutations
 

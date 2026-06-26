@@ -90,9 +90,13 @@ artifacts artifact list --format json
 ```
 </CodeGroup>
 
-Browser login stores bearer tokens in the OS credential store: `secret-tool`/libsecret on Linux, Keychain on macOS, and Credential Manager on Windows. The local `~/.config/agent-artifacts/credentials.json` file contains only non-secret metadata such as service URLs.
+Browser login saves a bearer token to `~/.config/agent-artifacts/credentials.json` (created with mode `0600`) and keeps you signed in across runs — no OS keyring or D-Bus session required, so it works the same on laptops, headless servers, containers, CI, and AI agents. Check the current state at any time without a network call:
 
-On Linux, install `secret-tool` and unlock your keyring before running `artifacts login`.
+```bash
+artifacts status
+```
+
+`status` always exits `0` and reports `authenticated`, the resolved `baseUrl`, and the credentials file path. Token precedence is `--token` flag → `AGENT_ARTIFACTS_TOKEN` env → saved login file.
 
 ## Discovery for agents
 

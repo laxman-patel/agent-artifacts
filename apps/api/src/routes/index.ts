@@ -60,12 +60,13 @@ function agentAuthMetadata() {
 }
 
 export function registerRoutes(app: Hono<{ Variables: AppVariables }>) {
-  app.get("/health", (c) =>
-    c.json({
-      ok: true,
-      service: "agent-artifacts-api"
-    })
-  );
+  // `/health` is for internal/platform probes hitting the API directly.
+  // `/api/health` is the public-facing equivalent: deployments proxy only
+  // `/api/*` to this service, so this is the path the CLI and external clients
+  // can actually reach in production.
+  const healthBody = { ok: true, service: "agent-artifacts-api" } as const;
+  app.get("/health", (c) => c.json(healthBody));
+  app.get("/api/health", (c) => c.json(healthBody));
 
   app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth().handler(c.req.raw));
 

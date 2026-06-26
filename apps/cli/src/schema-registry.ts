@@ -45,7 +45,10 @@ export function buildAgentSchema() {
       env: ["AGENT_ARTIFACTS_TOKEN"],
       flags: ["--token", "--token-stdin"],
       header: "Authorization: Bearer <token>",
-      nonInteractive: "Set AGENT_ARTIFACTS_TOKEN, use --token-stdin, or pass --token; browser login requires a TTY"
+      nonInteractive: "Set AGENT_ARTIFACTS_TOKEN, use --token-stdin, or pass --token; browser login requires a TTY",
+      persistence:
+        "`artifacts login` saves a bearer token to a 0600 file at ~/.config/agent-artifacts/credentials.json and stays signed in across runs. Run `artifacts status` to check auth without a network call.",
+      precedence: "--token flag > AGENT_ARTIFACTS_TOKEN env > saved login file"
     },
     baseUrl: {
       env: ["AGENT_ARTIFACTS_BASE_URL"],

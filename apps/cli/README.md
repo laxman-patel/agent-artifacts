@@ -10,18 +10,19 @@ Public installer:
 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
-This installs the Node-based `artifacts` command into `~/.local/bin`, then prompts you to choose which coding agents (Cursor, Claude Code, Codex, OpenCode, Copilot, Gemini CLI, Windsurf) should receive the `agent-artifacts` skill via Vercel's `skills` CLI. Agents you already have installed are preselected, and you can toggle the rest.
+The installer lets you choose which coding agents (Cursor, Claude Code, Codex, OpenCode, Copilot, Gemini CLI, Windsurf) should receive the `agent-artifacts` skill via Vercel's `skills` CLI. Agents you already have installed are preselected, and you can toggle the rest. It then installs the Node-based `artifacts` command into `~/.local/bin`, immediately starts `artifacts login`, and installs the skill for the selected agents.
 
 Installer overrides:
 
 ```bash
 ARTIFACTS_INSTALL_DIR="$HOME/bin" curl -fsSL https://hostartifacts.dev/install.sh | sh
+ARTIFACTS_SKIP_LOGIN=1 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ARTIFACTS_SKIP_SKILLS=1 curl -fsSL https://hostartifacts.dev/install.sh | sh
 # Skip the interactive picker and target specific agents (use '*' for all):
 ARTIFACTS_SKILL_AGENTS="cursor claude-code codex" curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
-When stdin is not a terminal (e.g. some CI shells), the picker is skipped and the skill is installed only for coding agents already detected on the machine.
+When no terminal is available (e.g. some CI shells), browser login is skipped, the picker is skipped, and the skill is installed only for coding agents already detected on the machine.
 
 Skill-only install:
 

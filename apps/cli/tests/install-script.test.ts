@@ -30,6 +30,20 @@ describe("public installer script", () => {
     expect(installer).toContain("mv \"$install_tmp\" \"$target\"");
   });
 
+  it("starts browser login immediately after installing the CLI", () => {
+    expect(installer).toContain("ARTIFACTS_SKIP_LOGIN");
+    expect(installer).toContain("CLI_PATH=\"$target\"");
+    expect(installer).toContain("run_login \"$CLI_PATH\"");
+    expect(installer).toContain("if \"$cli_path\" login; then");
+
+    expect(installer.indexOf("install_cli \"$RELEASE_URL\" \"$MANIFEST\"")).toBeLessThan(
+      installer.indexOf("run_login \"$CLI_PATH\"")
+    );
+    expect(installer.indexOf("run_login \"$CLI_PATH\"")).toBeLessThan(
+      installer.indexOf("run_skills \"$agents\"")
+    );
+  });
+
   it("delegates skill installation to Vercel skills for the chosen agents", () => {
     expect(installer).toContain(
       "ARTIFACTS_SKILL_SOURCE:-https://github.com/laxman-patel/agent-artifacts"

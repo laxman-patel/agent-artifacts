@@ -11,6 +11,7 @@ SKILL_NAME="${ARTIFACTS_SKILL_NAME:-agent-artifacts}"
 # bypass the interactive picker (handy for CI).
 SKILL_AGENTS="${ARTIFACTS_SKILL_AGENTS:-}"
 SKIP_SKILLS="${ARTIFACTS_SKIP_SKILLS:-0}"
+SKIP_LOGIN="${ARTIFACTS_SKIP_LOGIN:-0}"
 ALLOW_INSECURE="${ARTIFACTS_ALLOW_INSECURE:-0}"
 TTY_DEV="${ARTIFACTS_TTY:-/dev/tty}"
 
@@ -27,6 +28,7 @@ github-copilot|GitHub Copilot|$HOME/.copilot
 windsurf|Windsurf|$HOME/.codeium"
 
 CLI_STATUS=""
+LOGIN_STATUS=""
 SKILL_STATUS=""
 SELECTED=""
 
@@ -130,6 +132,16 @@ summary() {
   printf '\n'
   rule
   printf '  %sOK%s   %sCLI%s     %s\n' "$C_ACCENT" "$C_RESET" "$C_DIM" "$C_RESET" "$DISPLAY_DIR/artifacts"
+  case "$LOGIN_STATUS" in
+    ok)
+      printf '  %sOK%s   %sAUTH%s    signed in\n' "$C_ACCENT" "$C_RESET" "$C_DIM" "$C_RESET" ;;
+    token)
+      printf '  %sOK%s   %sAUTH%s    AGENT_ARTIFACTS_TOKEN\n' "$C_ACCENT" "$C_RESET" "$C_DIM" "$C_RESET" ;;
+    skipped)
+      printf '  %s--%s   %sAUTH%s    skipped\n' "$C_DIM" "$C_RESET" "$C_DIM" "$C_RESET" ;;
+    failed)
+      printf '  %s!!%s   %sAUTH%s    run artifacts login\n' "$C_ACCENT" "$C_RESET" "$C_DIM" "$C_RESET" ;;
+  esac
   case "$SKIP_SKILLS" in
     1|true|TRUE|yes|YES)
       printf '  %s--%s   %sSKILL%s   skipped\n' "$C_DIM" "$C_RESET" "$C_DIM" "$C_RESET" ;;
@@ -242,6 +254,7 @@ install_cli() {
 
   mkdir -p "$INSTALL_DIR"
   target="$INSTALL_DIR/artifacts"
+  CLI_PATH="$target"
   install_tmp="$target.tmp.$$"
   cp "$tmp_cli" "$install_tmp"
   chmod 755 "$install_tmp"
@@ -254,6 +267,46 @@ install_cli() {
     *":$INSTALL_DIR:"*) ;;
     *) warn "$INSTALL_DIR is not on PATH; add it before running artifacts" ;;
   esac
+}
+
+run_login() {
+  cli_path="$1"
+
+  case "$SKIP_LOGIN" in
+    1|true|TRUE|yes|YES)
+      LOGIN_STATUS="skipped"
+      status "Skipping browser login (ARTIFACTS_SKIP_LOGIN)"
+      return
+      ;;
+  esac
+
+  case "${AGENT_ARTIFACTS_NO_INPUT:-}" in
+    1|true|TRUE|yes|YES)
+      LOGIN_STATUS="skipped"
+      warn "Skipping browser login because AGENT_ARTIFACTS_NO_INPUT is set"
+      return
+      ;;
+  esac
+
+  if [ -n "${AGENT_ARTIFACTS_TOKEN:-}" ]; then
+    LOGIN_STATUS="token"
+    status "Skipping browser login because AGENT_ARTIFACTS_TOKEN is set"
+    return
+  fi
+
+  if ! is_interactive; then
+    LOGIN_STATUS="skipped"
+    warn "Skipping browser login in non-interactive shell; run $cli_path login"
+    return
+  fi
+
+  status "Starting browser login"
+  if "$cli_path" login; then
+    LOGIN_STATUS="ok"
+  else
+    LOGIN_STATUS="failed"
+    warn "browser login failed; run later with: $cli_path login"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -556,6 +609,7 @@ main() {
   printf '\n'
   rule
   install_cli "$RELEASE_URL" "$MANIFEST"
+  run_login "$CLI_PATH"
 
   case "$SKIP_SKILLS" in
     1|true|TRUE|yes|YES) ;;

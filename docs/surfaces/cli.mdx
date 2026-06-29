@@ -27,7 +27,7 @@ node apps/cli/dist/cli.js <command>
 ```
 </CodeGroup>
 
-The public installer requires Node.js 24+, downloads the Node-based CLI, and installs it to `~/.local/bin/artifacts`. It then shows an interactive picker so you choose which coding agents receive the `agent-artifacts` skill (via Vercel's `skills` CLI). Agents already installed on your machine are preselected; toggle entries by number, or press Enter to accept. Supported choices include Cursor, Claude Code, Codex, OpenCode, Copilot, Gemini CLI, and Windsurf.
+The public installer requires Node.js 24+. It shows an interactive picker so you choose which coding agents receive the `agent-artifacts` skill (via Vercel's `skills` CLI), then downloads the Node-based CLI, installs it to `~/.local/bin/artifacts`, immediately starts `artifacts login`, and installs the skill for the selected agents. Agents already installed on your machine are preselected; toggle entries by number, or press Enter to accept. Supported choices include Cursor, Claude Code, Codex, OpenCode, Copilot, Gemini CLI, and Windsurf.
 
 Skip the picker and target specific agents (use `'*'` for all):
 
@@ -39,6 +39,12 @@ Install only the CLI:
 
 ```bash
 ARTIFACTS_SKIP_SKILLS=1 curl -fsSL https://hostartifacts.dev/install.sh | sh
+```
+
+Skip browser login during install:
+
+```bash
+ARTIFACTS_SKIP_LOGIN=1 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
 ## Point it at your services

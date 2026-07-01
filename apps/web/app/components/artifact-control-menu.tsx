@@ -49,15 +49,15 @@ export function ArtifactControlMenu({
     <div
       ref={ref}
       data-open={open}
-      className="workbench dark fixed left-2 top-2 z-50 w-fit max-w-[calc(100vw-1rem)] opacity-[0.72] transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 data-[open=true]:opacity-100"
+      className="workbench dark fixed left-2 top-2 z-50 w-[min(360px,calc(100vw-1rem))] opacity-[0.72] transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 data-[open=true]:opacity-100"
     >
       {/* The pill doubles as the panel header: title and live metadata stay
           visible above the open panel, so the panel never repeats them. */}
       <div
-        className="overflow-hidden rounded-[0.4rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile)]/88 shadow-[0_8px_22px_oklch(0.08_0_0/0.42)] backdrop-blur-sm transition-[width,background-color,box-shadow] duration-200 data-[open=true]:w-[min(360px,calc(100vw-1rem))] data-[open=true]:bg-[var(--wb-tile-raised)] data-[open=true]:shadow-[0_16px_38px_oklch(0.08_0_0/0.52)]"
+        className="w-full overflow-hidden rounded-[0.4rem] border border-[var(--wb-line-strong)] bg-[var(--wb-tile)]/88 shadow-[0_8px_22px_oklch(0.08_0_0/0.42)] backdrop-blur-sm transition-[background-color,box-shadow] duration-200 data-[open=true]:bg-[var(--wb-tile-raised)] data-[open=true]:shadow-[0_16px_38px_oklch(0.08_0_0/0.52)]"
         data-open={open}
       >
-        <div className="flex max-w-full items-center p-0.5 pr-1">
+        <div className="flex min-w-0 items-center p-0.5 pr-1">
           <button
             type="button"
             onClick={() => {
@@ -82,8 +82,10 @@ export function ArtifactControlMenu({
             onClick={() => setOpen((value) => !value)}
             className="flex min-w-0 flex-1 items-center gap-2 rounded-[0.3rem] px-2 py-1 text-left transition-colors hover:bg-foreground/[0.05]"
           >
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[13px] font-medium leading-tight text-foreground/90">{title}</span>
+            <span className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <span className="truncate text-[13px] font-medium leading-tight text-foreground/90" title={title}>
+                {title}
+              </span>
               <span className="truncate font-mono text-[10px] leading-tight text-foreground/45">
                 {TYPE_LABEL[type]} · {versionLabel} · {visibilityLabel}
               </span>

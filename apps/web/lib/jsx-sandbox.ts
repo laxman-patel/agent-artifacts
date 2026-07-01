@@ -40,7 +40,7 @@ export function buildJsxSandboxHtml(source: string): string {
       "preact/compat": "https://esm.sh/preact@10/compat",
       "react": "https://esm.sh/preact@10/compat",
       "react-dom": "https://esm.sh/preact@10/compat",
-      "react-dom/client": "https://esm.sh/preact@10/compat"
+      "react-dom/client": "https://esm.sh/preact@10/compat/client"
     }
   }
   </script>
@@ -52,6 +52,7 @@ export function buildJsxSandboxHtml(source: string): string {
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
   <script type="module">
     import * as PreactCompat from "https://esm.sh/preact@10/compat";
+    import * as PreactClient from "https://esm.sh/preact@10/compat/client";
     const React = PreactCompat;
     const ReactDOM = PreactCompat;
     window.React = React;
@@ -72,7 +73,8 @@ export function buildJsxSandboxHtml(source: string): string {
         var module2 = { exports: {} };
         var fn2 = new Function("React", "ReactDOM", "module", "exports", "require", result.code);
         fn2(React, ReactDOM, module2, module2.exports, function (name) {
-          if (name === "react" || name === "react-dom" || name === "react-dom/client") return PreactCompat;
+          if (name === "react" || name === "react-dom") return PreactCompat;
+          if (name === "react-dom/client") return PreactClient;
           throw new Error("Module not allowed in sandbox: " + name);
         });
 
@@ -80,7 +82,7 @@ export function buildJsxSandboxHtml(source: string): string {
         if (!Component) throw new Error("No exported component found. Make sure your file has a default export.");
 
         var container = document.getElementById("root");
-        ReactDOM.createRoot(container).render(React.createElement(Component));
+        PreactClient.createRoot(container).render(React.createElement(Component));
       } catch (err) {
         document.getElementById("error-display").textContent = String(err && err.stack ? err.stack : err);
       }

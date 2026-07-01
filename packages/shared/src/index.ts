@@ -53,6 +53,23 @@ export interface Principal {
   artifactRoleGrants?: Record<string, ArtifactRole>;
 }
 
+/**
+ * The id of the human account a principal acts on behalf of.
+ *
+ * For a signed-in `user`, that's their own id. For non-human credentials
+ * (`api_key`, `agent`, `oauth_client`) it's the `ownerUserId` the credential
+ * was issued for. Anonymous/service principals have no owner and return
+ * `undefined`. Use this instead of reading `principal.id` directly so an API
+ * key can resolve and act as its owner (e.g. `whoami`, listing owned
+ * resources, inferring the owner when publishing).
+ */
+export function principalUserId(principal: Principal): string | undefined {
+  if (principal.type === "user") {
+    return principal.id;
+  }
+  return principal.ownerUserId;
+}
+
 export const slugSchema = z
   .string()
   .trim()

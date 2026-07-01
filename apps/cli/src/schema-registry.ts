@@ -45,9 +45,13 @@ export function buildAgentSchema() {
       env: ["AGENT_ARTIFACTS_TOKEN"],
       flags: ["--token", "--token-stdin"],
       header: "Authorization: Bearer <token>",
+      tokenTypes:
+        "Accepts a login bearer token, an agent access token, or an API key (aa_k_...). All three authenticate the same Bearer header.",
       nonInteractive: "Set AGENT_ARTIFACTS_TOKEN, use --token-stdin, or pass --token; browser login requires a TTY",
       persistence:
         "`artifacts login` saves a bearer token to a 0600 file at ~/.config/agent-artifacts/credentials.json and stays signed in across runs. Run `artifacts status` to check auth without a network call.",
+      identity:
+        "`artifacts whoami` resolves your account and username from any credential — including an API key — so you never need to know the owner out of band.",
       precedence: "--token flag > AGENT_ARTIFACTS_TOKEN env > saved login file"
     },
     baseUrl: {
@@ -81,7 +85,9 @@ export function buildAgentSchema() {
         owner: { flag: "--owner", required: true },
         projectSlug: { flag: "--project-slug", required: true },
         slug: { flag: "--slug", required: true }
-      }
+      },
+      ownerInference:
+        "`push` and `artifact create` infer the owner from your credential when --owner / ownerUsername is omitted; pass it only to publish into another account you can access."
     },
     list: {
       defaultLimit: 50,

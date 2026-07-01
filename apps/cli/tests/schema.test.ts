@@ -87,9 +87,12 @@ describe("CLI schema", () => {
     expect(push?.flags).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ flag: "--file <path>", required: true }),
-        expect.objectContaining({ flag: "--owner <username>", required: true }),
         expect.objectContaining({ flag: "--project-slug <slug>", required: true })
       ])
     );
+    // Owner is optional: when omitted the API infers it from the credential.
+    const owner = push?.flags?.find((f) => f.flag === "--owner <username>");
+    expect(owner).toBeDefined();
+    expect(owner?.required).toBeUndefined();
   });
 });

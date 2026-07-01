@@ -3,7 +3,7 @@ import type { ArtifactAccess } from "@agent-artifacts/access";
 import type { BillingService } from "@agent-artifacts/billing";
 import type { WorkspaceAccess } from "@agent-artifacts/workspace";
 import type { ArtifactAction, ArtifactType, Principal } from "@agent-artifacts/shared";
-import { buildWorkspaceProjectArtifactUrl } from "@agent-artifacts/shared";
+import { buildWorkspaceProjectArtifactUrl, principalUserId } from "@agent-artifacts/shared";
 import type { ArtifactStorage } from "@agent-artifacts/storage";
 import { createVersionSourceKey, createVersionThumbnailKey } from "@agent-artifacts/storage";
 import { createTwoFilesPatch } from "diff";
@@ -79,7 +79,8 @@ export class ArtifactService {
 
   async createArtifact(input: CreateArtifactInput, principal: Principal): Promise<ArtifactSummary> {
     const parsed = createArtifactInputSchema.parse(input);
-    const project = await this.requireProject(parsed.ownerUsername, parsed.projectSlug);
+    const ownerUsername = await this.resolveOwnerUsername(parsed.ownerUsername, principal);
+    const project = await this.requireProject(ownerUsername, parsed.projectSlug);
     await this.access.assertAuthorized({
       principal,
       action: "artifact.create",
@@ -89,7 +90,35 @@ export class ArtifactService {
         workspaceId: project.workspaceId
       }
     });
-    return this.createArtifactInProject({ project, namespaceSlug: parsed.ownerUsername, artifact: parsed, principal });
+    return this.createArtifactInProject({ project, namespaceSlug: ownerUsername, artifact: parsed, principal });
+  }
+
+  /**
+   * Resolve the owner namespace for a create. When the caller names one we use
+   * it; otherwise we infer it from the credential so an API key / agent token
+   * can publish to its own account without the caller supplying `--owner`.
+   */
+  private async resolveOwnerUsername(provided: string | undefined, principal: Principal): Promise<string> {
+    const trimmed = provided?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+
+    const userId = principalUserId(principal);
+    if (!userId) {
+      throw new ArtifactForbiddenError(
+        "Cannot determine the owner. Pass ownerUsername, or authenticate as a user or API key."
+      );
+    }
+
+    const namespace = await this.repository.getPersonalNamespaceByUserId(userId);
+    if (!namespace) {
+      throw new ArtifactForbiddenError(
+        "This account has not claimed a username yet. Set a username before publishing, or pass ownerUsername."
+      );
+    }
+
+    return namespace.username;
   }
 
   async createWorkspaceArtifact(
@@ -513,11 +542,12 @@ export class ArtifactService {
   }
 
   async listOwnedArtifacts(principal: Principal): Promise<ArtifactRecord[]> {
-    if (principal.type !== "user") {
-      throw new ArtifactForbiddenError("Only signed-in users can list owned artifacts.");
+    const userId = principalUserId(principal);
+    if (!userId) {
+      throw new ArtifactForbiddenError("Authentication is required to list artifacts.");
     }
 
-    return this.withThumbnailUrls(await this.repository.listArtifactsForOwner(principal.id));
+    return this.withThumbnailUrls(await this.repository.listArtifactsForOwner(userId));
   }
 
   async listArtifactsInProject(

@@ -458,6 +458,47 @@ describe("ArtifactService", () => {
     expect(new Set(owned.map((artifact) => artifact.slug))).toEqual(new Set(["a-one", "b-two"]));
   });
 
+  it("infers the owner from the credential when ownerUsername is omitted", async () => {
+    const { service } = createTestHarness();
+
+    const created = await service.createArtifact(
+      {
+        projectSlug: "default",
+        slug: "inferred",
+        type: "md",
+        title: "Inferred",
+        content: "# Inferred"
+      },
+      agentPrincipal
+    );
+
+    expect(created.ownerUsername).toBe("laxman");
+    expect(created.url).toBe("https://www.agents-artifacts/laxman/default/inferred");
+  });
+
+  it("lists owned artifacts for an API key / agent acting as its owner", async () => {
+    const { service } = createTestHarness();
+
+    await service.createArtifact(
+      { projectSlug: "default", slug: "by-agent", type: "md", title: "By agent", content: "# Hi" },
+      agentPrincipal
+    );
+
+    const owned = await service.listOwnedArtifacts(agentPrincipal);
+    expect(owned.map((artifact) => artifact.slug)).toEqual(["by-agent"]);
+  });
+
+  it("rejects owner inference for anonymous principals", async () => {
+    const { service } = createTestHarness();
+
+    await expect(
+      service.createArtifact(
+        { projectSlug: "default", slug: "anon", type: "md", title: "Anon", content: "# Anon" },
+        { type: "service", id: "anonymous-public-viewer", scopes: ["artifacts:read"] }
+      )
+    ).rejects.toBeInstanceOf(ArtifactForbiddenError);
+  });
+
   it("updates access flags and email viewers with auditing", async () => {
     const { repository, service } = createTestHarness();
 
@@ -635,6 +676,15 @@ class MemoryArtifactRepository implements ArtifactRepository {
 
   async getOwnerByUsername(username: string): Promise<{ userId: string; username: string } | undefined> {
     return this.owners.get(username.toLowerCase());
+  }
+
+  async getPersonalNamespaceByUserId(userId: string): Promise<{ username: string } | undefined> {
+    for (const owner of this.owners.values()) {
+      if (owner.userId === userId) {
+        return { username: owner.username };
+      }
+    }
+    return undefined;
   }
 
   async getProjectByOwnerSlug(

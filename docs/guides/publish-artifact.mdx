@@ -90,7 +90,7 @@ artifacts push \
 
 ### REST fields
 
-For `POST /api/artifacts`, these fields are **required**: `ownerUsername`, `projectSlug`, `slug`, `type`, `title`, `content`, and `access`. The `description` and `changelog` fields are optional.
+For `POST /api/artifacts`, these fields are **required**: `projectSlug`, `slug`, `type`, `title`, `content`, and `access`. `ownerUsername` is **optional** — when omitted, the API infers the owner from the authenticated credential (the signed-in user, or the account an API key / agent token was issued for). Pass it only to publish into another account you can access. The `description` and `changelog` fields are also optional.
 
 ### Publish into a workspace
 

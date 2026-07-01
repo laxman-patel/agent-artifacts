@@ -4,7 +4,7 @@ import type { BillingService } from "@agent-artifacts/billing";
 import type { Database } from "@agent-artifacts/db";
 import { projects, workspaceMembers, workspaces } from "@agent-artifacts/db";
 import type { Principal, WorkspaceKind, WorkspaceRole } from "@agent-artifacts/shared";
-import { ArtifactForbiddenError, buildWorkspaceProjectUrl, normalizeSlug, slugSchema } from "@agent-artifacts/shared";
+import { ArtifactForbiddenError, buildWorkspaceProjectUrl, normalizeSlug, principalUserId, slugSchema } from "@agent-artifacts/shared";
 import type { ArtifactAccess } from "@agent-artifacts/access";
 import { z } from "zod";
 
@@ -204,11 +204,12 @@ export class ProjectService {
   }
 
   async listOwnedProjects(principal: Principal): Promise<ProjectRecord[]> {
-    if (principal.type !== "user") {
-      throw new ArtifactForbiddenError("Only signed-in users can list workspace projects.");
+    const userId = principalUserId(principal);
+    if (!userId) {
+      throw new ArtifactForbiddenError("Authentication is required to list projects.");
     }
 
-    return this.repository.listProjectsForUserMemberships(principal.id);
+    return this.repository.listProjectsForUserMemberships(userId);
   }
 
   async listWorkspaceProjects(workspaceId: string, principal: Principal): Promise<ProjectRecord[]> {

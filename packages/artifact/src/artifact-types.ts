@@ -22,7 +22,10 @@ const artifactContentSchema = z
   );
 
 export const createArtifactInputSchema = z.object({
-  ownerUsername: z.string().min(1),
+  // Optional: when omitted, the API infers the owner from the authenticated
+  // credential (the signed-in user, or the account an API key / agent token was
+  // issued for). Callers that act for multiple owners can still pass it.
+  ownerUsername: z.string().min(1).optional(),
   projectSlug: z.string().min(1),
   slug: z.string().min(1),
   type: artifactTypeSchema,
@@ -91,6 +94,12 @@ export interface ArtifactSummary {
 }
 
 export interface ArtifactRepository {
+  /**
+   * The personal namespace (username) for a user id, used to resolve the owner
+   * when a caller publishes without naming one. A personal workspace's slug is
+   * the account's username.
+   */
+  getPersonalNamespaceByUserId(userId: string): Promise<{ username: string } | undefined>;
   getProjectByOwnerSlug(
     username: string,
     projectSlug: string

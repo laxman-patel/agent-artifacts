@@ -27,7 +27,7 @@ import { extractArtifactId, nextActionsForArtifact, nextActionsForArtifactList }
 import { parseIntFlag } from "../parse-int-flag.js";
 
 const SLUG_EXAMPLE = "artifacts artifact slug-availability --owner alice --project-slug default --slug readme";
-const PUSH_EXAMPLE = "artifacts push --owner alice --project-slug default --file ./report.md";
+const PUSH_EXAMPLE = "artifacts push --project-slug default --file ./report.md";
 const MAX_PUSH_SLUG_RETRIES = 100;
 
 function parseArtifactType(value: string): ArtifactFileType {
@@ -48,6 +48,11 @@ function readPushFilePath(options: Record<string, unknown>): string {
   });
 }
 
+function optionalOwner(options: Record<string, unknown>): string | undefined {
+  const owner = options.owner;
+  return typeof owner === "string" && owner.trim().length > 0 ? owner.trim() : undefined;
+}
+
 function preparePushBody(options: Record<string, unknown>) {
   const filePath = readPushFilePath(options);
   const content = readArtifactFile(filePath);
@@ -57,14 +62,12 @@ function preparePushBody(options: Record<string, unknown>) {
   const slug = typeof options.slug === "string" && options.slug.trim().length > 0
     ? options.slug.trim()
     : slugFromArtifactTitle(title);
+  const owner = optionalOwner(options);
 
   return {
-    ownerUsername: requireFlag(options, {
-      optionKey: "owner",
-      label: "username",
-      flag: "--owner",
-      example: PUSH_EXAMPLE
-    }),
+    // Omit ownerUsername when not supplied; the API infers it from the
+    // authenticated credential (see artifacts.createArtifact owner inference).
+    ...(owner ? { ownerUsername: owner } : {}),
     projectSlug: requireFlag(options, {
       optionKey: "projectSlug",
       label: "slug",
@@ -122,12 +125,37 @@ type RunPushClient = {
   post<T>(path: string, body?: unknown): Promise<T>;
 };
 
+type OwnerLookupClient = {
+  get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T>;
+};
+
+/**
+ * Owner used to look an artifact up by path. When the caller relied on server
+ * inference (no `--owner`), resolve it once via the identity endpoint so the
+ * `--ensure` conflict fallback still works.
+ */
+async function resolveOwnerForPath(client: OwnerLookupClient, provided: string | undefined): Promise<string> {
+  if (provided && provided.trim().length > 0) {
+    return provided.trim();
+  }
+  const me = await client.get<{ profile?: { username?: string } | null }>("/api/profile/me");
+  const username = me?.profile?.username;
+  if (!username) {
+    throw new CliError(
+      "forbidden",
+      "Could not determine your username to resolve the artifact path. Pass --owner or claim a username for your account.",
+      4
+    );
+  }
+  return username;
+}
+
 export const artifactPushCommand: CommandSpec = {
   name: "push",
   description: "Create an artifact from a local HTML, Markdown, or JSX file",
   options: [
     { flag: "--file <path>", description: "Local artifact file to publish", required: true },
-    OWNER_OPTION,
+    { flag: "--owner <username>", description: "Owner username (default: inferred from your credentials)" },
     PROJECT_SLUG_OPTION,
     { flag: "--slug <slug>", description: "Artifact slug (default: inferred from title or file name)" },
     { flag: "--title <title>", description: "Artifact title (default: inferred from Markdown heading or file name)" },
@@ -153,8 +181,9 @@ export const artifactPushCommand: CommandSpec = {
       return { data, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
     } catch (error) {
       if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+        const owner = await resolveOwnerForPath(client, parsed.ownerUsername);
         const existing = await client.get<Record<string, unknown>>(
-          `/api/by-path/${encodeURIComponent(parsed.ownerUsername)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+          `/api/by-path/${encodeURIComponent(owner)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
         );
         return {
           data: { ...existing, created: false },
@@ -216,8 +245,9 @@ export const artifactCreateCommand: CommandSpec = {
       return { data: { ...data, created: true }, nextActions: nextActionsForArtifact(extractArtifactId(data)) };
     } catch (error) {
       if (options.ensure === true && error instanceof CliError && error.kind === "conflict") {
+        const owner = await resolveOwnerForPath(client, parsed.ownerUsername);
         const existing = await client.get<Record<string, unknown>>(
-          `/api/by-path/${encodeURIComponent(parsed.ownerUsername)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
+          `/api/by-path/${encodeURIComponent(owner)}/${encodeURIComponent(parsed.projectSlug)}/${encodeURIComponent(parsed.slug)}`
         );
         return {
           data: { ...existing, created: false },

@@ -43,11 +43,20 @@ artifacts login
 artifacts whoami
 ```
 
-For CI or non-interactive agents, use a bearer token instead:
+For CI or non-interactive agents, authenticate with a token instead. An API key
+(`aa_k_...`), an agent access token, or a login bearer token all work in the same
+`Authorization: Bearer` header:
 
 ```bash
-export AGENT_ARTIFACTS_TOKEN="aa_live_..."
+export AGENT_ARTIFACTS_TOKEN="aa_k_..."   # API key or bearer token
 export AGENT_ARTIFACTS_NO_INPUT=1
+```
+
+Any of these credentials can resolve its own identity — you never need to know
+the owner username out of band:
+
+```bash
+artifacts whoami --format json   # data.profile.username is your owner
 ```
 
 ## Agent Workflow
@@ -58,9 +67,12 @@ Use schema discovery instead of parsing `--help`:
 artifacts schema --format json
 ```
 
-Publish a file:
+Publish a file. `--owner` is optional — when omitted it is inferred from your
+credentials, so an API key can publish to its own account directly:
 
 ```bash
+artifacts push --project-slug PROJECT --file ./report.md
+# publish into another account you can access:
 artifacts push --owner OWNER --project-slug PROJECT --file ./report.md
 ```
 

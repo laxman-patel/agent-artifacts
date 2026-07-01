@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { actsForOwner } from "@agent-artifacts/access";
 import { ProjectNotFoundError } from "@agent-artifacts/artifact";
-import { usernameSchema } from "@agent-artifacts/shared";
+import { ArtifactForbiddenError, principalUserId, usernameSchema } from "@agent-artifacts/shared";
 import { getArtifactService, getProfileService, getProjectService } from "../deps.js";
 import { handle } from "../http/handler.js";
 import {
@@ -14,12 +14,20 @@ import {
 import type { AppVariables } from "../deps.js";
 
 export function registerProfileRoutes(app: Hono<{ Variables: AppVariables }>) {
+  // Identity check. Works for any authenticated credential — a signed-in user,
+  // an API key, or an agent token — by resolving the account the credential
+  // acts for. This is the cheap "who am I / what's my username" lookup agents
+  // need before publishing, so it must not require a full user session.
   app.get("/api/profile/me", (c) =>
     handle(c, async () => {
-      const principal = await requireHumanPrincipal(c);
+      const principal = await requirePrincipal(c);
+      const userId = principalUserId(principal);
+      if (!userId) {
+        throw new ArtifactForbiddenError("Authentication is required.");
+      }
 
-      const profile = await getProfileService().getProfile(principal.id);
-      return profile;
+      const profile = await getProfileService().getProfile(userId);
+      return { ...profile, principalType: principal.type };
     })
   );
 

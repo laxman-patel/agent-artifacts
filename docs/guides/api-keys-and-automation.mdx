@@ -28,10 +28,13 @@ Provide the token through an environment variable, or pipe it in over stdin to k
 <CodeGroup>
 ```bash Environment variable
 export AGENT_ARTIFACTS_BASE_URL="https://api.example.com"
-export AGENT_ARTIFACTS_TOKEN="aa_live_..."
+export AGENT_ARTIFACTS_TOKEN="aa_k_..."
 
+# whoami resolves the key's owner — including your username — so you don't need
+# to know it out of band. --owner is optional on push; when omitted the API
+# infers it from the key.
 artifacts whoami --format json
-artifacts push --owner alice --project-slug default --file ./report.md --no-input
+artifacts push --project-slug default --file ./report.md --no-input
 ```
 
 ```bash stdin
@@ -50,7 +53,7 @@ Set `AGENT_ARTIFACTS_NO_INPUT=1` (or pass `--no-input`) so jobs fail fast instea
 
 ```bash
 export AGENT_ARTIFACTS_NO_INPUT=1
-export AGENT_ARTIFACTS_TOKEN="aa_live_..."
+export AGENT_ARTIFACTS_TOKEN="aa_k_..."
 
 artifacts artifact list --format json
 ```
@@ -96,9 +99,9 @@ export AGENT_ARTIFACTS_BASE_URL="https://api.example.com"
 export AGENT_ARTIFACTS_NO_INPUT=1
 
 bun run build:report
+# --owner is inferred from the key; pass it only to publish into another account.
 artifacts push \
   --token "$AGENT_ARTIFACTS_TOKEN" \
-  --owner "$ARTIFACTS_OWNER" \
   --project-slug ci \
   --file ./out/report.html \
   --title "CI report for $GITHUB_SHA" \

@@ -62,6 +62,32 @@ describe("artifact file push", () => {
     });
   });
 
+  it("omits ownerUsername so the API infers it when --owner is not given", async () => {
+    const filePath = writeTempFile("weekly-report.md", "# Weekly Report\n\nShipped.");
+    const post = vi.spyOn(ApiClient.prototype, "post").mockResolvedValue({
+      artifactId: "artifact_123",
+      url: "https://app.example.com/alice/default/weekly-report"
+    });
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    await runCli([
+      "node",
+      "artifacts",
+      "--token",
+      "test-token",
+      "push",
+      "--project-slug",
+      "default",
+      "--file",
+      filePath
+    ]);
+
+    expect(post).toHaveBeenCalledTimes(1);
+    const [, body] = post.mock.calls[0]!;
+    expect(body).not.toHaveProperty("ownerUsername");
+    expect(body).toMatchObject({ projectSlug: "default", slug: "weekly-report" });
+  });
+
   it("honors metadata and access overrides", async () => {
     const filePath = writeTempFile("dashboard.html", "<!doctype html><h1>Dashboard</h1>");
     const post = vi.spyOn(ApiClient.prototype, "post").mockResolvedValue({ artifactId: "artifact_456" });

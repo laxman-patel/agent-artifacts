@@ -11,6 +11,7 @@ import {
   WorkspaceForbiddenError,
   WorkspaceNotFoundError,
   WorkspaceSlugUnavailableError,
+  principalUserId,
   workspaceSlugSchema
 } from "@agent-artifacts/shared";
 import { z } from "zod";
@@ -191,11 +192,12 @@ export class WorkspaceService {
   }
 
   async listWorkspacesForUser(principal: Principal): Promise<Array<WorkspaceRecord & { role: WorkspaceRole }>> {
-    if (principal.type !== "user") {
-      throw new WorkspaceForbiddenError("Only signed-in users can list teams.");
+    const userId = principalUserId(principal);
+    if (!userId) {
+      throw new WorkspaceForbiddenError("Authentication is required to list teams.");
     }
 
-    return this.repository.listMembershipsForUser(principal.id);
+    return this.repository.listMembershipsForUser(userId);
   }
 
   async listMembers(workspaceId: string, principal: Principal): Promise<WorkspaceMemberRecord[]> {

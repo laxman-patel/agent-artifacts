@@ -21,6 +21,22 @@ export class DrizzleArtifactRepository implements ArtifactRepository {
     private readonly logger?: { info: (msg: string, fields?: Record<string, unknown>) => void }
   ) {}
 
+  async getPersonalNamespaceByUserId(userId: string): Promise<{ username: string } | undefined> {
+    const [row] = await this.db
+      .select({ slug: workspaces.slug })
+      .from(workspaces)
+      .where(
+        and(
+          eq(workspaces.personalUserId, userId),
+          eq(workspaces.kind, "personal"),
+          eq(workspaces.state, "active")
+        )
+      )
+      .limit(1);
+
+    return row ? { username: row.slug } : undefined;
+  }
+
   async getProjectByOwnerSlug(
     username: string,
     projectSlug: string

@@ -21,7 +21,7 @@ All paths are relative to the API origin unless noted. The **Auth** column shows
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| `GET` | `/api/profile/me` | User | Current profile |
+| `GET` | `/api/profile/me` | Principal | Current profile and username (works with a user session, API key, or agent token) |
 | `GET` | `/api/profile/username-availability/:username` | No | Check username |
 | `POST` | `/api/profile/username` | User | Claim username |
 | `GET` | `/api/profile/projects` | Principal | List projects visible through memberships |

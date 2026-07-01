@@ -49,7 +49,7 @@ export function ArtifactControlMenu({
     <div
       ref={ref}
       data-open={open}
-      className="workbench dark fixed left-2 top-2 z-50 w-[min(360px,calc(100vw-1rem))] opacity-[0.72] transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 data-[open=true]:opacity-100"
+      className="workbench dark fixed left-2 top-2 z-50 w-[min(300px,calc(100vw-1rem))] opacity-[0.72] transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 data-[open=true]:opacity-100"
     >
       {/* The pill doubles as the panel header: title and live metadata stay
           visible above the open panel, so the panel never repeats them. */}

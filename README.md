@@ -21,19 +21,9 @@
 </p>
 
 <p align="center">
-	<video
-		src="https://cdn.jsdelivr.net/gh/laxman-patel/agent-artifacts@main/artifacts-demo-video.mp4"
-		poster="https://cdn.jsdelivr.net/gh/laxman-patel/agent-artifacts@main/.github/assets/demo-poster.jpg"
-		controls
-		muted
-		autoplay
-		loop
-		playsinline
-		width="100%">
-		<a href="https://cdn.jsdelivr.net/gh/laxman-patel/agent-artifacts@main/artifacts-demo-video.mp4">
-			<img src="https://cdn.jsdelivr.net/gh/laxman-patel/agent-artifacts@main/.github/assets/demo-poster.jpg" alt="Artifacts demo preview" width="100%">
-		</a>
-	</video>
+	<a href="https://github.com/laxman-patel/agent-artifacts/releases/download/demo-assets/artifacts-demo-video.mp4">
+		<img src=".github/assets/artifacts-demo.gif" alt="Artifacts demo" width="100%">
+	</a>
 </p>
 
 Artifacts is the hosted home for agent output — HTML reports, Markdown specs, JSX prototypes, review surfaces, and throwaway tools. Every artifact gets a permanent URL, immutable version history, safe rendering, scoped access controls, and the same authorization model across the web app, REST API, MCP server, and CLI.

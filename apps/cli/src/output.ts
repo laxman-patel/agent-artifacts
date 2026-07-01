@@ -14,6 +14,7 @@ export interface CliFailure {
     message: string;
     details?: unknown;
   };
+  next_actions?: NextAction[];
 }
 
 export interface NextAction {
@@ -52,14 +53,15 @@ export function emitSuccess<T>(data: T, format: OutputFormat, nextActions?: Next
   process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
 }
 
-export function emitFailure(error: CliError, format: OutputFormat): never {
+export function emitFailure(error: CliError, format: OutputFormat, nextActions?: NextAction[]): never {
   const payload: CliFailure = {
     ok: false,
     error: {
       kind: error.kind,
       message: error.message,
       ...(error.details !== undefined ? { details: error.details } : {})
-    }
+    },
+    ...(nextActions?.length ? { next_actions: nextActions } : {})
   };
 
   if (format === "json") {
@@ -68,6 +70,9 @@ export function emitFailure(error: CliError, format: OutputFormat): never {
     process.stderr.write(`${error.kind}: ${error.message}\n`);
     if (error.details !== undefined) {
       process.stderr.write(`${JSON.stringify(error.details, null, 2)}\n`);
+    }
+    for (const action of nextActions ?? []) {
+      process.stderr.write(`  -> ${action.command}  (${action.description})\n`);
     }
   }
 

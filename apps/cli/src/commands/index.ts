@@ -16,6 +16,7 @@ import {
   artifactUrlPreviewCommand,
   artifactVersionsCommand
 } from "./artifact.js";
+import { doctorCommand } from "./doctor.js";
 import { healthCommand } from "./health.js";
 import { keysCreateCommand, keysListCommand, keysRevokeCommand } from "./keys.js";
 import { loginCommand } from "./login.js";
@@ -43,6 +44,7 @@ export const allCommands: CommandSpec[] = [
   logoutCommand,
   whoamiCommand,
   statusCommand,
+  doctorCommand,
   healthCommand,
   keysListCommand,
   keysCreateCommand,

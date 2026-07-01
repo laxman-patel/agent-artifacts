@@ -76,7 +76,16 @@ describe("agent-artifacts skill package", () => {
   it("has Vercel skills-compatible frontmatter and CLI guidance", () => {
     expect(skill).toContain("name: agent-artifacts");
     expect(skill).toContain("description:");
-    expect(skill).toContain("artifacts schema --format json");
+    expect(skill).toContain("artifacts schema");
     expect(skill).toContain("curl -fsSL https://hostartifacts.dev/install.sh | sh");
+  });
+
+  it("leads with the one-command publish path and diagnose-on-failure guidance", () => {
+    // The happy path is a single push, not a preflight checklist.
+    expect(skill).toContain("artifacts push --project-slug default --file ./report.md");
+    expect(skill).toContain("do not run preflight checks");
+    // Failures are triaged by stable exit code, and doctor is the single diagnostic.
+    expect(skill).toContain("artifacts doctor");
+    expect(skill).toMatch(/Branch on the exit code/i);
   });
 });

@@ -121,8 +121,43 @@ export function buildAgentSchema() {
         "69": "network"
       }
     },
-    discovery: "Run `artifacts schema` — do not parse --help.",
+    discovery: "Run `artifacts schema` — do not parse --help. `artifacts schema --compact` returns a slimmer catalog.",
     help: "Every subcommand --help ends with copy-pasteable Examples; all inputs are flags (no positional arguments).",
     commands: listCliCommandSpecs()
+  };
+}
+
+export interface CompactCliCommandSpec {
+  command: string;
+  description: string;
+  required?: string[];
+  example?: string;
+}
+
+/**
+ * A slimmer catalog for agents that only need to discover command names, their
+ * required flags, and a runnable example. Drops the full JSON body schemas that
+ * make the default schema large enough to tempt truncation.
+ */
+export function buildCompactAgentSchema() {
+  const full = buildAgentSchema();
+  return {
+    name: full.name,
+    version: full.version,
+    description: full.description,
+    discovery: "Run `artifacts schema` (full) for JSON body schemas and global flags.",
+    output: {
+      envelope: full.output.envelope,
+      exitCodes: full.output.exitCodes
+    },
+    commands: listCliCommandSpecs().map((spec): CompactCliCommandSpec => {
+      const required = spec.flags?.filter((f) => f.required).map((f) => f.flag) ?? [];
+      return {
+        command: spec.command,
+        description: spec.description,
+        ...(required.length ? { required } : {}),
+        ...(spec.example ? { example: spec.example } : {})
+      };
+    })
   };
 }

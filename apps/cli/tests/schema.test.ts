@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAgentSchema, listCliCommandSpecs } from "../src/schema-registry.js";
+import { buildAgentSchema, buildCompactAgentSchema, listCliCommandSpecs } from "../src/schema-registry.js";
 import { readCliVersion } from "../src/version.js";
 
 describe("CLI schema", () => {
@@ -20,6 +20,7 @@ describe("CLI schema", () => {
       "artifact url-preview",
       "artifact versions",
       "audit list",
+      "doctor",
       "health",
       "keys create",
       "keys list",
@@ -94,5 +95,21 @@ describe("CLI schema", () => {
     const owner = push?.flags?.find((f) => f.flag === "--owner <username>");
     expect(owner).toBeDefined();
     expect(owner?.required).toBeUndefined();
+  });
+
+  it("exposes a compact catalog that drops body schemas but keeps required flags", () => {
+    const compact = buildCompactAgentSchema();
+    expect(compact.name).toBe("artifacts");
+    expect(compact.version).toBe(readCliVersion());
+    expect(compact.output.exitCodes).toBeDefined();
+
+    const push = compact.commands.find((c) => c.command === "push");
+    expect(push?.required).toEqual(expect.arrayContaining(["--file <path>", "--project-slug <slug>"]));
+    expect(push?.example).toBe("artifacts push --project-slug default --file ./report.md");
+
+    // The compact form must be materially smaller than the full schema.
+    expect(JSON.stringify(compact).length).toBeLessThan(JSON.stringify(buildAgentSchema()).length);
+    // No embedded JSON Schema bodies.
+    expect(JSON.stringify(compact)).not.toContain("$schema");
   });
 });

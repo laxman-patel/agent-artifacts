@@ -127,7 +127,7 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
             title={meta.title}
           />
         )}
-        {meta.type === "jsx" && <JsxViewer content={content} />}
+        {meta.type === "jsx" && <JsxViewer artifactId={meta.id} version={viewedVersion} />}
         {meta.type === "md" && (
           <div className="wb-scroll absolute inset-0 overflow-y-auto">
             <div className="mx-auto w-full max-w-[820px] px-4 py-12 sm:py-16">

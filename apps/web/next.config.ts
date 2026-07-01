@@ -1,5 +1,6 @@
 import { withBetterStack } from "@logtail/next";
 import { loadMonorepoEnv } from "../../packages/config/src/load-monorepo-env";
+import { JSX_SANDBOX_CSP } from "./lib/jsx-sandbox";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
@@ -60,6 +61,15 @@ const nextConfig: NextConfig = {
       {
         source: "/((?!_next/static|_next/image|favicon.ico|docs(?:$|/)).*)",
         headers: securityHeaders
+      },
+      {
+        source: "/embed/jsx",
+        headers: [
+          { key: "content-security-policy", value: JSX_SANDBOX_CSP },
+          { key: "x-frame-options", value: "SAMEORIGIN" },
+          { key: "referrer-policy", value: "no-referrer" },
+          { key: "cache-control", value: "private, no-store" }
+        ]
       }
     ];
   },

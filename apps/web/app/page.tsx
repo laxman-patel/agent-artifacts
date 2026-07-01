@@ -334,9 +334,9 @@ function DemoPanel() {
 
       </div>
 
-      <div className="demo-video-screen relative aspect-video overflow-hidden bg-background">
+      <div className="demo-video-screen relative aspect-[1920/1040] overflow-hidden bg-background">
         <video
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 size-full object-cover"
           autoPlay
           muted
           loop

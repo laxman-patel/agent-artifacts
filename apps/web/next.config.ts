@@ -43,6 +43,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
+      "media-src 'self'",
       `connect-src 'self' ${betterStackConnectSrc()}`,
       "frame-src 'self'",
       "object-src 'none'",

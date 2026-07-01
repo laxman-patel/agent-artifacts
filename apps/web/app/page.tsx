@@ -329,26 +329,23 @@ function DemoPanel() {
         <span className="size-2 rounded-full bg-amber-400/70" />
         <span className="size-2 rounded-full bg-emerald-400/70" />
         <div className="ml-3 min-w-0 flex-1 truncate text-[12px] font-medium tracking-[-0.015em] text-foreground/48">
-          artifacts-demo-final-final-v2.mp4
+          artifacts-demo-video.mp4
         </div>
 
       </div>
 
-      <div className="demo-video-screen relative aspect-video overflow-hidden bg-background" aria-label="Demo video placeholder">
-        {/* Replace this placeholder with the recorded demo when ready:
-          <video className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline preload="metadata" poster="/demo/artifacts-demo-poster.jpg">
-            <source src="/demo/artifacts-demo.mp4" type="video/mp4" />
-          </video>
-          */}
-        <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-          <div className="max-w-md">
-            <img src={logoPath} alt="" className="mx-auto mb-4 size-5 opacity-45" />
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/35">Demo recording</div>
-            <p className="mt-2 text-sm leading-relaxed text-foreground/45">
-              Drop in the Claude Code run here: generate a PR report, publish the URL, then append v2.
-            </p>
-          </div>
-        </div>
+      <div className="demo-video-screen relative aspect-video overflow-hidden bg-background">
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label="Agent Artifacts demo recording"
+        >
+          <source src="/demo/artifacts-demo-video.mp4" type="video/mp4" />
+        </video>
       </div>
     </HoverLipCard>
   );

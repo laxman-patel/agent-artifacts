@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { CliAuthPanel } from "./cli-auth-panel";
+
 interface CliLoginAuthorizeProps {
   port: string;
   state: string;
@@ -39,7 +41,7 @@ export function CliLoginAuthorize({ port, state }: CliLoginAuthorizeProps) {
   }
 
   return (
-    <section className="relative z-10 w-full max-w-[24rem] border border-border bg-background p-6 shadow-[0_18px_48px_oklch(0.08_0_0_/_0.28)]">
+    <CliAuthPanel>
       <h1 className="!m-0 flex items-start gap-2 font-pixel !text-[1.9rem] !font-normal !leading-[1.05] tracking-[-0.045em] text-foreground/95">
         <span>Authorize CLI</span>
         <img src="/brand/artifacts-logo.svg" alt="" className="mt-1.5 size-3 shrink-0 opacity-90" />
@@ -70,6 +72,6 @@ export function CliLoginAuthorize({ port, state }: CliLoginAuthorizeProps) {
           ↗
         </span>
       </button>
-    </section>
+    </CliAuthPanel>
   );
 }

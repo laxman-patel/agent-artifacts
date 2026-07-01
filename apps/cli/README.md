@@ -10,7 +10,7 @@ Public installer:
 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
-The installer lets you choose which coding agents (Cursor, Claude Code, Codex, OpenCode, Copilot, Gemini CLI, Windsurf) should receive the `agent-artifacts` skill via Vercel's `skills` CLI. Agents you already have installed are preselected, and you can toggle the rest. It then installs the Node-based `artifacts` command into `~/.local/bin`, immediately starts `artifacts login`, and installs the skill for the selected agents.
+The installer installs the Node-based `artifacts` command into `~/.local/bin`, immediately triggers `artifacts login` (browser sign-in), then lets you choose which coding agents (Cursor, Claude Code, Codex, OpenCode, Copilot, Gemini CLI, Windsurf) should receive the `agent-artifacts` skill via Vercel's `skills` CLI. Agents you already have installed are preselected — enter numbers to toggle, `a` for all, `n` for none, or press Enter to confirm.
 
 Installer overrides:
 

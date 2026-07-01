@@ -22,16 +22,16 @@
 
 <p align="center">
 	<video
-		src="https://github.com/laxman-patel/agent-artifacts/releases/download/demo-assets/artifacts-demo-video.mp4"
-		poster=".github/assets/demo-poster.jpg"
+		src="https://cdn.jsdelivr.net/gh/laxman-patel/agent-artifacts@main/artifacts-demo-video.mp4"
+		poster="https://cdn.jsdelivr.net/gh/laxman-patel/agent-artifacts@main/.github/assets/demo-poster.jpg"
 		controls
 		muted
 		autoplay
 		loop
 		playsinline
 		width="100%">
-		<a href="https://github.com/laxman-patel/agent-artifacts/releases/download/demo-assets/artifacts-demo-video.mp4">
-			<img src=".github/assets/demo-poster.jpg" alt="Artifacts demo preview" width="100%">
+		<a href="https://cdn.jsdelivr.net/gh/laxman-patel/agent-artifacts@main/artifacts-demo-video.mp4">
+			<img src="https://cdn.jsdelivr.net/gh/laxman-patel/agent-artifacts@main/.github/assets/demo-poster.jpg" alt="Artifacts demo preview" width="100%">
 		</a>
 	</video>
 </p>

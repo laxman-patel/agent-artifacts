@@ -1,126 +1,231 @@
-# Agent Artifacts
+<p align="center">
+	<img width="150" height="150" src="./artifacts-icon.svg" alt="Artifacts logo">
+</p>
 
-Versioned, access-controlled artifact hosting for HTML, Markdown, and JSX (Preact) outputs created by humans or agents.
+<h1 align="center">Artifacts</h1>
 
-## Implementation Parts
+<p align="center">
+	Hosted, versioned, access-controlled URLs for everything your agents produce. Open source, agent-native, and built for teams that want durable output — not chat attachments.
+</p>
 
-1. Foundation: monorepo, type system, database schema, auth/policy/storage foundations, API and web shells.
-2. Artifact core: create/update/read services, immutable versions, object storage writes, audit events.
-3. Web experience: dashboard, artifact viewer, history, diffs, access settings, Google sign-in flows.
-4. MCP experience: MCP server, tool schemas, agent/API-key auth, shared authorization checks.
-5. CLI: `artifacts` command for agents — REST API wrapper, JSON output, `artifacts schema` introspection.
-6. Renderers and hardening: Markdown, HTML, JSX (Preact) rendering, collaboration controls, security tests, observability.
+<p align="center">
+	<a href="https://hostartifacts.dev">Website</a>
+	 |
+	<a href="https://hostartifacts.dev/install.sh">CLI</a>
+	 |
+	<a href="https://docs.hostartifacts.dev">Docs</a>
+	 |
+	<a href="https://hostartifacts.dev/pricing">Pricing</a>
+	 |
+	<a href="https://github.com/laxman-patel/agent-artifacts">GitHub</a>
+</p>
 
-## CLI (for agents)
+<p align="center">
+	<video src="./apps/web/public/demo/artifacts-demo-video.mp4" width="100%" controls></video>
+</p>
 
-The `artifacts` CLI is the recommended way for AI agents to use the platform. It wraps the REST API with JSON-first output and a machine-readable `artifacts schema` command.
+Artifacts is the hosted home for agent output — HTML reports, Markdown specs, JSX prototypes, review surfaces, and throwaway tools. Every artifact gets a permanent URL, immutable version history, safe rendering, scoped access controls, and the same authorization model across the web app, REST API, MCP server, and CLI.
 
-Public install:
+Use Artifacts for product demos, bug reports, onboarding docs, research synthesis, design explorations, PR reviews, async standups, client updates, and any moment where a shareable link beats another file in Downloads.
+
+## Why Artifacts
+
+- **Publish once, link forever.** Every artifact gets a stable URL at `hostartifacts.dev/{workspace}/{project}/{artifact}` — no temp paths, no re-uploads, no attachments lost in a chat log.
+- **Immutable version history.** Each update appends a new version. Diff any two, restore an earlier one, or fork without losing history.
+- **Safe rendering by default.** HTML runs in a sandbox, Markdown is sanitized, and JSX executes on a Preact-compatible runtime — built for untrusted agent output.
+- **Access control that sticks.** Public, private, email allowlist, or scoped share links. View and edit permissions are modeled independently; the URL stays the same.
+- **Three equal surfaces.** Humans and agents use the same model through the web UI, REST API, and MCP server — no shadow APIs or permission drift.
+- **Agent-ready CLI.** One command publishes a file and returns a hosted URL. JSON output, stable exit codes, and `artifacts schema` for machine-readable discovery.
+- **Team workspaces.** Move artifacts from a personal workspace into a team when shared context outgrows a single owner.
+- **Own your deployment.** Run the full stack yourself with Docker, Railway, or your own infrastructure while keeping Neon Postgres and S3-compatible storage external.
+
+## Artifact Types
+
+| Type | Best for | How it renders |
+| --- | --- | --- |
+| `html` | Reports, dashboards, mockups, interactive explainers | Sandboxed HTML with browser isolation |
+| `md` | Specs, notes, research writeups, PR summaries | Sanitized, GitHub-flavored Markdown |
+| `jsx` | Prototypes, interactive tools, UI explorations | Preact-compatible runtime with `react` aliased to `preact/compat` |
+
+## Surfaces
+
+Artifacts exposes the same authorization and artifact model everywhere agents and humans interact with the platform.
+
+| Surface | Best for | Entry point |
+| --- | --- | --- |
+| Web app | Viewing, sharing, history, diffs, access settings | [hostartifacts.dev](https://hostartifacts.dev) |
+| CLI | Agent automation, CI, local workflows | [hostartifacts.dev/install.sh](https://hostartifacts.dev/install.sh) |
+| REST API | Custom integrations and server-side automation | `/api/*` on the public web origin |
+| MCP server | Cursor, Claude Code, and other MCP clients | `/mcp` with OAuth discovery on the web origin |
+
+## Get Started
+
+For most users, the fastest path is:
+
+1. Install the CLI:
 
 ```bash
 curl -fsSL https://hostartifacts.dev/install.sh | sh
 ```
 
-This requires Node.js 24+, installs the Node-based CLI, and then lets you choose which local coding agents receive the `agent-artifacts` skill through Vercel's `skills` CLI.
-
-Local development install:
+2. Sign in from your machine:
 
 ```bash
-bun run cli:build
-bun run cli:install     # once: `artifacts` on PATH via ~/.local/bin
-export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
-
 artifacts login
-artifacts schema
-artifacts push --owner alice --project-slug default --file ./report.md
-artifacts artifact list
 ```
 
-Without installing: `node apps/cli/dist/cli.js <command>` from the repo root after `bun run cli:build`.
+3. Publish your first artifact:
 
-See [apps/cli/README.md](apps/cli/README.md).
+```bash
+artifacts push --project-slug default --file ./report.md
+```
 
-## MCP clients
+4. Open the hosted URL returned in the JSON response.
+5. Update anytime — each push creates a new immutable version.
+
+The full product docs live at [docs.hostartifacts.dev](https://docs.hostartifacts.dev).
+
+## MCP Clients
 
 The API exposes an MCP server at `/mcp` and OAuth discovery metadata on the public web origin.
 
-For local development:
-
-```bash
-bun install
-bun run db:migrate
-bun run dev
-```
-
-Then configure MCP clients with:
+For local development, configure MCP clients with:
 
 - Server URL: `http://localhost:3000/mcp`
 - Protected resource metadata: `http://localhost:3000/.well-known/oauth-protected-resource`
 - Authorization server metadata: `http://localhost:3000/.well-known/oauth-authorization-server`
 
-Standard clients should dynamically register, complete browser consent, exchange the authorization code for a token, then call tools such as `get_current_principal`.
+Standard clients dynamically register, complete browser consent, exchange the authorization code for a token, then call tools such as `get_current_principal`.
 
-## Development
+## Deployment
 
-Requires [Bun](https://bun.sh) for package management and Node.js 24+ for running apps.
+Artifacts runs as a Bun + Turborepo monorepo with a public Next.js web service and a private Hono API. Production uses external Neon Postgres and S3-compatible object storage (Cloudflare R2 by default).
+
+Recommended shape on [Railway](https://railway.com):
+
+| Service | Visibility | Purpose |
+| --- | --- | --- |
+| `web` | Public | Next.js app, API gateway, `/mcp`, OAuth, CLI target |
+| `api` | Private | Hono API, billing cron, background jobs |
+
+Canonical production origin: `https://hostartifacts.dev`. Docs live at `https://docs.hostartifacts.dev`.
+
+For production, configure public URLs and secrets before exposing the deployment:
+
+```bash
+PUBLIC_APP_URL=https://hostartifacts.dev
+BETTER_AUTH_URL=https://hostartifacts.dev
+INTERNAL_API_URL=<private-api-url>
+```
+
+See [RAILWAY_DEPLOYMENT_PLAN.md](RAILWAY_DEPLOYMENT_PLAN.md) for domain setup, env sync, Google OAuth, billing cron, and production hardening.
+
+## Local Development
+
+Artifacts is a Turborepo monorepo with Bun, Next.js, Hono, Drizzle, PostgreSQL, S3-compatible storage, Tailwind CSS, and the MCP TypeScript SDK.
+
+Requirements:
+
+- Bun (matches the repo package manager)
+- Node.js 24 or newer
+- PostgreSQL
+- S3-compatible storage
+- Google OAuth credentials for interactive login
+
+Install and set up the repo:
 
 ```bash
 bun install
-bun run typecheck
+cp .env.example .env
+bun run db:migrate
 bun run dev
 ```
-
-Run the database migrations (`bun run db:migrate`) when bootstrapping a new environment.
 
 Copy `.env.example` to `.env` and align:
 
 - `BETTER_AUTH_URL` and `PUBLIC_APP_URL` must match the browser-visible origin used for OAuth redirects (default `http://localhost:3000`).
 - `INTERNAL_API_URL` should point at the Hono API (`http://127.0.0.1:3001` locally). Next.js rewrites `/api/*` there so cookies stay scoped to the web origin.
 
-During development you typically run both apps via Turbo (`bun run dev`). Optional Playwright smoke specs live in `apps/web/e2e`; start the dev servers first, install browsers once via `bunx playwright install`, then run `bun run --filter @agent-artifacts/web test:e2e`.
+Common commands:
+
+| Command | Purpose |
+| --- | --- |
+| `bun run dev` | Start the web and API apps through Turbo |
+| `bun run dev:env-file` | Start dev using `.env` instead of Infisical |
+| `bun run build` | Build the workspace |
+| `bun run typecheck` | Run TypeScript project references |
+| `bun run lint` | Run lint across packages |
+| `bun run test` | Run package tests |
+| `bun run cli:build` | Build the `artifacts` CLI |
+| `bun run cli:install` | Install `artifacts` to `~/.local/bin` |
+| `bun run docs:dev` | Start Mintlify docs locally on port 3002 |
+
+Database commands:
+
+| Command | Purpose |
+| --- | --- |
+| `bun run db:generate` | Generate Drizzle migrations |
+| `bun run db:migrate` | Apply migrations |
+
+Local CLI usage:
+
+```bash
+bun run cli:build
+bun run cli:install
+export AGENT_ARTIFACTS_BASE_URL="http://127.0.0.1:3001"
+
+artifacts login
+artifacts schema
+artifacts push --project-slug default --file ./report.md
+artifacts artifact list
+```
+
+Optional Playwright smoke specs live in `apps/web/e2e`. Start the dev servers first, install browsers once via `bunx playwright install`, then run `bun run --filter @agent-artifacts/web test:e2e`.
+
+See [apps/cli/README.md](apps/cli/README.md) for CLI details.
+
+## Repository Map
+
+| Path | What lives there |
+| --- | --- |
+| `apps/web` | Next.js web app for marketing, dashboard, artifact viewer, sharing, and auth |
+| `apps/api` | Hono API, MCP routes, billing cron, rate limits, and audit logging |
+| `apps/cli` | `artifacts` CLI for agents — REST wrapper, JSON output, schema introspection |
+| `packages/artifact` | Artifact services, versioning, share links, and repositories |
+| `packages/auth` | API keys, agent auth, and credential services |
+| `packages/billing` | Usage metering and Dodo Payments integration |
+| `packages/db` | Drizzle schema, migrations, and database client |
+| `packages/mcp` | MCP tool definitions and handlers |
+| `packages/policy` | Authorization policy layer shared across surfaces |
+| `packages/storage` | S3-compatible object storage access |
+| `packages/workspace` | Workspaces, memberships, invitations, and audit events |
+| `packages/access` | Role mapping and access evaluation |
+| `packages/config` | Environment loading and validation |
+| `packages/shared` | Shared utilities |
+| `docs` | Mintlify product documentation |
+| `scripts` | CLI install, env sync, and maintenance tooling |
+| `skills/agent-artifacts` | Cursor skill for agent workflows |
+
+The web app proxies `/api/*`, `/mcp`, and OAuth metadata to the private API so browser cookies stay scoped to the public origin.
 
 ## Observability
 
-Operational logs ship to [Better Stack](https://betterstack.com/) when source tokens are configured. Without them, both apps still boot and log to stdout (API) or the console (`@logtail/next` fallback).
-
-### Environment variables
+Operational logs ship to [Better Stack](https://betterstack.com/) when source tokens are configured. Without them, both apps still boot and log to stdout.
 
 | Variable | Used by | Purpose |
 | --- | --- | --- |
-| `BETTER_STACK_SOURCE_TOKEN` | API | Server-side API logs (`@logtail/node`) |
-| `BETTER_STACK_INGESTING_URL` | API | API log ingest host (https URL) |
-| `BETTER_STACK_WEB_SOURCE_TOKEN` | Web (server) | Next.js server-side logs; mapped to `BETTER_STACK_SOURCE_TOKEN` at build/runtime |
+| `BETTER_STACK_SOURCE_TOKEN` | API | Server-side API logs |
+| `BETTER_STACK_WEB_SOURCE_TOKEN` | Web (server) | Next.js server-side logs |
 | `NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN` | Web (browser) | Browser logs via `/_betterstack` proxy |
-| `NEXT_PUBLIC_BETTER_STACK_INGESTING_URL` | Web (browser) | Browser ingest host; also drives CSP `connect-src` |
-| `LOG_IP_SALT` | API | Salt for hashing client IPs when `TRUST_PROXY=true` |
-| `ENABLE_BILLING_CRON` | API | Set to `true` to run daily storage metering inside the API process |
-| `BILLING_CRON_INTERVAL_MS` | API | Optional scheduler interval override for dev/test |
-| `BILLING_CRON_SECRET` | API | Bearer token for the manual/internal billing snapshot endpoint |
-| `BETTER_STACK_HEARTBEAT_URL_*` | (future) | Stub for cron/heartbeat monitors |
+| `ENABLE_BILLING_CRON` | API | Daily storage metering for paid accounts |
+| `BILLING_CRON_SECRET` | API | Bearer token for manual billing snapshot endpoint |
 
-In production, the API emits a single boot warning if `BETTER_STACK_SOURCE_TOKEN` / `BETTER_STACK_INGESTING_URL` are missing. Tests force-disable Better Stack transport.
+Set `ENABLE_BILLING_CRON=true` on the **API service only — never the web service**. A Postgres advisory lock makes it safe when the API runs multiple replicas.
 
-### What gets logged
+## Contributing
 
-- **API** — structured request logs (level by status), rate-limit and CSRF rejections, unhandled errors, and a mirror `audit_event` line for every DB audit insert (metadata excluded).
-- **Web** — Web Vitals (automatic), client error boundary, OAuth login errors (`?error=`), and failed internal API fetches from server components.
-- **Correlation** — the web app forwards `x-request-id` to the API on server-side fetches.
+Artifacts is built in public. Issues, pull requests, design feedback, bug reports, and docs fixes are welcome.
 
-CI builds set `productionBrowserSourceMaps=true` when `CI=true` so production stack traces can be symbolicated in Better Stack.
-
-### Uptime monitors (create manually in Better Stack)
-
-| Monitor | URL | Type | Interval | Why |
-| --- | --- | --- | --- | --- |
-| API health | `<api-host>/health` | HTTP keyword `"ok":true` | 60s | Container alive |
-| Web root | `<public-app-url>/` | HTTP 200 | 60s | Frontend reachable |
-| OAuth callback | `<public-app-url>/api/auth/callback/google` | HTTP keyword (must not 500) | 5m | OAuth misconfig alert |
-| SSL cert | apex domain | SSL expiry | daily | Cert rotation |
-
-### Billing Scheduler
-
-Set `ENABLE_BILLING_CRON=true` to record daily `artifact.storage_gb_days` usage events for active paid accounts. Enable it on the **API service only — never the web service**. A Postgres advisory lock makes it safe when the API runs multiple replicas (only one process wins each run), so you can leave it enabled on the API even when scaling out. The job calls billing services directly; `POST /api/internal/billing/storage-snapshots` remains available for external schedulers when authenticated with `BILLING_CRON_SECRET`.
-
-### Better Stack MCP server
-
-Install the remote Better Stack MCP server in your MCP client for querying logs and incidents from an agent. See [Better Stack MCP integration docs](https://betterstack.com/docs/getting-started/integrations/mcp/).
+- Open an issue or pull request on [GitHub](https://github.com/laxman-patel/agent-artifacts).
+- Read the docs at [docs.hostartifacts.dev](https://docs.hostartifacts.dev) before changing user-facing behavior.
+- See [PLAN.md](PLAN.md) and [ABOUT.md](ABOUT.md) for product context and goals.

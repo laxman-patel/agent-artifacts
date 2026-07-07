@@ -73,6 +73,15 @@ const nextConfig: NextConfig = {
       }
     ];
   },
+  async redirects() {
+    return [
+      { source: "/getting-started/:path*", destination: "/docs/getting-started/:path*", permanent: false },
+      { source: "/concepts/:path*", destination: "/docs/concepts/:path*", permanent: false },
+      { source: "/guides/:path*", destination: "/docs/guides/:path*", permanent: false },
+      { source: "/surfaces/:path*", destination: "/docs/surfaces/:path*", permanent: false },
+      { source: "/reference/:path*", destination: "/docs/reference/:path*", permanent: false }
+    ];
+  },
   async rewrites() {
     return {
       beforeFiles: [
@@ -106,11 +115,11 @@ const nextConfig: NextConfig = {
         },
         {
           source: "/docs",
-          destination: `${mintlifyDocsOrigin}/docs`
+          destination: mintlifyDocsOrigin
         },
         {
           source: "/docs/:path*",
-          destination: `${mintlifyDocsOrigin}/docs/:path*`
+          destination: `${mintlifyDocsOrigin}/:path*`
         },
         {
           source: "/.well-known/oauth-protected-resource",

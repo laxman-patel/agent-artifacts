@@ -106,11 +106,11 @@ const nextConfig: NextConfig = {
         },
         {
           source: "/docs",
-          destination: mintlifyDocsOrigin
+          destination: `${mintlifyDocsOrigin}/docs`
         },
         {
           source: "/docs/:path*",
-          destination: `${mintlifyDocsOrigin}/:path*`
+          destination: `${mintlifyDocsOrigin}/docs/:path*`
         },
         {
           source: "/.well-known/oauth-protected-resource",

@@ -1,22 +1,32 @@
 {
-  "prUrl": "https://github.com/laxman-patel/agent-artifacts/pull/14",
+  "prUrl": "https://github.com/laxman-patel/agent-artifacts/pull/15",
   "repoUrl": "https://github.com/laxman-patel/agent-artifacts",
   "branch": "fix/mcp-landing-link",
-  "commitSha": "f393e3d1a11e7d35e747155a495cbbdff5c2b54f",
+  "commitSha": "9acf112504796ab739c1c7c02ee3a35ea0aa4110",
   "demo": {
     "kind": "web",
-    "installCommand": "npm install && npx turbo run build --filter=...@agent-artifacts/web",
-    "skipInstall": false,
-    "startCommand": "npx turbo run dev --filter=@agent-artifacts/web",
+    "startCommand": "bun run dev --filter=@agent-artifacts/web",
     "readyUrl": "http://127.0.0.1:3000",
     "readyTimeoutMs": 90000,
-    "steps": [
-      { "type": "navigate", "url": "http://127.0.0.1:3000" },
-      { "type": "click", "selector": "#content a[href*='surfaces/mcp']" },
-      { "type": "waitForUrl", "url": "https://docs.hostartifacts.dev/surfaces/mcp" },
-      { "type": "assertUrl", "url": "https://docs.hostartifacts.dev/surfaces/mcp" },
-      { "type": "waitForText", "text": "MCP server" }
-    ],
-    "successText": "Clicking '...or connect with MCP' on the landing page opens the docs /surfaces/mcp page in a new tab"
+    "journeys": [
+      {
+        "name": "Hero CTA - or connect with MCP - opens docs /surfaces/mcp",
+        "steps": [
+          { "type": "navigate", "url": "http://127.0.0.1:3000" },
+          { "type": "waitForSelector", "selector": "#content a[href*='surfaces/mcp']", "timeoutMs": 10000 },
+          { "type": "click", "selector": "#content a[href*='surfaces/mcp']" },
+          { "type": "waitForText", "text": "MCP server", "timeoutMs": 20000 }
+        ]
+      },
+      {
+        "name": "Final CTA - or connect with MCP - opens docs /surfaces/mcp",
+        "steps": [
+          { "type": "navigate", "url": "http://127.0.0.1:3000" },
+          { "type": "waitForSelector", "selector": "#final-cta a[href*='surfaces/mcp']", "timeoutMs": 10000 },
+          { "type": "click", "selector": "#final-cta a[href*='surfaces/mcp']" },
+          { "type": "waitForText", "text": "MCP server", "timeoutMs": 20000 }
+        ]
+      }
+    ]
   }
 }

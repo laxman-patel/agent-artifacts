@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const setupCommand = "curl -fsSL https://hostartifacts.dev/install.sh | sh";
 const logoPath = "/brand/artifacts-logo.svg";
 const docsHref = docsUrl();
-const mcpDocsHref = `${docsUrl()}/surfaces/mcp`;
+const mcpDocsHref = `${docsHref}/surfaces/mcp`;
 
 type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 

@@ -2,7 +2,7 @@
   "prUrl": "https://github.com/laxman-patel/agent-artifacts/pull/13",
   "repoUrl": "https://github.com/laxman-patel/agent-artifacts",
   "branch": "fix/mcp-link-target",
-  "commitSha": "33a2647a4cb9a02547c264a1fbb0199ee195dfe2",
+  "commitSha": "4b378c80e888cd0fb78567b371e071374d029c41",
   "demo": {
     "kind": "terminal",
     "command": "node .tags/verify-fix.mjs",

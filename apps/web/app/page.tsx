@@ -372,7 +372,7 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-col items-start gap-3">
               <CommandCopyButton command={setupCommand} />
-              <Link href="/cli/login" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
+              <Link href={`${docsHref}/surfaces/mcp`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
                 ...or connect with MCP <span aria-hidden>↗</span>
               </Link>
             </div>
@@ -409,7 +409,7 @@ export default function HomePage() {
       <SectionShell id="features">
         <div className="mb-8 max-w-lg space-y-2 lg:mb-10">
           <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">Features</h2>
-          <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
+          <p className="text-sm leading-relaxed text-foreground.45 sm:text-base">
             Everything an artifact needs once the model is done writing it.
           </p>
         </div>
@@ -449,7 +449,7 @@ export default function HomePage() {
                   </div>
                 </HoverLipCard>
                 <h3 className="text-sm font-semibold text-foreground/90">{kind.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/45">{kind.description}</p>
+                <p className="mt-2 text-sm leading-relaxed text-foreground.45">{kind.description}</p>
               </article>
             );
           })}
@@ -460,7 +460,7 @@ export default function HomePage() {
       <SectionShell id="quotes">
         <div className="mb-8 max-w-xl space-y-2 lg:mb-10">
           <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">The shift to HTML artifacts</h2>
-          <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
+          <p className="text-sm leading-relaxed text-foreground.45 sm:text-base">
             Chat text is giving way to outputs you can
             <br />
             open, inspect, and share.
@@ -504,7 +504,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col items-center gap-3">
             <CommandCopyButton command={setupCommand} />
-            <Link href="/cli/login" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
+            <Link href={`${docsHref}/surfaces/mcp`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-foreground.45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
               ...or connect with MCP <span aria-hidden>↗</span>
             </Link>
           </div>

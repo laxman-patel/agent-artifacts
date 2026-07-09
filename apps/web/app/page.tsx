@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const setupCommand = "curl -fsSL https://hostartifacts.dev/install.sh | sh";
 const logoPath = "/brand/artifacts-logo.svg";
 const docsHref = docsUrl();
+const mcpDocsHref = `${docsUrl()}/surfaces/mcp`;
 
 type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 
@@ -372,7 +373,7 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-col items-start gap-3">
               <CommandCopyButton command={setupCommand} />
-              <Link href="/cli/login" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
+              <Link href={mcpDocsHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
                 ...or connect with MCP <span aria-hidden>↗</span>
               </Link>
             </div>
@@ -504,7 +505,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col items-center gap-3">
             <CommandCopyButton command={setupCommand} />
-            <Link href="/cli/login" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
+            <Link href={mcpDocsHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
               ...or connect with MCP <span aria-hidden>↗</span>
             </Link>
           </div>

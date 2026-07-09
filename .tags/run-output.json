@@ -2,7 +2,7 @@
   "prUrl": "https://github.com/laxman-patel/agent-artifacts/pull/14",
   "repoUrl": "https://github.com/laxman-patel/agent-artifacts",
   "branch": "fix/mcp-landing-link",
-  "commitSha": "26b19562bf769dc7bbea415ae58f82332f4f73de",
+  "commitSha": "f393e3d1a11e7d35e747155a495cbbdff5c2b54f",
   "demo": {
     "kind": "web",
     "installCommand": "npm install && npx turbo run build --filter=...@agent-artifacts/web",

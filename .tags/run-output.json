@@ -1,0 +1,32 @@
+{
+  "prUrl": "https://github.com/laxman-patel/agent-artifacts/pull/12",
+  "repoUrl": "https://github.com/laxman-patel/agent-artifacts",
+  "branch": "fix/mcp-landing-links",
+  "commitSha": "128d6c400bab6f2ae5f6d471d50f4f545c791c22",
+  "demo": {
+    "kind": "web",
+    "repoSubdir": "apps/web",
+    "installCommand": "cd /home/user/repo && bun install",
+    "startCommand": "cd /home/user/repo/apps/web && bunx next dev --port 3000",
+    "readyUrl": "http://127.0.0.1:3000",
+    "steps": [
+      {
+        "type": "navigate",
+        "url": "http://127.0.0.1:3000"
+      },
+      {
+        "type": "waitForText",
+        "text": "Give your agent"
+      },
+      {
+        "type": "click",
+        "selector": "a:has-text('...or connect with MCP')"
+      },
+      {
+        "type": "waitForText",
+        "text": "MCP"
+      }
+    ],
+    "successText": "Both '...or connect with MCP' links now open docs /surfaces/mcp in a new tab instead of /cli/login"
+  }
+}

@@ -84,7 +84,7 @@ const artifactKinds: {
   },
   {
     variant: "report",
-    tonT: "amber",
+    tone: "amber",
     title: "Research reports",
     description: "Synthesize Slack, Git history, docs, and issues into a page people will actually read."
   },
@@ -241,15 +241,15 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
   if (variant === "review") {
     return (
       <div className="artifact-preview-review grid grid-cols-[0.8fr_1.2fr] gap-2">
-        <div className="artifact-accent-border space-y2 rounded-sm border bg-background/70 p-2">
+        <div className="artifact-accent-border space-y-2 rounded-sm border bg-background/70 p-2">
           <div className="artifact-risk-line h-1.5 rounded-full bg-red-400/45" />
           <div className="artifact-risk-line h-1.5 w-5/6 rounded-full bg-amber-400/35" />
           <div className="artifact-risk-line h-1.5 w-2/3 rounded-full bg-emerald-400/30" />
         </div>
         <div className="artifact-code-window artifact-accent-border rounded-sm border bg-background/70 p-2 font-mono text-[10px] leading-4 text-foreground/35">
-          <div>- stream.flush()</div>
+          <div>+ stream.flush()</div>
           <div>- buffer.wait()</div>
-          <div className="text-amber-300.70">! backpressure</div>
+          <div className="text-amber-300/70">! backpressure</div>
         </div>
       </div>
     );
@@ -264,7 +264,7 @@ function ArtifactPreview({ variant }: { variant: (typeof artifactKinds)[number][
         </div>
         <div className="grid grid-cols-[1.15fr_0.85fr] gap-3">
           <div className="flex h-12 items-end gap-1.5 rounded-sm bg-foreground/[0.025] px-2 pb-2">
-            {[34, 58, 42, 72, 51, 84].map((height, index) => 
+            {[34, 58, 42, 72, 51, 84].map((height, index) => (
               <span
                 key={index}
                 className="artifact-report-bar artifact-accent-line w-full rounded-t-[2px]"
@@ -323,7 +323,7 @@ function DemoPanel() {
   return (
     <HoverLipCard
       className="rounded-[10px] border border-border p-1"
-      innerClassName="demo-video-frame overflow-hidden roundee-md border border-foreground/[0.1] bg-card"
+      innerClassName="demo-video-frame overflow-hidden rounded-md border border-foreground/[0.1] bg-card"
     >
       <div className="flex items-center gap-2 border-b border-foreground/[0.08] px-4 py-3">
         <span className="size-2 rounded-full bg-red-400/70" />
@@ -355,7 +355,7 @@ function DemoPanel() {
 export default function HomePage() {
   return (
     <main id="readme" className="marketing dark min-h-dvh overflow-hidden bg-background text-foreground">
-      <a href="#content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:zz-4 focus:rounded-sm focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground">
+      <a href="#content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-sm focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground">
         Skip to content
       </a>
       <MarketingNav />
@@ -460,7 +460,7 @@ export default function HomePage() {
 
       <SectionShell id="quotes">
         <div className="mb-8 max-w-xl space-y-2 lg:mb-10">
-          <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-xxl">The shift to HTML artifacts</h2>
+          <h2 className="font-pixel text-2xl font-normal tracking-[-0.04em] text-foreground/90 sm:text-3xl">The shift to HTML artifacts</h2>
           <p className="text-sm leading-relaxed text-foreground/45 sm:text-base">
             Chat text is giving way to outputs you can
             <br />
@@ -516,9 +516,9 @@ export default function HomePage() {
         <div className="flex flex-wrap items-center gap-4">
           <img src={logoPath} alt="Artifacts" className="size-[18px] opacity-75" />
           <Link href="/pricing" className="transition-colors hover:text-foreground/70">Pricing</Link>
-          <Link href={docsHref} target="_blank" rel="nopener noreferrer" className="transition-colors hover:text-foreground/70">Docs</Link>
+          <Link href={docsHref} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground/70">Docs</Link>
           <Link href="mailto:support@agent-artifacts.com" className="transition-colors hover:text-foreground/70">Support</Link>
-          <Link href={githubUrl} target="_blank" rel="nopener noreferrer" className="transition-colors hover:text-foreground/70">GitHub</Link>
+          <Link href={githubUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground/70">GitHub</Link>
         </div>
         <div className="font-mono">© 2026 Artifacts</div>
       </footer>

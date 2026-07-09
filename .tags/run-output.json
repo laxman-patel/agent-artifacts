@@ -1,0 +1,11 @@
+{
+  "prUrl": "https://github.com/laxman-patel/agent-artifacts/pull/13",
+  "repoUrl": "https://github.com/laxman-patel/agent-artifacts",
+  "branch": "fix/mcp-link-target",
+  "commitSha": "33a2647a4cb9a02547c264a1fbb0199ee195dfe2",
+  "demo": {
+    "kind": "terminal",
+    "command": "node .tags/verify-fix.mjs",
+    "successText": "PASS: Both MCP links fixed — open docsUrl()/surfaces/mcp in new tab"
+  }
+}

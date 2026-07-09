@@ -1,0 +1,22 @@
+{
+  "prUrl": "https://github.com/laxman-patel/agent-artifacts/pull/14",
+  "repoUrl": "https://github.com/laxman-patel/agent-artifacts",
+  "branch": "fix/mcp-landing-link",
+  "commitSha": "26b19562bf769dc7bbea415ae58f82332f4f73de",
+  "demo": {
+    "kind": "web",
+    "installCommand": "npm install && npx turbo run build --filter=...@agent-artifacts/web",
+    "skipInstall": false,
+    "startCommand": "npx turbo run dev --filter=@agent-artifacts/web",
+    "readyUrl": "http://127.0.0.1:3000",
+    "readyTimeoutMs": 90000,
+    "steps": [
+      { "type": "navigate", "url": "http://127.0.0.1:3000" },
+      { "type": "click", "selector": "#content a[href*='surfaces/mcp']" },
+      { "type": "waitForUrl", "url": "https://docs.hostartifacts.dev/surfaces/mcp" },
+      { "type": "assertUrl", "url": "https://docs.hostartifacts.dev/surfaces/mcp" },
+      { "type": "waitForText", "text": "MCP server" }
+    ],
+    "successText": "Clicking '...or connect with MCP' on the landing page opens the docs /surfaces/mcp page in a new tab"
+  }
+}

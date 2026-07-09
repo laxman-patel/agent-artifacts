@@ -79,7 +79,7 @@ const artifactKinds: {
     variant: "review",
     tone: "rose",
     title: "PR review surfaces",
-    description: "Group diffs by risk, annotate the important paths, and guide the reviewer’s attention."
+    description: "Group diffs by risk, annotate the important paths, and guide the reviewer's attention."
   },
   {
     variant: "report",
@@ -363,7 +363,7 @@ export default function HomePage() {
         <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative z-20 w-full lg:basis-[45%]">
             <h1 className="font-pixel !m-0 max-w-2xl !text-3xl !font-normal !leading-tight !tracking-tight text-foreground/95 md:!text-3xl lg:!text-[2.5rem]">
-              Give your agent’s output <br />
+              Give your agent's output <br />
               a permanent URL.
             </h1>
             <p className="mt-5 max-w-md text-[13px] leading-relaxed text-foreground/50 sm:text-sm">
@@ -372,7 +372,7 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-col items-start gap-3">
               <CommandCopyButton command={setupCommand} />
-              <Link href="/cli/login" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
+              <Link href={`${docsHref}/surfaces/mcp`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
                 ...or connect with MCP <span aria-hidden>↗</span>
               </Link>
             </div>
@@ -504,7 +504,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col items-center gap-3">
             <CommandCopyButton command={setupCommand} />
-            <Link href="/cli/login" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
+            <Link href={`${docsHref}/surfaces/mcp`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-foreground/45 underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground/75">
               ...or connect with MCP <span aria-hidden>↗</span>
             </Link>
           </div>

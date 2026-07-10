@@ -1,0 +1,32 @@
+{
+  "prUrl": "https://github.com/laxman-patel/agent-artifacts/pull/15",
+  "repoUrl": "https://github.com/laxman-patel/agent-artifacts",
+  "branch": "fix/mcp-landing-link",
+  "commitSha": "9acf112504796ab739c1c7c02ee3a35ea0aa4110",
+  "demo": {
+    "kind": "web",
+    "startCommand": "bun run dev --filter=@agent-artifacts/web",
+    "readyUrl": "http://127.0.0.1:3000",
+    "readyTimeoutMs": 90000,
+    "journeys": [
+      {
+        "name": "Hero CTA - or connect with MCP - opens docs /surfaces/mcp",
+        "steps": [
+          { "type": "navigate", "url": "http://127.0.0.1:3000" },
+          { "type": "waitForSelector", "selector": "#content a[href*='surfaces/mcp']", "timeoutMs": 10000 },
+          { "type": "click", "selector": "#content a[href*='surfaces/mcp']" },
+          { "type": "waitForText", "text": "MCP server", "timeoutMs": 20000 }
+        ]
+      },
+      {
+        "name": "Final CTA - or connect with MCP - opens docs /surfaces/mcp",
+        "steps": [
+          { "type": "navigate", "url": "http://127.0.0.1:3000" },
+          { "type": "waitForSelector", "selector": "#final-cta a[href*='surfaces/mcp']", "timeoutMs": 10000 },
+          { "type": "click", "selector": "#final-cta a[href*='surfaces/mcp']" },
+          { "type": "waitForText", "text": "MCP server", "timeoutMs": 20000 }
+        ]
+      }
+    ]
+  }
+}

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type CSSProperties } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Check, Link2, Plus } from "lucide-react";
+import { copyText } from "../../../lib/copy-text";
 import { artifactPath } from "../../../lib/paths";
 import { HoverLipCard } from "../../components/hover-lip-card";
 import type { ArtifactOwnerSummary } from "../../../lib/server-api";
@@ -46,42 +47,72 @@ function ArtifactTile({
   previewContent?: string;
 }) {
   const kind = artifactKind(artifact.type);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (resetTimer.current !== null) clearTimeout(resetTimer.current);
+    };
+  }, []);
 
   return (
-    <Link
-      href={artifactPath(artifact)}
-      style={{ "--artifact-accent": kind.accent } as CSSProperties}
-      className="artifact-card group flex flex-col rounded-[11px] focus-visible:outline-none"
-      suppressHydrationWarning
-    >
-      <HoverLipCard
-        className="rounded-[11px] border border-border p-1 transition-colors group-focus-visible:border-foreground/45"
-        innerClassName="artifact-preview relative aspect-[4/3] overflow-hidden rounded-md border"
+    <div className="relative">
+      <Link
+        href={artifactPath(artifact)}
+        style={{ "--artifact-accent": kind.accent } as CSSProperties}
+        className="artifact-card group flex flex-col rounded-[11px] focus-visible:outline-none"
+        suppressHydrationWarning
       >
-        <ArtifactThumbnail
-          artifactId={artifact.id}
-          cacheKey={`${artifact.id}:${artifact.updatedAt}`}
-          thumbnailUrl={artifact.thumbnailUrl}
-          type={artifact.type}
-          content={previewContent}
-        />
-        <div className="pointer-events-none absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-[0.3rem] border border-border bg-[var(--wb-content)]/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-foreground/70 backdrop-blur-sm">
-          <kind.Icon className="size-2.5" style={{ color: kind.accent }} aria-hidden />
-          {kind.label}
-        </div>
-      </HoverLipCard>
-      <div className="mt-2.5 min-w-0 px-1">
-        <p
-          className="truncate text-[13px] font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground"
-          suppressHydrationWarning
+        <HoverLipCard
+          className="rounded-[11px] border border-border p-1 transition-colors group-focus-visible:border-foreground/45"
+          innerClassName="artifact-preview relative aspect-[4/3] overflow-hidden rounded-md border"
         >
-          {artifact.title}
-        </p>
-        <p className="mt-1 truncate text-[11px] leading-tight text-foreground/45" suppressHydrationWarning>
-          Updated <RelativeTime iso={artifact.updatedAt} />
-        </p>
-      </div>
-    </Link>
+          <ArtifactThumbnail
+            artifactId={artifact.id}
+            cacheKey={`${artifact.id}:${artifact.updatedAt}`}
+            thumbnailUrl={artifact.thumbnailUrl}
+            type={artifact.type}
+            content={previewContent}
+          />
+          <div className="pointer-events-none absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-[0.3rem] border border-border bg-[var(--wb-content)]/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-foreground/70 backdrop-blur-sm">
+            <kind.Icon className="size-2.5" style={{ color: kind.accent }} aria-hidden />
+            {kind.label}
+          </div>
+        </HoverLipCard>
+        <div className="mt-2.5 min-w-0 px-1">
+          <p
+            className="truncate text-[13px] font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground"
+            suppressHydrationWarning
+          >
+            {artifact.title}
+          </p>
+          <p className="mt-1 truncate text-[11px] leading-tight text-foreground/45" suppressHydrationWarning>
+            Updated <RelativeTime iso={artifact.updatedAt} />
+          </p>
+        </div>
+      </Link>
+      <button
+        type="button"
+        aria-label={`Copy link to ${artifact.title}`}
+        className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-[0.3rem] border border-border bg-[var(--wb-content)]/80 px-1.5 py-0.5 font-mono text-[9px] text-foreground/70 backdrop-blur-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70 focus-visible:ring-offset-2"
+        onClick={async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const ok = await copyText(`${window.location.origin}${artifactPath(artifact)}`);
+          if (!mounted.current) return;
+          if (resetTimer.current !== null) clearTimeout(resetTimer.current);
+          setCopyStatus(ok ? "copied" : "failed");
+          resetTimer.current = setTimeout(() => setCopyStatus("idle"), 1600);
+        }}
+      >
+        {copyStatus === "copied" ? <Check className="size-2.5" aria-hidden /> : <Link2 className="size-2.5" aria-hidden />}
+        <span aria-live="polite">{copyStatus === "copied" ? "Copied!" : copyStatus === "failed" ? "Copy failed" : "Copy link"}</span>
+      </button>
+    </div>
   );
 }
 

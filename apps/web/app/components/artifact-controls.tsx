@@ -18,6 +18,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { readApiFormError, type ApiFormError } from "../../lib/api-error";
+import { copyText } from "../../lib/copy-text";
 import { FormErrorMessage } from "./form-error-message";
 
 type Version = {
@@ -447,31 +448,6 @@ export function ArtifactControls({
   async function revokeShareLink(id: string) {
     const res = await fetch(`/api/share-links/${id}/revoke`, { method: "POST", credentials: "include" });
     if (res.ok) setShareLinks((prev) => (prev ?? []).filter((link) => link.id !== id));
-  }
-
-  // Clipboard API can reject (focus loss, embedded webviews); fall back to a
-  // transient textarea so the copy action never fails silently.
-  async function copyText(text: string): Promise<boolean> {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      const node = document.createElement("textarea");
-      node.value = text;
-      node.setAttribute("readonly", "");
-      node.style.position = "fixed";
-      node.style.opacity = "0";
-      document.body.appendChild(node);
-      node.select();
-      let ok = false;
-      try {
-        ok = document.execCommand("copy");
-      } catch {
-        ok = false;
-      }
-      node.remove();
-      return ok;
-    }
   }
 
   function copyShareUrl() {

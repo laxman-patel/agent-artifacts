@@ -60,11 +60,11 @@ describe("public installer script", () => {
     expect(installer).toContain("ARTIFACTS_TTY:-/dev/tty");
     expect(installer).toContain("is_interactive()");
     expect(installer).toContain("choose_agents");
-    expect(installer).toContain("preselect_detected");
+    expect(installer).toContain("detected_slugs");
+    expect(installer).toContain("Detected agents are preselected");
     expect(installer).toContain("exec 3<\"$TTY_DEV\"");
-    expect(installer).toContain("read -r _input <&3");
-    expect(installer).toContain("toggle numbers");
-    expect(installer).toContain("enter confirm");
+    expect(installer).toContain("read -r _line <&3");
+    expect(installer).toContain('Toggle: numbers (e.g. "1 3"), "a" all, "n" none, Enter to confirm:');
     // Curated, common agents with their `skills` slugs.
     expect(installer).toContain("cursor|Cursor|");
     expect(installer).toContain("claude-code|Claude Code|");
